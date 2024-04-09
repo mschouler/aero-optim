@@ -1,0 +1,4 @@
+gmsh        # to design and visualize meshes (MESH)
+numpy       # to manipulate geometries as arrays (FFD)
+scipy       # to use quasi monte carlo samplers (FFD)
+matplotlib  # to visualize the generated deformed profiles (FFD)
