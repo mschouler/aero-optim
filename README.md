@@ -9,7 +9,7 @@ For each purpose, a specific object with associated methods were implemented in 
 The FFD and meshing features rely on separate dependencies. From you working directory, they can all be installed at once in a [virtual environment](https://docs.python.org/3/library/venv.html) with the following commands:
 ```sh
 git clone https://github.com/mschouler/aero-optim.git
-cd repo
+cd aero-optim
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
