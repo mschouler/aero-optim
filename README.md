@@ -111,7 +111,7 @@ The meshing routine then goes through the following steps:
 1. a `ChildMesh` object is instantiated from the configuration dictionary,
 2. the `build_mesh()` method is called on the instantiated object which then triggers subsequent calls:
     * `build_2dmesh()` that builds the computational domain and defines 2D meshing parameters (e.g. number of nodes, growth ratio)
-    * `split_naca()` that pre-process the geometry coordinates list
+    * `split_naca()` that pre-processes the geometry coordinates list
 3.  the mesh is finally generated, GUI options are set and outputs (e.g. meshing log, output mesh) are written.
 
 ### NACA Base
