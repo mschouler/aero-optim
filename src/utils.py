@@ -9,9 +9,9 @@ def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[floa
        where N is the number of points describing the geometry
        and (z0, ..., zN) are null or identical.
     Note:
-     | When a geometry is closed, the .dat file may contain a redundancy i.e. the last
-     | point is also the first one in the list. This can become problematic for the
-     | compressor blade case but has no effect in other cases. Such duplicates are hence removed.
+        When a geometry is closed, the .dat file may contain a redundancy i.e. the last
+        point is also the first one in the list. This can become problematic for the
+        compressor blade case but has no effect in other cases. Such duplicates are hence removed.
     """
     dat_file = [line.strip() for line in open(file, "r").read().splitlines()]
     pts = [list(map(float, line.split(" "))) for line in dat_file[header_len:]]
@@ -26,23 +26,32 @@ def check_config(config: str, file: str | None) -> tuple[dict, str]:
     """
     with open(config) as jfile:
         config_dict = json.load(jfile)
+
+    # look for upper level categories
     if "study" not in config_dict:
         raise Exception(f"ERROR -- no <study>  upper entry in {config}")
     if "domain" not in config_dict:
         raise Exception(f"ERROR -- no <domain>  upper entry in {config}")
     if "mesh" not in config_dict:
         raise Exception(f"ERROR -- no <mesh>  upper entry in {config}")
+
+    # supersede the file entry if given as argument
     if file is not None:
         print(f">> {file} supersede {config_dict['study']['file']}")
         config_dict["study"]["file"] = file
+
+    # look for mandatory entries
     if "file" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <file>  entry in {config}[study] nor in args")
     if "study_type" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <study_type> entry in {config}[study]")
+
+    # check path correctness
     if not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
-    if config_dict["study"]["study_type"] not in ["compressor", "airfoil"]:
+    if config_dict["study"]["study_type"] not in ["base", "block"]:
         raise Exception(f"ERROR -- wrong <study_type> specification in {config}[study]")
+
     return config_dict, config_dict["study"]["study_type"]
 
 

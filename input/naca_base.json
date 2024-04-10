@@ -1,0 +1,24 @@
+{
+    "study": {
+        "study_type": "base",
+        "file": "input/naca12.dat",
+        "header": 2,
+        "scale": 1,
+        "outfile": "naca_base",
+        "outdir": "output"
+    },
+    "domain": {
+        "inlet": 20,
+        "outlet": 20
+    },
+    "mesh": {
+        "nodes_inlet": 40,
+        "nodes_outlet": 40,
+        "side_nodes": 20
+    },
+    "view": {
+        "GUI": true,
+        "quality": false,
+        "nview": 1
+    }
+}

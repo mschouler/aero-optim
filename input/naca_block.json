@@ -1,0 +1,29 @@
+{
+    "study": {
+        "study_type": "block",
+        "file": "input/naca12.dat",
+        "outfile": "naca_block",
+        "outdir": "output"
+    },
+    "domain": {
+        "inlet": 20,
+        "outlet": 20,
+        "le_offset": 10,
+        "block_width": 2.5
+    },
+    "mesh": {
+        "structured": false,
+        "n_inlet": 30,
+        "n_vertical": 30,
+        "r_vertical": 1.1,
+        "n_airfoil": 30,
+        "r_airfoil": 1,
+        "n_wake": 40,
+        "r_wake": 1.05
+    },
+    "view": {
+        "GUI": true,
+        "quality": false,
+        "nview": 1
+    }
+}
