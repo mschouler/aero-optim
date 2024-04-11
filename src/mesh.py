@@ -10,7 +10,7 @@ def mesh_format2d(mesh_file: str):
     """
     Make gmsh default .mesh formatting consistent with WOLF's.
     """
-    mesh = [line for line in open(mesh_file, "r").read().splitlines()]
+    mesh = open(mesh_file, "r").read().splitlines()
 
     # fix dimension if 2d
     try:
