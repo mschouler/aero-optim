@@ -29,18 +29,22 @@ class NACABaseMesh(Mesh):
                     pt_low_inlet
 
     """
-    def __init__(self, config: dict):
-        super().__init__(config)
-        self.dinlet: float = self.config["domain"].get("inlet", 2)
-        self.doutlet: float = self.config["domain"].get("outlet", 10)
-        self.nodes_inlet: int = self.config["mesh"].get("nodes_inlet", 100)
-        self.nodes_outlet: int = self.config["mesh"].get("nodes_outlet", 100)
-        self.snodes: int = self.config["mesh"].get("side_nodes", 100)
+    def __init__(self, config: dict, datfile: str = ""):
+        super().__init__(config, datfile)
+        self.dinlet: float = self.config["gmsh"]["domain"].get("inlet", 2)
+        self.doutlet: float = self.config["gmsh"]["domain"].get("outlet", 10)
+        self.offset: int = self.config["gmsh"]["domain"].get("le_offset", 10)
+        self.nodes_inlet: int = self.config["gmsh"]["mesh"].get("nodes_inlet", 100)
+        self.nodes_outlet: int = self.config["gmsh"]["mesh"].get("nodes_outlet", 100)
+        self.snodes: int = self.config["gmsh"]["mesh"].get("side_nodes", 100)
+        self.le: int = self.config["gmsh"]["mesh"].get("le", 20)
+        self.low: int = self.config["gmsh"]["mesh"].get("low", 70)
+        self.up: int = self.config["gmsh"]["mesh"].get("up", 70)
 
     def process_config(self):
-        if "inlet" not in self.config["domain"]:
+        if "inlet" not in self.config["gmsh"]["domain"]:
             print(f"WARNING -- no <inlet> entry in {self.config}[domain]")
-        if "outlet" not in self.config["domain"]:
+        if "outlet" not in self.config["gmsh"]["domain"]:
             print(f"WARNING -- no <outlet> entry in {self.config}[domain]")
 
     def build_mesh(self):
@@ -135,16 +139,12 @@ class NACABaseMesh(Mesh):
                [gmsh.model.geo.addPoint(p[0], p[1], p[2], self.elt_size) for p in l_side] + [te_tag]
 
         # airfoil boundary
-        offset = 10
-        low = 70
-        up = 70
-        le = 20
-        spline_low = gmsh.model.geo.addSpline(pt_l[offset:], tag=1)
-        spline_le = gmsh.model.geo.addSpline(pt_u[-offset:] + pt_l[:offset + 1], tag=2)
-        spline_up = gmsh.model.geo.addSpline(pt_u[:-offset + 1], tag=3)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spline_low, low, "Progression", 1)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spline_le, le, "Bump", 2.)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spline_up, up, "Progression", 1)
+        spline_low = gmsh.model.geo.addSpline(pt_l[self.offset:], tag=1)
+        spline_le = gmsh.model.geo.addSpline(pt_u[-self.offset:] + pt_l[:self.offset + 1], tag=2)
+        spline_up = gmsh.model.geo.addSpline(pt_u[:-self.offset + 1], tag=3)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spline_low, self.low, "Progression", 1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spline_le, self.le, "Bump", 2.)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spline_up, self.up, "Progression", 1)
         naca_loop = gmsh.model.geo.addCurveLoop([spline_low, spline_le, spline_up])
 
         # boundary layer

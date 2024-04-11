@@ -8,8 +8,8 @@ class NACABlockMesh(NACABaseMesh):
     This class implements a blocking mesh routine for a naca profile based on:
     https://github.com/ComputationalDomain/CMesh_rae69ck-il
     """
-    def __init__(self, config: dict):
-        super().__init__(config)
+    def __init__(self, config: dict, datfile: str = ""):
+        super().__init__(config, datfile)
 
     def build_2dmesh(self):
         """
@@ -17,15 +17,15 @@ class NACABlockMesh(NACABaseMesh):
         """
         R = self.dinlet  # radius of the outer circle
         d_out = self.doutlet  # distance to the outlet
-        offset = self.config["domain"].get("le_offset", 10)  # offset from leading edge
-        b_width = self.config["domain"].get("block_width", 10)  # block_width
-        n_inlet = self.config["mesh"].get("n_inlet", 60)  # nbr of leading edge & inlet nodes
-        n_vertical = self.config["mesh"].get("n_vertical", 90)  # nbr of outlet & vertical nodes
-        r_vertical = self.config["mesh"].get("r_vertical", 1 / 0.95)  # outlet & vertical growth
-        n_airfoil = self.config["mesh"].get("n_airfoil", 50)  # nbr of airfoil nodes on each sides
-        r_airfoil = self.config["mesh"].get("r_airfoil", 1)  # airfoil sides growth
-        n_wake = self.config["mesh"].get("n_wake", 100)  # nbr of nodes in the wake direction
-        r_wake = self.config["mesh"].get("r_wake", 1 / 0.95)  # wake growth
+        offset = self.config["gmsh"]["domain"].get("le_offset", 10)  # offset from leading edge
+        b_width = self.config["gmsh"]["domain"].get("block_width", 10)  # block_width
+        n_inlet = self.config["gmsh"]["mesh"].get("n_inlet", 60)  # nbr of lead edge & inlet nodes
+        n_vertical = self.config["gmsh"]["mesh"].get("n_vertical", 90)  # nbr of out & verti nodes
+        r_vertical = self.config["gmsh"]["mesh"].get("r_vertical", 1 / 0.95)  # out & vert growth
+        n_airfoil = self.config["gmsh"]["mesh"].get("n_airfoil", 50)  # nbr of nodes on each sides
+        r_airfoil = self.config["gmsh"]["mesh"].get("r_airfoil", 1)  # airfoil sides growth
+        n_wake = self.config["gmsh"]["mesh"].get("n_wake", 100)  # nbr of nodes in the wake dir.
+        r_wake = self.config["gmsh"]["mesh"].get("r_wake", 1 / 0.95)  # wake growth
 
         _, self.idx_le = min((p[0], idx) for (idx, p) in enumerate(self.pts))
         _, self.idx_te = max((p[0], idx) for (idx, p) in enumerate(self.pts))

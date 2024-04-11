@@ -20,7 +20,9 @@ def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[floa
     return pts if scale == 1 else [[coord * scale for coord in p] for p in pts]
 
 
-def check_config(config: str, file: str | None) -> tuple[dict, str]:
+def check_config(
+        config: str,
+        optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str]:
     """
     Ensure the presence of all required entries in config, then return config and study type.
     """
@@ -30,26 +32,25 @@ def check_config(config: str, file: str | None) -> tuple[dict, str]:
     # look for upper level categories
     if "study" not in config_dict:
         raise Exception(f"ERROR -- no <study>  upper entry in {config}")
-    if "domain" not in config_dict:
-        raise Exception(f"ERROR -- no <domain>  upper entry in {config}")
-    if "mesh" not in config_dict:
+    if optim and "optim" not in config_dict:
+        raise Exception(f"ERROR -- no <optim>  upper entry in {config}")
+    if (optim or gmsh) and "gmsh" not in config_dict:
         raise Exception(f"ERROR -- no <mesh>  upper entry in {config}")
-
-    # supersede the file entry if given as argument
-    if file is not None:
-        print(f">> {file} supersede {config_dict['study']['file']}")
-        config_dict["study"]["file"] = file
+    if (optim or sim) and "simulator" not in config_dict:
+        raise Exception(f"ERROR -- no <simulator>  upper entry in {config}")
 
     # look for mandatory entries
-    if "file" not in config_dict["study"]:
-        raise Exception(f"ERROR -- no <file>  entry in {config}[study] nor in args")
-    if "study_type" not in config_dict["study"]:
+    if (optim or gmsh) and "study_type" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <study_type> entry in {config}[study]")
+    if (optim or gmsh) and "file" not in config_dict["study"]:
+        raise Exception(f"ERROR -- no <file>  entry in {config}[study]")
+    if "outdir" not in config_dict["study"]:
+        raise Exception(f"ERROR -- no <outdir>  entry in {config}[study]")
 
     # check path correctness
-    if not os.path.isfile(config_dict["study"]["file"]):
+    if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
-    if config_dict["study"]["study_type"] not in ["base", "block"]:
+    if (optim or gmsh) and config_dict["study"]["study_type"] not in ["base", "block"]:
         raise Exception(f"ERROR -- wrong <study_type> specification in {config}[study]")
 
     return config_dict, config_dict["study"]["study_type"]

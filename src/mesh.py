@@ -60,29 +60,29 @@ def plot_quality():
 
 
 class Mesh(ABC):
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, datfile: str = ""):
         self.config = config
         self.process_config()
         # study params
-        self.dat_file: str = config["study"]["file"]
+        self.dat_file: str = config["study"]["file"] if not datfile else datfile
         self.outdir: str = config["study"]["outdir"]
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
         self.scale: int = config["study"].get("scale", 1)
         self.header: int = config["study"].get("header", 2)
         # mesh params (boundary layer)
-        self.bl: bool = config["mesh"].get("bl", False)
-        self.bl_thickness: float = config["mesh"].get("bl_thickness", 1e-3)
-        self.bl_ratio: float = config["mesh"].get("bl_ratio", 1.1)
-        self.bl_size: float = config["mesh"].get("bl_size", 1e-5)
+        self.bl: bool = config["gmsh"]["mesh"].get("bl", False)
+        self.bl_thickness: float = config["gmsh"]["mesh"].get("bl_thickness", 1e-3)
+        self.bl_ratio: float = config["gmsh"]["mesh"].get("bl_ratio", 1.1)
+        self.bl_size: float = config["gmsh"]["mesh"].get("bl_size", 1e-5)
         # mesh params (3d extrusion)
-        self.elt_size: float = config["mesh"].get("elt_size", 5e-2)
-        self.structured: bool = config["mesh"].get("structured", False)
-        self.extrusion_layers: int = config["mesh"].get("extrusion_layers", 0)
-        self.extrusion_size: int = config["mesh"].get("extrusion_size", 0.001)
+        self.elt_size: float = config["gmsh"]["mesh"].get("elt_size", 5e-2)
+        self.structured: bool = config["gmsh"]["mesh"].get("structured", False)
+        self.extrusion_layers: int = config["gmsh"]["mesh"].get("extrusion_layers", 0)
+        self.extrusion_size: int = config["gmsh"]["mesh"].get("extrusion_size", 0.001)
         # gui options
-        self.GUI: bool = config["view"].get("GUI", True)
-        self.nview: int = config["view"].get("nview", 1)
-        self.quality: bool = config["view"].get("quality", False)
+        self.GUI: bool = config["gmsh"]["view"].get("GUI", True)
+        self.nview: int = config["gmsh"]["view"].get("nview", 1)
+        self.quality: bool = config["gmsh"]["view"].get("quality", False)
         # geometry coordinates loading
         self.pts: list[list[float]] = from_dat(self.dat_file, self.header, self.scale)
 
