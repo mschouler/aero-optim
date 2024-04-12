@@ -148,10 +148,10 @@ class NACABaseMesh(Mesh):
         x_le, y_le = self.pts[self.idx_le][:2]
         x_te, y_te = self.pts[self.idx_te][:2]
         te_tag = gmsh.model.geo.addPoint(x_te, y_te, 0.)
-        le_tag = gmsh.model.geo.addPoint(x_le, y_le, 0., self.elt_size)
-        pt_u = [te_tag] + [gmsh.model.geo.addPoint(p[0], p[1], p[2], self.elt_size) for p in u_side]
+        le_tag = gmsh.model.geo.addPoint(x_le, y_le, 0.)
+        pt_u = [te_tag] + [gmsh.model.geo.addPoint(p[0], p[1], p[2]) for p in u_side]
         pt_l = [le_tag] +\
-               [gmsh.model.geo.addPoint(p[0], p[1], p[2], self.elt_size) for p in l_side] + [te_tag]
+               [gmsh.model.geo.addPoint(p[0], p[1], p[2]) for p in l_side] + [te_tag]
 
         # airfoil boundary
         spline_low = gmsh.model.geo.addSpline(pt_l[self.offset:], tag=1)

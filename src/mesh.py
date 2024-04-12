@@ -97,7 +97,6 @@ class Mesh(ABC):
         self.bl_ratio: float = config["gmsh"]["mesh"].get("bl_ratio", 1.1)
         self.bl_size: float = config["gmsh"]["mesh"].get("bl_size", 1e-5)
         # mesh params (3d extrusion)
-        self.elt_size: float = config["gmsh"]["mesh"].get("elt_size", 5e-2)
         self.structured: bool = config["gmsh"]["mesh"].get("structured", False)
         self.extrusion_layers: int = config["gmsh"]["mesh"].get("extrusion_layers", 0)
         self.extrusion_size: int = config["gmsh"]["mesh"].get("extrusion_size", 0.001)
