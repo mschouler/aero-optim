@@ -20,14 +20,14 @@ class FFD_2D:
 
        with (P00, P30, P01, P31) fixed.
     """
-    def __init__(self, file: str, ncontrol: int, header_len: int = 2):
+    def __init__(self, dat_file: str, ncontrol: int, header: int = 2):
         """
         Instantiates the FFD_2D object.
 
         Input
-            >> file: path to input_geometry.dat.
+            >> dat_file: path to input_geometry.dat.
             >> ncontrol: the number of control points on each side of the lattice.
-            >> header_len: the number of header lines in file.
+            >> header: the number of header lines in file.
         Inner
             >> pts: the geometry coordinates in the original referential.
                pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
@@ -37,8 +37,8 @@ class FFD_2D:
             >> M: the number of control points in the y direction of each side of the lattice.
             >> lat_pts: the geometry coordinates in the lattice referential.
         """
-        self.dat_file: str = file
-        self.pts: np.ndarray = np.array(from_dat(self.dat_file, header_len))
+        self.dat_file: str = dat_file
+        self.pts: np.ndarray = np.array(from_dat(self.dat_file, header))
         self.ncontrol = ncontrol
         self.L: int = ncontrol + 1
         self.M: int = 1

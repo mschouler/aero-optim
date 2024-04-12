@@ -8,7 +8,7 @@ from .utils import from_dat, check_dir
 
 def mesh_format2d(mesh_file: str):
     """
-    Make gmsh default .mesh formatting consistent with WOLF's.
+    Makes gmsh default .mesh formatting consistent with WOLF's.
     """
     mesh = open(mesh_file, "r").read().splitlines()
 
@@ -61,10 +61,32 @@ def plot_quality():
 
 class Mesh(ABC):
     def __init__(self, config: dict, datfile: str = ""):
+        """
+        Instantiates the abstract Mesh object.
+
+        Input
+            >> config: the config file dictionary.
+            >> dat_file: path to input_geometry.dat.
+        Inner
+            >> outdir: path/to/outputdirectory
+            >> outfile: the core name of all outputed files e.g. outfile.log, outfile.mesh, etc.
+            >> scale: geometry scaling factor.
+            >> header: the number of header lines in dat_file.
+            >> bl: whether to mesh the boundary layer (True) or not (False).
+            >> bl_thickness: the BL meshing cumulated thickness.
+            >> bl_ratio: the BL meshing growth ratio.
+            >> bl_size: the BL first element size.
+            >> structured: whether to recombine triangles (True) or not (False).
+            >> extrusion_layers: the number of extrusion layers when generating a 3D mesh.
+            >> GUI: whether to launch gmsh GUI (True) or not (False).
+            >> nview: the number of sub-windows in gmsh GUI.
+            >> quality: whether to display quality metrics in gmsh GUI (True) or not (False).
+            >> pts: the geometry coordinates.
+        """
         self.config = config
         self.process_config()
         # study params
-        self.dat_file: str = config["study"]["file"] if not datfile else datfile
+        self.dat_file: str = datfile if datfile else config["study"]["file"]
         self.outdir: str = config["study"]["outdir"]
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
         self.scale: int = config["study"].get("scale", 1)
@@ -88,7 +110,7 @@ class Mesh(ABC):
 
     def get_nlayer(self) -> int:
         """
-        Return the number of layers required to reach bl_thickness given the growth bl_ratio
+        Returns the number of layers required to reach bl_thickness given the growth bl_ratio
         and the first element size bl_size.
         """
         return math.ceil(
@@ -96,34 +118,47 @@ class Mesh(ABC):
             / math.log(self.bl_ratio) - 1
         )
 
-    def write_outputs(self):
+    def write_mesh(self, mesh_dir: str = "") -> str:
         """
-        Write output files: <file>.geo_unrolled, <file>.log, <file>.mesh.
+        Writes all output files: <file>.geo_unrolled, <file>.log, <file>.mesh and
+        returns the mesh filename.
+        >> mesh_dir: the name of the directory where all gmsh generated files are saved.
+        >> self.outfile: the core name of the outputed files e.g. outfile.log,
+           outfile.mesh, etc.
         """
-        check_dir(self.outdir)
-        print(f">> writing {self.outfile}.geo_unrolled to {self.outdir}")
-        gmsh.write(os.path.join(self.outdir, self.outfile + ".geo_unrolled"))
-        print(f">> writing {self.outfile}.mesh to {self.outdir}")
-        gmsh.write(os.path.join(self.outdir, self.outfile + ".mesh"))
+        mesh_dir = self.outdir if not mesh_dir else mesh_dir
+        check_dir(mesh_dir)
+        # .geo
+        print(f">> writing {self.outfile}.geo_unrolled to {mesh_dir}")
+        gmsh.write(os.path.join(mesh_dir, self.outfile + ".geo_unrolled"))
+        # .mesh
+        print(f">> writing {self.outfile}.mesh to {mesh_dir}")
+        gmsh.write(os.path.join(mesh_dir, self.outfile + ".mesh"))
+        # 2D formatting
         if self.extrusion_layers == 0:
             print(f">> 2d formatting of {self.outfile}.mesh")
-            mesh_format2d(os.path.join(self.outdir, self.outfile + ".mesh"))
+            mesh_format2d(os.path.join(mesh_dir, self.outfile + ".mesh"))
+        # .log
         log = gmsh.logger.get()
-        log_file = open(os.path.join(self.outdir, self.outfile + ".log"), "w")
-        print(f">> writing {self.outfile}.log to {self.outdir}")
+        log_file = open(os.path.join(mesh_dir, self.outfile + ".log"), "w")
+        print(f">> writing {self.outfile}.log to {mesh_dir}")
         log_file.write("\n".join(log))
+        # print summary
         summary = [line for line in log if "nodes" in line and "elements" in line][-1][6:]
         print(f">> GMSH summary: {summary}")
+        # close gmsh
         gmsh.logger.stop()
+        gmsh.finalize()
+        return os.path.join(mesh_dir, self.outfile + ".mesh")
 
     @abstractmethod
     def process_config(self):
         """
-        Make sure the config file contains the required information and extract it.
+        Makes sure the config file contains the required information.
         """
 
     @abstractmethod
     def build_mesh(self):
         """
-        Define the gmsh routine.
+        Defines the gmsh routine.
         """
