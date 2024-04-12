@@ -22,7 +22,20 @@ class FFD_2D:
     """
     def __init__(self, file: str, ncontrol: int, header_len: int = 2):
         """
-        Instantiate the FFD_2D object.
+        Instantiates the FFD_2D object.
+
+        Input
+            >> file: path to input_geometry.dat.
+            >> ncontrol: the number of control points on each side of the lattice.
+            >> header_len: the number of header lines in file.
+        Inner
+            >> pts: the geometry coordinates in the original referential.
+               pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
+               where N is the number of points describing the geometry
+               and (z0, ..., zN) are null or identical.
+            >> L: the number of control points in the x direction of each side of the lattice.
+            >> M: the number of control points in the y direction of each side of the lattice.
+            >> lat_pts: the geometry coordinates in the lattice referential.
         """
         self.dat_file: str = file
         self.pts: np.ndarray = np.array(from_dat(self.dat_file, header_len))
@@ -34,7 +47,7 @@ class FFD_2D:
 
     def build_lattice(self):
         """
-        Build a rectangle lattice with x1 as its origin.
+        Builds a rectangle lattice with x1 as its origin.
         """
         epsilon = 0.
         self.min_x = np.min(self.pts, axis=0)[0] - epsilon
@@ -45,7 +58,8 @@ class FFD_2D:
 
     def to_lat(self, pts: np.ndarray) -> np.ndarray:
         """
-        Project original coordinates in the lattice referential.
+        Returns the coordinates projected in the lattices referential
+        >> pts: the geometry coordinates in the original referential.
         """
         if len(pts.shape) == 1:
             return np.array([(pts[0] - self.min_x) / (self.max_x - self.min_x),
@@ -55,7 +69,7 @@ class FFD_2D:
 
     def from_lat(self, pts: np.ndarray) -> np.ndarray:
         """
-        Project lattice coordinates back in the original referential.
+        Projects lattice coordinates back in the original referential.
         """
         if len(pts.shape) == 1:
             return np.array([pts[0] * (self.max_x - self.min_x) + self.min_x,
@@ -65,26 +79,28 @@ class FFD_2D:
 
     def dPij(self, i: int, j: int, Delta: np.ndarray) -> np.ndarray:
         """
-        Return y-oriented displacement coordinates dPij from a 1D array Delta.
+        Returns y-oriented displacement coordinates dPij from a 1D array Delta.
         """
         return np.array([0., Delta[i + j * (self.L + 1)]])
 
     def pad_Delta(self, Delta: np.ndarray) -> np.ndarray:
         """
-        Turn Delta of length [2 * ncontrol] into an array of length [2 * ncontrol + 4].
-        >> Delta = [0, dP10, dP20, ..., dP{nc}0, 0, 0, dP11, dP21, ..., dP{nc}1, 0]
-           with nc = ncontrol.
+        Returns padded Delta = [0, dP10, dP20, ..., dP{nc}0, 0, 0, dP11, dP21, ..., dP{nc}1, 0]
+        with nc = ncontrol.
+        >> Delta: the non-padded deformation vector.
         """
         return np.concatenate((np.pad(Delta[:self.ncontrol], (1, 1)),
                                np.pad(Delta[self.ncontrol:], (1, 1))))
 
     def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
         """
-        Generate a new naca profile resulting from a perturbation Delta.
-        >> Delta = [dP10, dP20, ..., dP{nc}0, dP11, dP21, ..., dP{nc}1]
+        Generates and returns a new naca profile resulting from a perturbation Delta
+        in the original referential.
+        >> Delta the deformation vector
+           i.e. Delta = [dP10, dP20, ..., dP{nc}0, dP11, dP21, ..., dP{nc}1]
            with nc = ncontrol.
         """
-        assert len(Delta) == 2 * self.ncontrol
+        assert len(Delta) == 2 * self.ncontrol, f"len(Delta) {len(Delta)} != {2 * self.ncontrol}"
         Delta = self.pad_Delta(Delta)
         new_profile = []
         for x in self.lat_pts:
@@ -97,12 +113,17 @@ class FFD_2D:
             new_profile.append([x_new])
         return self.from_lat(np.reshape(new_profile, (-1, 2)))
 
-    def write_ffd(self, profile: np.ndarray, Delta: np.ndarray, pid: int, outdir: str):
+    def write_ffd(self, profile: np.ndarray, Delta: np.ndarray, outdir: str,
+                  gid: int = 0, cid: int = 0) -> str:
         """
-        Write the deformed geometry to file.
+        Writes the deformed geometry to file and returns /path/to/outdir/outfile/outfile.
+        >> profile: the deformed geometry coordinates to be written to outfile.
+        >> outdir: the output directory (it is to be combined with outfile).
+        >> outfile: the name of the outputed geometry (<geom>.dat).
         """
-        outfile = f"{self.dat_file.split('/')[-1][:-4]}_{pid}.dat"
+        outfile = f"{self.dat_file.split('/')[-1][:-4]}_g{gid}_c{cid}.dat"
         check_dir(outdir)
-        print(f">> write profile #{pid} as {outfile} to {outdir}")
+        print(f">> write profile g{gid} c{cid} as {outfile} to {outdir}")
         np.savetxt(os.path.join(outdir, outfile), profile,
                    header=f"Deformed profile {outfile}\nDelta={[d for d in Delta]}")
+        return os.path.join(outdir, outfile)
