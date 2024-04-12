@@ -160,7 +160,7 @@ class WolfSimulator(Simulator):
 
     def post_process(self, dict_id: dict) -> pd.DataFrame:
         """
-        Post-process the results of a terminated simulation.
+        Post-processes the results of a terminated simulation.
         Returns the extracted results in a DataFrame.
         """
         sim_out_dir = self.get_sim_outdir(dict_id["generation"], dict_id["candidate"])
