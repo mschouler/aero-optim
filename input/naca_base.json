@@ -31,6 +31,10 @@
             "InFlow": {"inplace": false, "param": ["1", "4"]},
             "OutFlow": {"inplace": false, "param": ["3", "5 6 7"]}
         },
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"]
+        },
         "exec_cmd": "/Users/Marc/bin/wolf -in @.mesh"
     }
 }
