@@ -14,12 +14,16 @@ class Simulator(ABC):
     def __init__(self, config: dict):
         """
         Instantiates the Simulator object.
-        >> cwd: the working directory.
-        >> outdir: the output directory where the simulation results folder will be stored.
-        >> ref_input: a simulation input file template.
-        >> sim_args: arguments to modify to customize ref_input.
-        >> post_process_args: quantities to extract from result files.
-        >> def_list: list of dataframe containinf the extracted quantities of all simulation.
+
+        Input
+            >> config: the config file dictionary.
+        Inner
+            >> cwd: the working directory.
+            >> outdir: the output directory where the simulation results folder will be stored.
+            >> ref_input: a simulation input file template.
+            >> sim_args: arguments to modify to customize ref_input.
+            >> post_process_args: quantities to extract from result files.
+            >> def_list: list of dataframe containinf the extracted quantities of all simulation.
         """
         self.cwd: str = os.getcwd()
         self.config = config
@@ -77,8 +81,10 @@ class WolfSimulator(Simulator):
     def __init__(self, config: dict):
         """
         Instantiates the WolfSimulator object.
-        >> wolf_pro: list to track simulations and their associated subprocess.
-           It has the following form ({'generation': gid, 'candidate': cid}, subprocess).
+
+        Inner
+            >> wolf_pro: list to track simulations and their associated subprocess.
+               It has the following form ({'generation': gid, 'candidate': cid}, subprocess).
         """
         super().__init__(config)
         self.wolf_pro: list[tuple[dict, subprocess.Popen[str]]] = []
