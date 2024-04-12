@@ -11,7 +11,7 @@ class Simulator(ABC):
     This class implements a basic Simulator.
     """
     def __init__(self, config: dict, meshfile: str = ""):
-        self.cwd = os.getcwd()
+        self.cwd: str = os.getcwd()
         self.config = config
         self.process_config()
         # study params
