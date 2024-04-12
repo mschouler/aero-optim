@@ -5,6 +5,13 @@
         "outfile": "naca_base",
         "outdir": "output"
     },
+    "optim": {
+        "n_design": 2,
+        "doe_size": 1,
+        "max_generations": 1,
+        "budget": 1,
+        "nproc_per_sim": 1
+    },
     "gmsh": {
         "domain": {
             "inlet": 20,

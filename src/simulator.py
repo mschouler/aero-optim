@@ -106,7 +106,7 @@ class WolfSimulator(Simulator):
         """
         Returns the path to the folder containing the simulation results.
         """
-        return os.path.join(self.outdir, f"wolf_g{gid}_c{cid}")
+        return os.path.join(self.outdir, "WOLF", f"wolf_g{gid}_c{cid}")
 
     def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0):
         """
