@@ -4,8 +4,10 @@ import os.path
 
 def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[float]]:
     """
-    Return the cleaned list of data points.
-    >> pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
+    Returns the cleaned list of data points.
+    >> dat_fil: path to input_geometry.dat.
+    >> pts:  the geometry coordinates in the original referential.
+       pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
        where N is the number of points describing the geometry
        and (z0, ..., zN) are null or identical.
     Note:
@@ -24,7 +26,7 @@ def check_config(
         config: str,
         optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str]:
     """
-    Ensure the presence of all required entries in config, then return config and study type.
+    Ensures the presence of all required entries in config, then return config and study type.
     """
     with open(config) as jfile:
         config_dict = json.load(jfile)
@@ -58,7 +60,7 @@ def check_config(
 
 def check_file(filename: str):
     """
-    Make sure an existing file was given.
+    Makes sure an existing file was given.
     """
     if not os.path.isfile(filename):
         raise Exception(f"ERROR -- <{filename}> could not be found")
@@ -66,7 +68,7 @@ def check_file(filename: str):
 
 def check_dir(dirname: str):
     """
-    Make sure the directory exists and create one if not.
+    Makes sure the directory exists and create one if not.
     """
     if not os.path.isdir(dirname):
         os.makedirs(dirname)
