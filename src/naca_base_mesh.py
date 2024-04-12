@@ -30,6 +30,20 @@ class NACABaseMesh(Mesh):
 
     """
     def __init__(self, config: dict, datfile: str = ""):
+        """
+        Instantiates the NACABaseMesh object.
+
+        Inner
+            >> dinlet: the radius of the inlet semi-circle.
+            >> doutlet: the distance between the airfoil trailing edge and the outlet.
+            >> offset: the leading edge portion defined in number of points from the leading edge.
+            >> nodes_inlet: the number of nodes to mesh the inlet.
+            >> nodes_outlet: the number of nodes to mesh the outlet.
+            >> snodes: the number of nodes to mesh the top and bottom sides.
+            >> le: the number of nodes to mesh the airfoil leading edge portion.
+            >> low: the number of nodes to mesh the airfoil trailing edge lower portion.
+            >> up: the number of nodes to mesh the airfoil trailing edge upper portion.
+        """
         super().__init__(config, datfile)
         self.dinlet: float = self.config["gmsh"]["domain"].get("inlet", 2)
         self.doutlet: float = self.config["gmsh"]["domain"].get("outlet", 10)
@@ -43,11 +57,14 @@ class NACABaseMesh(Mesh):
 
     def process_config(self):
         if "inlet" not in self.config["gmsh"]["domain"]:
-            print(f"WARNING -- no <inlet> entry in {self.config}[domain]")
+            print(f"WARNING -- no <inlet> entry in {self.config['gmsh']['domain']}")
         if "outlet" not in self.config["gmsh"]["domain"]:
-            print(f"WARNING -- no <outlet> entry in {self.config}[domain]")
+            print(f"WARNING -- no <outlet> entry in {self.config['gmsh']['domain']}")
 
     def build_mesh(self):
+        """
+        Defines the gmsh routine.
+        """
         gmsh.initialize()
         gmsh.option.setNumber('General.Terminal', 0)
         gmsh.logger.start()
@@ -79,14 +96,12 @@ class NACABaseMesh(Mesh):
         split_view(self.nview) if self.nview > 1 else 0
 
         # output
-        gmsh.fltk.run() if self.GUI else 0
-        self.write_outputs()
-        gmsh.logger.stop()
-        gmsh.finalize()
+        if self.GUI:
+            gmsh.fltk.run()
 
     def split_naca(self) -> tuple[list[list[float]], list[list[float]]]:
         """
-        Return the upper and lower parts of the airfoil as ordered lists (wrt the x axis).
+        Returns the upper and lower parts of the airfoil as ordered lists (wrt the x axis).
         Note:
             The trailing and leading edges are voluntarily excluded from both parts
             since the geometry is closed and these points must each have a unique tag.
@@ -108,7 +123,7 @@ class NACABaseMesh(Mesh):
 
     def build_bl(self, naca_tag: list[int], te_tag: int):
         """
-        Build the boundary layer around the blade part.
+        Builds the boundary layer around the blade part.
         """
         self.f = gmsh.model.mesh.field.add('BoundaryLayer')
         gmsh.model.mesh.field.setNumbers(self.f, 'CurvesList', naca_tag)
@@ -123,7 +138,7 @@ class NACABaseMesh(Mesh):
 
     def build_2dmesh(self):
         """
-        Build the surface mesh of the computational domain.
+        Builds the surface mesh of the computational domain.
         """
         _, self.idx_le = min((p[0], idx) for (idx, p) in enumerate(self.pts))
         _, self.idx_te = max((p[0], idx) for (idx, p) in enumerate(self.pts))

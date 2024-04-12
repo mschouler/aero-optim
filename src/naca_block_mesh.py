@@ -9,11 +9,14 @@ class NACABlockMesh(NACABaseMesh):
     https://github.com/ComputationalDomain/CMesh_rae69ck-il
     """
     def __init__(self, config: dict, datfile: str = ""):
+        """
+        Instantiates the BlockMesh object.
+        """
         super().__init__(config, datfile)
 
     def build_2dmesh(self):
         """
-        Build the surface mesh of the computational domain.
+        Builds the surface mesh of the computational domain.
         """
         R = self.dinlet  # radius of the outer circle
         d_out = self.doutlet  # distance to the outlet

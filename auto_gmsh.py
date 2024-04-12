@@ -32,3 +32,4 @@ if __name__ == "__main__":
 
     if gmsh_mesh:
         gmsh_mesh.build_mesh()
+        file_name = gmsh_mesh.write_mesh()
