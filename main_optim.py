@@ -55,6 +55,7 @@ if __name__ == '__main__':
                               maximize=False)
         best = max(final_pop)
         print('Best Solution: \n{0}'.format(str(best)))
+
     except Exception as e:
-        print(f"ERROR -- something went wrong in the optimization loop which raised Exception {e}")
+        print(f"ERROR -- something went wrong in the optimization loop which raised Exception: {e}")
         opt.simulator.kill_all()  # kill all remaining processes

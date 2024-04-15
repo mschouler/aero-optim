@@ -34,7 +34,7 @@ class Optimizer(ABC):
             >> outdir: highest level optimization output directory.
 
             Note: the result folder tree is structured as follows:
-            outputdir
+            outdir
             |__ FFD (contains <geom>_gXX_cYY.dat)
             |__ MESH (contains <geom>_gXX_cYY.mesh, .log, .geo_unrolled)
             |__ WOLF
