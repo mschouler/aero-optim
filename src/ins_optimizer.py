@@ -37,7 +37,7 @@ class Optimizer(ABC):
             |__ FFD (contains <geom>_gXX_cYY.dat)
             |__ MESH (contains <geom>_gXX_cYY.mesh, .log, .geo_unrolled)
             |__ WOLF
-                |__ wolf_gXX_cYY (contains the results of each simulation)  
+                |__ wolf_gXX_cYY (contains the results of each simulation)
 
             >> study_type: use-case/meshing routine.
             >> budget: maximum number of concurrent proc in use.
