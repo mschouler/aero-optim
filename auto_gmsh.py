@@ -1,8 +1,13 @@
 import argparse
+import logging
+import sys
 
 from src.utils import check_file, check_config
 from src.naca_base_mesh import NACABaseMesh
 from src.naca_block_mesh import NACABlockMesh
+
+logger = logging.getLogger()
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 if __name__ == "__main__":
@@ -19,8 +24,8 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", type=str, help="config: --config=/path/to/config.json")
     parser.add_argument("-f", "--file", type=str,
                         help="input dat file: --file=/path/to/file.dat", default="")
-
     args = parser.parse_args()
+
     check_file(args.config)
     config, study_type = check_config(args.config, gmsh=True)
 
