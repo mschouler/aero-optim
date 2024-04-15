@@ -60,6 +60,9 @@ def plot_quality():
 
 
 class Mesh(ABC):
+    """
+    This class implements a basic Simulator class.
+    """
     def __init__(self, config: dict, datfile: str = ""):
         """
         Instantiates the abstract Mesh object.
