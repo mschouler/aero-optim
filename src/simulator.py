@@ -192,4 +192,5 @@ class WolfSimulator(Simulator):
         """
         Kills all active processes.
         """
+        print(f">> {len(self.wolf_pro)} remaining simulations will be killed")
         _ = [subpro.terminate() for _, subpro in self.wolf_pro]
