@@ -4,6 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from inspyred.ec import Individual
 from random import Random
+import signal
 import time
 
 from .ffd import FFD_2D
@@ -166,10 +167,13 @@ class WolfOptimizer(Optimizer):
         # execute all candidates
         for cid, cand in enumerate(candidates):
             ffd_file = self.deform(cand, gid, cid)
+            # meshing with proper sigint management
+            # see https://gitlab.onelab.info/gmsh/gmsh/-/issues/842
+            ORIGINAL_SIGINT_HANDLER = signal.signal(signal.SIGINT, signal.SIG_DFL)
             mesh_file = self.mesh(ffd_file)
+            signal.signal(signal.SIGINT, ORIGINAL_SIGINT_HANDLER)
             while self.simulator.monitor_sim_progress() * self.nproc_per_sim >= self.budget:
                 time.sleep(1)
-            raise Exception("DEBUG")
             self.simulator.execute_sim(meshfile=mesh_file, gid=gid, cid=cid)
         # wait for last candidates
         while self.simulator.monitor_sim_progress() > 0:

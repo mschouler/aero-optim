@@ -1,8 +1,21 @@
 import argparse
 import inspyred
+import signal
 
 from src.ins_optimizer import WolfOptimizer
 from src.utils import check_file, check_config
+from types import FrameType
+
+signals = [signal.SIGINT, signal.SIGPIPE, signal.SIGTERM]
+
+
+def handle_signal(signo: int, frame: FrameType | None):
+    """
+    Raises exception in case of interruption signal.
+    """
+    signame = signal.Signals(signo).name
+    print(f">> clean handling of {signame} signal")
+    raise Exception("Program interruption")
 
 
 def my_observer(population, num_generations, num_evaluations, args):
@@ -25,10 +38,13 @@ if __name__ == '__main__':
 
     opt = WolfOptimizer(config)
 
-    problem = inspyred.benchmarks.Rastrigin(opt.n_design)
     ea = inspyred.ec.ES(opt.prng)
     ea.observer = my_observer
     ea.terminator = inspyred.ec.terminators.generation_termination
+
+    # signal interruption management
+    for s in signals:
+        signal.signal(s, handle_signal)
 
     try:
         final_pop = ea.evolve(generator=opt.generator.custom_generator,
