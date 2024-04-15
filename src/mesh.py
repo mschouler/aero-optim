@@ -1,9 +1,12 @@
 import gmsh
+import logging
 import math
 import os
 
 from abc import ABC, abstractmethod
 from .utils import from_dat, check_dir
+
+logger = logging.getLogger(__name__)
 
 
 def mesh_format2d(mesh_file: str):
@@ -131,23 +134,23 @@ class Mesh(ABC):
         mesh_dir = self.outdir if not mesh_dir else mesh_dir
         check_dir(mesh_dir)
         # .geo
-        print(f">> writing {self.outfile}.geo_unrolled to {mesh_dir}")
+        logger.info(f"writing {self.outfile}.geo_unrolled to {mesh_dir}")
         gmsh.write(os.path.join(mesh_dir, self.outfile + ".geo_unrolled"))
         # .mesh
-        print(f">> writing {self.outfile}.mesh to {mesh_dir}")
+        logger.info(f"writing {self.outfile}.mesh to {mesh_dir}")
         gmsh.write(os.path.join(mesh_dir, self.outfile + ".mesh"))
         # 2D formatting
         if self.extrusion_layers == 0:
-            print(f">> 2d formatting of {self.outfile}.mesh")
+            logger.info(f"2d formatting of {self.outfile}.mesh")
             mesh_format2d(os.path.join(mesh_dir, self.outfile + ".mesh"))
         # .log
         log = gmsh.logger.get()
         log_file = open(os.path.join(mesh_dir, self.outfile + ".log"), "w")
-        print(f">> writing {self.outfile}.log to {mesh_dir}")
+        logger.info(f"writing {self.outfile}.log to {mesh_dir}")
         log_file.write("\n".join(log))
         # print summary
         summary = [line for line in log if "nodes" in line and "elements" in line][-1][6:]
-        print(f">> GMSH summary: {summary}")
+        logger.info(f"GMSH summary: {summary}")
         # close gmsh
         gmsh.logger.stop()
         gmsh.finalize()

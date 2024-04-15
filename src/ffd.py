@@ -1,8 +1,11 @@
+import logging
 import math
 import numpy as np
 import os
 
 from .utils import from_dat, check_dir
+
+logger = logging.getLogger(__name__)
 
 
 class FFD_2D:
@@ -123,7 +126,7 @@ class FFD_2D:
         """
         outfile = f"{self.dat_file.split('/')[-1][:-4]}_g{gid}_c{cid}.dat"
         check_dir(outdir)
-        print(f">> write profile g{gid} c{cid} as {outfile} to {outdir}")
+        logger.info(f"write profile g{gid} c{cid} as {outfile} to {outdir}")
         np.savetxt(os.path.join(outdir, outfile), profile,
                    header=f"Deformed profile {outfile}\nDelta={[d for d in Delta]}")
         return os.path.join(outdir, outfile)

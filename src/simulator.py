@@ -1,3 +1,4 @@
+import logging
 import os
 import pandas as pd
 import shutil
@@ -5,6 +6,8 @@ import subprocess
 
 from abc import ABC, abstractmethod
 from .utils import check_dir
+
+logger = logging.getLogger(__name__)
 
 
 class Simulator(ABC):
@@ -48,18 +51,18 @@ class Simulator(ABC):
             # in place substitution
             # {"keyword": {{"inplace": true}, {'param': [param]}}}
             if value["inplace"]:
-                print(f">> {key}: replace {ref_output[idx]} by {value['param'][0]}")
+                logger.info(f"{key}: replace {ref_output[idx]} by {value['param'][0]}")
                 ref_output[idx] = value['param'][0]
             # multiline substitution
             # {"keyword": {{"inplace": false}, {'param': [param0, param1, param..]}}}
             else:
                 for ii, param in enumerate(value['param']):
-                    print(f">> {key}: replace {ref_output[idx + 1 + ii]} by {param}")
+                    logger.info(f"{key}: replace {ref_output[idx + 1 + ii]} by {param}")
                     ref_output[idx + 1 + ii] = param
 
         with open(fname, 'w') as ftw:
             ftw.write("\n".join(ref_output))
-            print(f">> input file saved to {fname}")
+            logger.info(f"input file saved to {fname}")
 
     @abstractmethod
     def process_config(self):
@@ -93,14 +96,15 @@ class WolfSimulator(Simulator):
         """
         Makes sure the config file contains the required information and extract it.
         """
+        logger.info("process config..")
         if "exec_cmd" not in self.config["simulator"]:
             raise Exception(f"ERROR -- no <exec_cmd> entry in {self.config['simulator']}")
         if "ref_input" not in self.config["simulator"]:
             raise Exception(f"ERROR -- no <ref_input> entry in {self.config['simulator']}")
         if "sim_args" not in self.config["simulator"]:
-            print(f"WARNING -- no <sim_args> entry in {self.config['simulator']}")
+            logger.warning(f"no <sim_args> entry in {self.config['simulator']}")
         if "post_process" not in self.config["simulator"]:
-            print(f"WARNING -- no <post_process> entry in {self.config['simulator']}")
+            logger.warning(f"no <post_process> entry in {self.config['simulator']}")
 
     def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
         """
@@ -124,7 +128,7 @@ class WolfSimulator(Simulator):
         self.custom_input(os.path.join(sim_outdir, f"{meshfile[:-5]}.wolf"))
         # copy meshfile to the output directory
         shutil.copy(os.path.join(path_to_meshfile, meshfile), sim_outdir)
-        print(f">> {os.path.join(path_to_meshfile, meshfile)} copied to {sim_outdir}")
+        logger.info(f"{os.path.join(path_to_meshfile, meshfile)} copied to {sim_outdir}")
         # update the execution command with the right mesh file
         exec_cmd = self.exec_cmd.copy()
         idx = self.exec_cmd.index("@.mesh")
@@ -134,7 +138,7 @@ class WolfSimulator(Simulator):
         os.chdir(sim_outdir)
         with open(f"wolf_g{gid}_c{cid}.out", "wb") as out:
             with open(f"wolf_g{gid}_c{cid}.err", "wb") as err:
-                print(f">> execute simulation g{gid} c{cid} with Wolf")
+                logger.info(f"execute simulation g{gid} c{cid} with Wolf")
                 proc = subprocess.Popen(exec_cmd,
                                         env=os.environ,
                                         stdin=subprocess.DEVNULL,
@@ -155,7 +159,7 @@ class WolfSimulator(Simulator):
             if returncode is None:
                 pass  # simulation still running
             elif returncode == 0:
-                print(f">> simulation {dict_id} finished")
+                logger.info(f"simulation {dict_id} finished")
                 finished_sim.append(id)
                 self.df_list.append(self.post_process(dict_id))
                 break
@@ -181,16 +185,18 @@ class WolfSimulator(Simulator):
                     qty_list.append([float(line.split()[idx]) for line in file[1:]])
                     head_list.append(qty)
                 except Exception as e:
-                    print(f"WARNING -- could not read {qty} in {headers}")
-                    print(f"WARNING -- exception {e} was raised")
+                    logger.warning(f"could not read {qty} in {headers}")
+                    logger.warning(f"exception {e} was raised")
         df = pd.DataFrame({head_list[i]: qty_list[i] for i in range(len(qty_list))})
-        print(f">> g{dict_id['generation']}, c{dict_id['candidate']} converged in {len(df)} it.")
-        print(f">> last five values: {df.tail(n=5).to_string(index=False)}")
+        logger.info(
+            f"g{dict_id['generation']}, c{dict_id['candidate']} converged in {len(df)} it."
+        )
+        logger.info(f"last five values: {df.tail(n=5).to_string(index=False)}")
         return df
 
     def kill_all(self):
         """
         Kills all active processes.
         """
-        print(f">> {len(self.wolf_pro)} remaining simulations will be killed")
+        logger.info(f"{len(self.wolf_pro)} remaining simulation(s) will be killed")
         _ = [subpro.terminate() for _, subpro in self.wolf_pro]

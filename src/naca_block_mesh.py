@@ -1,6 +1,9 @@
 import gmsh
+import logging
 
 from .naca_base_mesh import NACABaseMesh
+
+logger = logging.getLogger(__name__)
 
 
 class NACABlockMesh(NACABaseMesh):
@@ -109,10 +112,10 @@ class NACABlockMesh(NACABaseMesh):
         self.surf_tag = [surf_1, surf_2, surf_3, -surf_5, -surf_4]
         gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=100)
         gmsh.model.geo.addPhysicalGroup(1, [circle_4, line_7, line_8], tag=10)
-        print(f">> BC: Inlet tags are {[circle_4, line_7, line_8]}")
+        logger.info(f"BC: Inlet tags are {[circle_4, line_7, line_8]}")
         gmsh.model.geo.addPhysicalGroup(1, [line_11, line_12], tag=20)
-        print(f">> BC: Outlet tags are {[line_11, line_12]}")
+        logger.info(f"BC: Outlet tags are {[line_11, line_12]}")
         gmsh.model.geo.addPhysicalGroup(1, [line_9, line_10], tag=40)
-        print(f">> BC: Side tags are {[line_9, line_10]}")
+        logger.info(f"BC: Side tags are {[line_9, line_10]}")
         gmsh.model.geo.addPhysicalGroup(1, [spline_up, spline_le, spline_low], tag=30)
-        print(f">> BC: Wall tags are {[spline_up, spline_le, spline_low]}")
+        logger.info(f"BC: Wall tags are {[spline_up, spline_le, spline_low]}")

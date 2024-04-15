@@ -1,5 +1,8 @@
 import json
+import logging
 import os.path
+
+logger = logging.getLogger(__name__)
 
 
 def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[float]]:
@@ -30,6 +33,7 @@ def check_config(
     """
     with open(config) as jfile:
         config_dict = json.load(jfile)
+    logger.info("general check config..")
 
     # look for upper level categories
     if "study" not in config_dict:
@@ -72,4 +76,32 @@ def check_dir(dirname: str):
     """
     if not os.path.isdir(dirname):
         os.makedirs(dirname)
-        print(f">> created {dirname} repository")
+        logger.info(f"created {dirname} repository")
+
+
+def configure_logger(logger: logging.Logger, log_filename: str, log_level: int = logging.INFO):
+    """
+    Configures logger.
+    """
+    logger.setLevel(log_level)
+    file_handler = logging.FileHandler(log_filename, mode="w")
+    formatter = logging.Formatter('%(asctime)s : %(name)s : %(levelname)s : %(message)s')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+
+def get_log_level_from_verbosity(verbosity: int) -> int:
+    """
+    Logger level setting taken from:
+    https://gitlab.inria.fr/melissa/melissa/-/blob/develop/melissa/utility/logger.py
+    """
+    if verbosity >= 3:
+        return logging.DEBUG
+    elif verbosity == 2:
+        return logging.INFO
+    elif verbosity == 1:
+        return logging.WARNING
+    elif verbosity == 0:
+        return logging.ERROR
+    else:
+        return logging.DEBUG

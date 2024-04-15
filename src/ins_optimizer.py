@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import os
 
@@ -13,6 +14,8 @@ from .naca_base_mesh import NACABaseMesh
 from .naca_block_mesh import NACABlockMesh
 from .simulator import WolfSimulator
 from .utils import check_dir
+
+logger = logging.getLogger(__name__)
 
 
 class Optimizer(ABC):
@@ -86,6 +89,7 @@ class Optimizer(ABC):
         """
         Makes sure the config file contains the required information.
         """
+        logger.info("process config..")
         if "n_design" not in self.config["optim"]:
             raise Exception(f"ERROR -- no <n_design> entry in {self.config['optim']}")
         if "doe_size" not in self.config["optim"]:
@@ -94,26 +98,24 @@ class Optimizer(ABC):
             raise Exception(f"ERROR -- no <max_generations> entry in {self.config['optim']}")
         if "file" not in self.config["study"]:
             raise Exception(f"ERROR -- no <file> entry in {self.config['study']}")
-        if "outdir" not in self.config["study"]:
-            raise Exception(f"ERROR -- no <outdir> entry in {self.config['study']}")
-        if "study_type" not in self.config["study"]:
-            raise Exception(f"ERROR -- no <study_type> entry in {self.config['study']}")
         if "budget" not in self.config["optim"]:
-            print(f"WARNING -- no <budget> entry in {self.config['optim']}")
+            logger.warning(f"no <budget> entry in {self.config['optim']}")
         if "nproc_per_sim" not in self.config["optim"]:
-            print(f"WARNING -- no <nproc_per_sim> entry in {self.config['optim']}")
+            logger.warning(f"no <nproc_per_sim> entry in {self.config['optim']}")
         if "bound" not in self.config["optim"]:
-            print(f"WARNING -- no <bound> entry in {self.config['optim']}")
+            logger.warning(f"no <bound> entry in {self.config['optim']}")
         if "sampler_name" not in self.config["optim"]:
-            print(f"WARNING -- no <sampler_name> entry in {self.config['optim']}")
+            logger.warning(f"no <sampler_name> entry in {self.config['optim']}")
         if "seed" not in self.config["optim"]:
-            print(f"WARNING -- no <seed> entry in {self.config['optim']}")
+            logger.warning(f"no <seed> entry in {self.config['optim']}")
         #  alter config for optimization purposes
         if "outfile" in self.config["study"]:
-            print(f"WARNING -- <outfile> entry in {self.config['study']} will be ignored")
+            logger.warning(f"<outfile> entry in {self.config['study']} will be ignored")
             del self.config["study"]["outfile"]
         if "GUI" in self.config["gmsh"]["view"]:
-            print(f"WARNING -- <GUI> entry in {self.config['gmsh']['view']} forced to False")
+            logger.warning(
+                f"<GUI> entry in {self.config['gmsh']['view']} forced to False"
+            )
             self.config["gmsh"]["view"]["GUI"] = False
 
     def deform(self, Delta: np.ndarray, gid: int, cid: int) -> str:
@@ -122,7 +124,7 @@ class Optimizer(ABC):
         """
         ffd_dir = os.path.join(self.outdir, "FFD")
         check_dir(ffd_dir)
-        print(f">> generate profile with deformation {Delta}")
+        logger.info(f"generate profile with deformation {Delta}")
         profile: np.ndarray = self.ffd.apply_ffd(Delta)
         return self.ffd.write_ffd(profile, Delta, ffd_dir, gid=gid, cid=cid)
 
@@ -161,6 +163,7 @@ class WolfOptimizer(Optimizer):
         """
         Executes Wolf simulations, extracts results and returns the list of candidates QoIs.
         """
+        logger.info("Enters evaluate")
         J: list[float] = []
         QoI: str = args.get("QoI", "CD")
         gid = self.gen_ctr

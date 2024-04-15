@@ -1,6 +1,9 @@
 import gmsh
+import logging
 
 from .mesh import Mesh, plot_quality, set_display, split_view
+
+logger = logging.getLogger(__name__)
 
 
 class NACABaseMesh(Mesh):
@@ -56,10 +59,11 @@ class NACABaseMesh(Mesh):
         self.up: int = self.config["gmsh"]["mesh"].get("up", 70)
 
     def process_config(self):
+        logger.info("process config..")
         if "inlet" not in self.config["gmsh"]["domain"]:
-            print(f"WARNING -- no <inlet> entry in {self.config['gmsh']['domain']}")
+            logger.warning(f"no <inlet> entry in {self.config['gmsh']['domain']}")
         if "outlet" not in self.config["gmsh"]["domain"]:
-            print(f"WARNING -- no <outlet> entry in {self.config['gmsh']['domain']}")
+            logger.warning(f"no <outlet> entry in {self.config['gmsh']['domain']}")
 
     def build_mesh(self):
         """
@@ -190,13 +194,13 @@ class NACABaseMesh(Mesh):
 
         # define physical groups for boundary conditions
         gmsh.model.geo.addPhysicalGroup(1, [spline_low, spline_le, spline_up], tag=100)
-        print(f">> BC: Wall tags are {[spline_low, spline_le, spline_up]}")
+        logger.info(f"BC: Wall tags are {[spline_low, spline_le, spline_up]}")
         gmsh.model.geo.addPhysicalGroup(1, [arc_inlet], tag=200)
-        print(f">> BC: Inlet tags are {[arc_inlet]}")
+        logger.info(f"BC: Inlet tags are {[arc_inlet]}")
         gmsh.model.geo.addPhysicalGroup(1, [outlet], tag=300)
-        print(f">> BC: Outlet tags are {[outlet]}")
+        logger.info(f"BC: Outlet tags are {[outlet]}")
         gmsh.model.geo.addPhysicalGroup(1, [top_side], tag=400)
-        print(f">> BC: Top tags are {[top_side]}")
+        logger.info(f"BC: Top tags are {[top_side]}")
         gmsh.model.geo.addPhysicalGroup(1, [bottom_side], tag=500)
-        print(f">> BC: Bottom tags are {[bottom_side]}")
+        logger.info(f"BC: Bottom tags are {[bottom_side]}")
         gmsh.model.geo.addPhysicalGroup(2, [self.surf_tag], tag=600)
