@@ -9,9 +9,12 @@ class Generator:
     # see https://docs.scipy.org/doc/scipy/reference/stats.qmc.html
     sampler_list: list[str] = ["lhs", "halton", "sobol"]
 
-    def __init__(
-            self, seed: int, ndesign: int, doe_size: int, sampler_name: str, bound: tuple[float]
-    ):
+    def __init__(self,
+                 seed: int,
+                 ndesign: int,
+                 doe_size: int,
+                 sampler_name: str,
+                 bound: tuple[float, float]):
         """
         Instantiate the Generator class with some optimization parameters and the sampler name.
         """
