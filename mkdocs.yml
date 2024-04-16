@@ -1,11 +1,17 @@
-site_name: AERO-OPTIM
+site_name: AERO-Optim
 site_url: https://mschouler.github.io/aero-optim/
 repo_url: https://github.com/mschouler/aero-optim
 site_dir: public
 # site_favicon: path/to/favicon
 nav:
-  - Home: index.md
-  - About: about.md
+  - Getting Started: index.md
+  - User Guide:
+    - 'FFD Module': ffd.md
+    - 'Mesh Module': mesh.md
+    - 'Simulator Module': simulator.md
+    - 'Optimizer Module': optimizer.md
+  - Optimization Examples:
+    - None
 theme: 
   name: readthedocs
   # logo: path/to/logo
@@ -13,3 +19,8 @@ theme:
 
 extra_javascript: 
     - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
