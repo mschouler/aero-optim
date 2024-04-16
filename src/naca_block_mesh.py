@@ -1,6 +1,9 @@
 import gmsh
+import logging
 
 from .naca_base_mesh import NACABaseMesh
+
+logger = logging.getLogger(__name__)
 
 
 class NACABlockMesh(NACABaseMesh):
@@ -8,24 +11,27 @@ class NACABlockMesh(NACABaseMesh):
     This class implements a blocking mesh routine for a naca profile based on:
     https://github.com/ComputationalDomain/CMesh_rae69ck-il
     """
-    def __init__(self, config: dict):
-        super().__init__(config)
+    def __init__(self, config: dict, datfile: str = ""):
+        """
+        Instantiates the BlockMesh object.
+        """
+        super().__init__(config, datfile)
 
     def build_2dmesh(self):
         """
-        Build the surface mesh of the computational domain.
+        Builds the surface mesh of the computational domain.
         """
         R = self.dinlet  # radius of the outer circle
         d_out = self.doutlet  # distance to the outlet
-        offset = self.config["domain"].get("le_offset", 10)  # offset from leading edge
-        b_width = self.config["domain"].get("block_width", 10)  # block_width
-        n_inlet = self.config["mesh"].get("n_inlet", 60)  # nbr of leading edge & inlet nodes
-        n_vertical = self.config["mesh"].get("n_vertical", 90)  # nbr of outlet & vertical nodes
-        r_vertical = self.config["mesh"].get("r_vertical", 1 / 0.95)  # outlet & vertical growth
-        n_airfoil = self.config["mesh"].get("n_airfoil", 50)  # nbr of airfoil nodes on each sides
-        r_airfoil = self.config["mesh"].get("r_airfoil", 1)  # airfoil sides growth
-        n_wake = self.config["mesh"].get("n_wake", 100)  # nbr of nodes in the wake direction
-        r_wake = self.config["mesh"].get("r_wake", 1 / 0.95)  # wake growth
+        offset = self.config["gmsh"]["domain"].get("le_offset", 10)  # offset from leading edge
+        b_width = self.config["gmsh"]["domain"].get("block_width", 10)  # block_width
+        n_inlet = self.config["gmsh"]["mesh"].get("n_inlet", 60)  # nbr of lead edge & inlet nodes
+        n_vertical = self.config["gmsh"]["mesh"].get("n_vertical", 90)  # nbr of out & verti nodes
+        r_vertical = self.config["gmsh"]["mesh"].get("r_vertical", 1 / 0.95)  # out & vert growth
+        n_airfoil = self.config["gmsh"]["mesh"].get("n_airfoil", 50)  # nbr of nodes on each sides
+        r_airfoil = self.config["gmsh"]["mesh"].get("r_airfoil", 1)  # airfoil sides growth
+        n_wake = self.config["gmsh"]["mesh"].get("n_wake", 100)  # nbr of nodes in the wake dir.
+        r_wake = self.config["gmsh"]["mesh"].get("r_wake", 1 / 0.95)  # wake growth
 
         _, self.idx_le = min((p[0], idx) for (idx, p) in enumerate(self.pts))
         _, self.idx_te = max((p[0], idx) for (idx, p) in enumerate(self.pts))
@@ -106,10 +112,10 @@ class NACABlockMesh(NACABaseMesh):
         self.surf_tag = [surf_1, surf_2, surf_3, -surf_5, -surf_4]
         gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=100)
         gmsh.model.geo.addPhysicalGroup(1, [circle_4, line_7, line_8], tag=10)
-        print(f">> BC: Inlet tags are {[circle_4, line_7, line_8]}")
+        logger.info(f"BC: Inlet tags are {[circle_4, line_7, line_8]}")
         gmsh.model.geo.addPhysicalGroup(1, [line_11, line_12], tag=20)
-        print(f">> BC: Outlet tags are {[line_11, line_12]}")
+        logger.info(f"BC: Outlet tags are {[line_11, line_12]}")
         gmsh.model.geo.addPhysicalGroup(1, [line_9, line_10], tag=40)
-        print(f">> BC: Side tags are {[line_9, line_10]}")
+        logger.info(f"BC: Side tags are {[line_9, line_10]}")
         gmsh.model.geo.addPhysicalGroup(1, [spline_up, spline_le, spline_low], tag=30)
-        print(f">> BC: Wall tags are {[spline_up, spline_le, spline_low]}")
+        logger.info(f"BC: Wall tags are {[spline_up, spline_le, spline_low]}")

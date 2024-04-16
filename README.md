@@ -94,15 +94,18 @@ Both cases are parameterized with a `json` formatted configuration file made of 
   "study": {
         // study entries parameterizing the study and input/output options
     },
-    "domain": {
-        // domain entries parameterizing the computational domain size
-    },
-    "mesh": {
-        // meshing entries parameterizing the boundary layer,
-        // the domain boundaries and the extrusion 
-    },
-    "view": {
-        // visualization entries parameterizing the GUI display
+    "gmsh": {
+        // mesh related entries parameterizing gmsh api
+        "domain": {
+            // domain entries parameterizing the computational domain size
+        },
+        "mesh": {
+            // meshing entries parameterizing the boundary layer,
+            // the domain boundaries and the extrusion if defined
+        },
+        "view": {
+            // visualization entries parameterizing the GUI display
+        }
     }
 }
 ```
@@ -122,11 +125,12 @@ The `build_2dmesh()` routine of the `NACABaseMesh` class also gives the possibil
 For this class, the computational domain is a rectangle whose inlet face (on the left) is made of a semi-circle. The domain dimensions are parameterized in the `"domain"` section of `naca_config.json`:
 ```json
 "domain": {
-  "inlet": 20,
-  "outlet": 20
+    "inlet": 20,
+    "outlet": 20,
+    "le_offset": 10
 }
 ```
-where `"inlet"` and `"outlet"` respectively indicate the inlet face radius centered on the airfoil trailing edge and the outlet distance to the airfoil trailing edge.
+where `"inlet"` and `"outlet"` respectively indicate the inlet face radius centered on the airfoil trailing edge and the outlet distance to the airfoil trailing edge. `"le_offset"` parameterizes the size (in point number) of the leading edge portion that is meshed with its own refinement level.
 
 The `"mesh"` entry contains various meshing parameters such as the number of nodes on the domain inner and outer boundaries or the parameters of the boundary layer if needed:
 ```json
@@ -134,9 +138,12 @@ The `"mesh"` entry contains various meshing parameters such as the number of nod
     "nodes_inlet": 40,
     "nodes_outlet": 40,
     "side_nodes": 20,
-    ...
+    "le": 20,
+    "low": 70,
+    "up": 70
 }
 ```
+where the first three entries indicate the number of nodes on the outer boundaries. `"le"` is the number of nodes to mesh the leading edge portion defined earlier while the trailing upper and lower portions are respectively meshed with `"low"` and `"up"` nodes.
 
 Finally, the `"view"` entry contains GUI options to turn it on or off, to display quality metrics and to split the view.
 

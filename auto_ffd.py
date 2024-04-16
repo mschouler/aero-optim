@@ -1,11 +1,17 @@
 import argparse
+import logging
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
+import sys
 
 from scipy.stats import qmc
 from src.ffd import FFD_2D
 from src.utils import check_file
+
+plt.set_loglevel(level='warning')
+logger = logging.getLogger()
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray, in_lat: bool = False):
@@ -91,8 +97,8 @@ if __name__ == "__main__":
         "-s", "--sampler", type=str, help="sampling technique [lhs, halton, sobol]", default="lhs")
     parser.add_argument(
         "-d", "--delta", nargs="*", type=float, default=[], help="use an explicit deformation")
-
     args = parser.parse_args()
+
     check_file(args.file)
 
     # FFD routine
@@ -118,4 +124,4 @@ if __name__ == "__main__":
         profiles.append(ffd.apply_ffd(Delta))
     plot_profile(ffd, profiles, Delta, args.referential)
     for pid, profile in enumerate(profiles):
-        ffd.write_ffd(profile, scaled_sample[pid], pid, "output")
+        file_name = ffd.write_ffd(profile, scaled_sample[pid], "output")

@@ -2,23 +2,46 @@
     "study": {
         "study_type": "base",
         "file": "input/naca12.dat",
-        "header": 2,
-        "scale": 1,
         "outfile": "naca_base",
         "outdir": "output"
     },
-    "domain": {
-        "inlet": 20,
-        "outlet": 20
+    "optim": {
+        "n_design": 2,
+        "doe_size": 1,
+        "max_generations": 1,
+        "budget": 1,
+        "nproc_per_sim": 1
     },
-    "mesh": {
-        "nodes_inlet": 40,
-        "nodes_outlet": 40,
-        "side_nodes": 20
+    "gmsh": {
+        "domain": {
+            "inlet": 20,
+            "outlet": 20,
+            "le_offset": 10
+        },
+        "mesh": {
+            "nodes_inlet": 40,
+            "nodes_outlet": 40,
+            "side_nodes": 20,
+            "le": 20,
+            "low": 70,
+            "up": 70
+        },
+        "view": {
+            "GUI": true,
+            "quality": false,
+            "nview": 1
+        }
     },
-    "view": {
-        "GUI": true,
-        "quality": false,
-        "nview": 1
+    "simulator": {
+        "ref_input": "template/naca_euler.wolf",
+        "sim_args": {
+            "InFlow": {"inplace": false, "param": ["1", "4"]},
+            "OutFlow": {"inplace": false, "param": ["3", "5 6 7"]}
+        },
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"]
+        },
+        "exec_cmd": "/Users/Marc/bin/wolf -in @.mesh"
     }
 }
