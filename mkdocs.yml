@@ -1,5 +1,6 @@
 site_name: AERO-OPTIM
-site_url: https://example.com/
+site_url: https://mschouler.github.io/aero-optim/
+repo_url: https://github.com/mschouler/aero-optim
 site_dir: public
 # site_favicon: path/to/favicon
 nav:
