@@ -191,7 +191,7 @@ class WolfSimulator(Simulator):
         logger.info(
             f"g{dict_id['generation']}, c{dict_id['candidate']} converged in {len(df)} it."
         )
-        logger.info(f"last five values: {df.tail(n=5).to_string(index=False)}")
+        logger.info(f"last five values:\n{df.tail(n=5).to_string(index=False)}")
         return df
 
     def kill_all(self):
