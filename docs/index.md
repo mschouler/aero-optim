@@ -40,7 +40,7 @@ The framework was designed to automate aerodynamic optimization which, in this c
 
 as many times as required to obtain a geometry maximizing/minimizing certain quantities of interest (QoIs).
 
-Although the chaining of these steps is performed under the supervision of [`main_optim.py`](), the three subscripts presented below were introduced to facilitate each step's individual evaluation:
+Although the chaining of these steps is performed under the supervision of [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/add-docs/main_optim.py), the three subscripts presented below were introduced to facilitate each step's individual evaluation:
 
 #### First FFD: [`auto_ffd.py`](https://github.com/mschouler/aero-optim/blob/master/auto_ffd.py)
 This script performs one or multiple FFD of the geometry passed as its input argument. For instance:

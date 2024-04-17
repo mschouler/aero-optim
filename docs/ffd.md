@@ -14,8 +14,8 @@ The main steps of FFD are:
 ### The FFD Class
 [`FFD_2D`](https://github.com/mschouler/aero-optim/blob/master/src/ffd.py#L11-L132) is a straightforward class instantiated with two positional arguments:
 
-1. `file: str` which indicates the filename of the baseline geometry to be deformed,
-2. `ncontrol: int` which indicates the number of design points on each side of the lattice.
+1. `file (str)` which indicates the filename of the baseline geometry to be deformed,
+2. `ncontrol (int)` which indicates the number of design points on each side of the lattice.
 
 !!! Warning
     The input file is expected to have a specific formatting i.e. a 2 line header followed by coordinates given as tabulated entries (one point per row) with single space separators (see [`input/naca12.dat`](https://github.com/mschouler/aero-optim/blob/master/input/naca12.dat) for an example).

@@ -1,13 +1,13 @@
 ## Simulator Module
 The simulator module is designed to orchestrate one or several simulation executions with a given solver.
-Hence, an asbtract [`Simulator`](https://github.com/mschouler/aero-optim/blob/master/src/simulator.py#L13-L77) class extracts general arguments from the `"simulator"` dictionary of the configuration file such as:
+Hence, an [`Simulator`](https://github.com/mschouler/aero-optim/blob/master/src/simulator.py#L13-L77) abstract class extracts general arguments from the `"simulator"` dictionary of the configuration file such as:
 
-- the solver execution command that is to be launched in the terminal,
-- the path to the solver input template,
-- simulation arguments with which to customize the template,
-- post-processing arguments to indicate which variables to extract from which result files.
+- `exec_cmd (str)`: the solver execution command that is to be launched in the terminal,
+- `ref_input (str)`: the path to the solver input template,
+- `sim_args (dict)`: simulation arguments with which to customize the template,
+- `post_process (dict)`: post-processing arguments to indicate which variables to extract from which result files.
 
-Then, any subclass inheriting from `Simulator` can be build by overriding two abstract classes:
+Then, any subclass inheriting from `Simulator` can be built by overriding two abstract methods:
 
 1. `process_config`: which goes through the configuration file making sure expected entries are well defined,
 2. `execute_sim`: which defines how a simulation should be executed.
