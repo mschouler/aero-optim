@@ -42,62 +42,49 @@ Meshing details relative to the basic routine reside in the [`build_2dmesh()`](h
 
 The `build_2dmesh()` routine of the `NACABaseMesh` class also gives the possibility to mesh the boundary layer by calling [`build_bl()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L128-L141). The meshing of the boundary layer is triggered by setting `"bl"`to `true` in the `"mesh"` category of the configuration file.
 
-For this class, the computational domain is a rectangle whose inlet face (on the left) is made of a semi-circle. The domain dimensions are parameterized in the `"domain"` section of `naca_config.json`:
-```json
-"domain": {
-    "inlet": 20,
-    "outlet": 20,
-    "le_offset": 10
-}
-```
-where `"inlet"` and `"outlet"` respectively indicate the inlet face radius centered on the airfoil trailing edge and the outlet distance to the airfoil trailing edge. `"le_offset"` parameterizes the size (in point number) of the leading edge portion that is meshed with its own refinement level.
+For this class, the computational domain is a rectangle whose inlet face (on the left) is made of a semi-circle. The domain dimensions are parameterized in the `"domain"` section of the configuration file:
+
+- `inlet (int)`: the inlet face radius centered on the airfoil trailing edge,
+- `outlet (int)`: the outlet distance to the airfoil trailing,
+- `le_offset (int)`: the size (in point number) of the leading edge portion that is meshed with its own refinement level.
 
 The `"mesh"` entry contains various meshing parameters such as the number of nodes on the domain inner and outer boundaries or the parameters of the boundary layer if needed:
-```json
-"mesh": {
-    "nodes_inlet": 40,
-    "nodes_outlet": 40,
-    "side_nodes": 20,
-    "le": 20,
-    "low": 70,
-    "up": 70
-}
-```
-where the first three entries indicate the number of nodes on the outer boundaries. `"le"` is the number of nodes to mesh the leading edge portion defined earlier while the trailing upper and lower portions are respectively meshed with `"low"` and `"up"` nodes.
+
+- `nodes_inlet (int)`: the number of nodes to mesh the inlet boundary,
+- `nodes_outlet (int)`: the number of nodes to mesh the outlet boundary,
+- `side_nodes (int)`: the number of nodes to mesh the upper and lower side boundaries,
+- `le (int)`: the number of nodes to mesh the leading edge portion defined earlier,
+- `low (int)`: the number of nodes to mesh the trailing lower portion of the airfoil,
+- `up (int)`: the number of nodes to mesh the trailing upper portion of the airfoil.
+
+For this meshing routine, other `"mesh"` parameters can be used to parameterize the meshing of the boundary layer (BL):
+
+- `bl (bool)`: whether to mesh the boundary layer (True) or not (False).
+- `bl_thickness (float)`: the BL meshing cumulated thickness.
+- `bl_ratio (float)`: the BL meshing growth ratio.
+- `bl_size (float)`: the BL first element size.
 
 Finally, the `"view"` entry contains GUI options to turn it on or off, to display quality metrics and to split the view.
-
-!!! Note
-    In the context of an optimization loop, the GUI must be deactivated by setting `"GUI"` to `false` so that the mesh production can be chained.
 
 ### NACA Block
 This meshing routine inherits from `NACABaseMesh` whose [`build_2dmesh()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L20-L121) method is overridden for this class. Hence, the boundary layer cannot be meshed with `build_bl()` which is not called anymore. In addition, the domain is this time made of several inner blocks.
 
 Hence for this class, the computational domain still has the same general structure (a rectangle with a semi-circular inlet) but inner blocks are defined and parameterized in `"domain"`:
-```json
-"domain": {
-    "inlet": 20,
-    "outlet": 20,
-    "le_offset": 10,
-    "block_width": 2.5
-}
-```
-where `"le_offset"` and `"block_width"` respectively parameterize the size (in point number) of the leading edge portion around which the circular revolves and the size of the trailing blocks that encompass the remaining of the airfoil.
+
+- `inlet (int)`: the inlet face radius centered on the airfoil trailing edge,
+- `outlet (int)`: the outlet distance to the airfoil trailing,
+- `le_offset (int)`: the size (in point number) of the leading edge portion that is meshed with its own refinement level,
+- `block_width (float)`: the size of the trailing blocks that encompass the remaining of the airfoil.
 
 The `"mesh"` entry contains various meshing parameters such as the number of nodes on the domain inner/outer boundaries and blocks:
-```json
-"mesh": {
-    "structured": false,
-    "n_inlet": 30,
-    "n_vertical": 30,
-    "r_vertical": 1.1,
-    "n_airfoil": 30,
-    "r_airfoil": 1,
-    "n_wake": 40,
-    "r_wake": 1.05
-}
-```
-where the `"r_"` and `"n_"` prefixes respectively configure growth ratio and node numbers. 
+
+- `n_inlet (int)`: the number of nodes to mesh the inlet and the leading edge,
+- `n_vertical (int)`: number of nodes to mesh the outlet and the blocks in the vertical direction,
+- `r_vertical (int)`: the outlet and vertical direction growth ratio,
+- `n_airfoil (int)`: the number of nodes to mesh both sides of the trailing portion of the airfoil,
+- `r_airfoil (int)`: the airfoil sides growth ratio,
+- `n_wake (int)`: the number of nodes in the wake direction,
+- `r_wake (int)`: the wake growth ratio.
 
 ### Illustration
 Examples of unstructured meshes obtained with both routines are given below:
