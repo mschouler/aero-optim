@@ -1,5 +1,5 @@
 ## Mesh Module
-The meshing module builds on the [`gmsh` Python API](https://gmsh.info/doc/texinfo/gmsh.html). Modules inheriting from a basic [`Mesh`](https://github.com/mschouler/aero-optim/blob/master/src/mesh.py#L65-L169) class are implemented for NACA airfoil use-cases:
+The meshing module builds on the [`gmsh` Python API](https://gmsh.info/doc/texinfo/gmsh.html). Classes inheriting from a basic [`Mesh`](https://github.com/mschouler/aero-optim/blob/master/src/mesh.py#L65-L169) class are implemented for NACA airfoil use-cases:
 
 * [`NACABase`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L9-L206): implements a simple meshing routine with minimal parameters,
 * [`NACABlock`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L9-L121):  implements a structured by blocks meshing routine.

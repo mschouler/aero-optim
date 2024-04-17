@@ -2,7 +2,7 @@ site_name: AERO-Optim
 site_url: https://mschouler.github.io/aero-optim/
 repo_url: https://github.com/mschouler/aero-optim
 site_dir: public
-# site_favicon: path/to/favicon
+site_favicon: Figures/icon.png
 nav:
   - Getting Started: index.md
   - User Guide:
@@ -14,8 +14,7 @@ nav:
     - None
 theme: 
   name: readthedocs
-  # logo: path/to/logo
-  # favicon: path/to/avatar
+  logo: Figures/logo.png
 
 extra_javascript: 
     - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML
