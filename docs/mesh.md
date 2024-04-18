@@ -35,7 +35,7 @@ The meshing routine then goes through the following steps:
 3.  the mesh is finally generated, GUI options are set and outputs (e.g. meshing log, output mesh) are written.
 
 !!! Note
-    For both classes, all meshing parameters are discussed in their respective class definition.
+    All meshing parameters are described in their respective class definition (see [`Mesh`](https://github.com/mschouler/aero-optim/blob/master/src/mesh.py#L70-L91), [`NACABaseMesh`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L36-L49) and [`NACABlockMesh`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L24-L34)).
 
 ### NACA Base
 Meshing details relative to the basic routine reside in the [`build_2dmesh()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L143-L206) method and its inner calls. For instance, the [`split_naca()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L106-L126) method describes how the naca profile should be split into its upper and lower parts. This is critical to the domain construction steps in `build_2dmesh()` since the trailing and leading edges may be used as construction points. 

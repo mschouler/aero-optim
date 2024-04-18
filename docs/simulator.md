@@ -12,6 +12,9 @@ Then, any subclass inheriting from `Simulator` can be built by overriding two ab
 1. `process_config`: which goes through the configuration file making sure expected entries are well defined,
 2. `execute_sim`: which defines how a simulation should be executed.
 
+!!! Note
+    All simulator parameters are described in their respective class definition (see [`Simulator`](https://github.com/mschouler/aero-optim/blob/master/src/simulator.py#L18-L30), [`WolfSimulator`](https://github.com/mschouler/aero-optim/blob/master/src/simulator.py#L85-L91)).
+
 ### Wolf Simulator
 The [`WolfSimulator`](https://github.com/mschouler/aero-optim/blob/master/src/simulator.py#L80-L202) class illustrates how `Simulator` can be inherited to perform `Wolf` simulations. In addition to the mandatory methods, several others are introduced in order to facilitate the simulation progress monitoring (see [`sim_pro`](https://github.com/mschouler/aero-optim/blob/master/src/simulator.py#L93) and [`monitor_sim_progress`](https://github.com/mschouler/aero-optim/blob/master/src/simulator.py#L152-L169)) and the results post-processing (see [`post_process`](https://github.com/mschouler/aero-optim/blob/master/src/simulator.py#L171-L195)).
 
