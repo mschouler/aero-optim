@@ -22,7 +22,7 @@ It instantiates optimization related objects:
 
 - `generator (Generator)`: object to sample the initial DOE,
 - `ffd (FFD_2D)`: object to deform the baseline geometry,
-- `gmsh_mesh (Mesh)`: object to mesh the deformed geometry.
+- `gmsh_mesh (Mesh)`: object to mesh the deformed geometry. 
 
 It also implements the following three base methods:
 
@@ -31,6 +31,9 @@ It also implements the following three base methods:
 - `mesh`: which meshes the deformed candidates.
 
 The `Optimizer` class acts as an `evaluator` and implements the `evaluate` method.
+
+!!! Tip
+    The [`Generator`](https://github.com/mschouler/aero-optim/blob/master/src/ins_generator.py#L4-L46) class is based on [`scipy.qmc`](https://docs.scipy.org/doc/scipy/reference/stats.qmc.html) samplers. It supports three different sampling techniques: ["lhs"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHypercube.html#scipy.stats.qmc.LatinHypercube), ["halton"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.Halton.html#scipy.stats.qmc.Halton) and ["sobol"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.Sobol.html#scipy.stats.qmc.Sobol). The sampling technique is selected with the `sampler_name` entry of the `"optim"` dictionary in the configuration file.
 
 !!! Note
     All optimizer parameters are described in their respective class definition (see [`Optimizer`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L26-L57), [`WolfSimulator`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L153-L158)).
