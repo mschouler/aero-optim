@@ -178,7 +178,7 @@ class WolfSimulator(Simulator):
         head_list: list[str] = []
         for key, value in self.post_process_args.items():
             file = open(os.path.join(sim_out_dir, key), "r").read().splitlines()
-            headers = file[0][2:].split()  # ignore "# " before "Iter" in headers
+            headers = file[0][2:].split()  # ignore "# " before first item in headers
             for qty in value:
                 try:
                     idx = headers.index(qty)
@@ -187,7 +187,8 @@ class WolfSimulator(Simulator):
                 except Exception as e:
                     logger.warning(f"could not read {qty} in {headers}")
                     logger.warning(f"exception {e} was raised")
-        df = pd.DataFrame({head_list[i]: qty_list[i] for i in range(len(qty_list))})
+        # pd.Series allows columns of different lengths
+        df = pd.DataFrame({head_list[i]: pd.Series(qty_list[i]) for i in range(len(qty_list))})
         logger.info(
             f"g{dict_id['generation']}, c{dict_id['candidate']} converged in {len(df)} it."
         )
