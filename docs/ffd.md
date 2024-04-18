@@ -51,7 +51,7 @@ options:
   -s SAMPLER, --sampler SAMPLER
                         sampling technique [lhs, halton, sobol] (default: lhs)
   -d [DELTA ...], --delta [DELTA ...]
-                        use an explicit deformation (default: [])
+                        Delta: D10 D20 .. D2nc (> 0) (default: None)
 ```
 
 Hence, the command below will perform 3 control points FFDs for 4 random deformations sampled with an LHS sampler:

@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-s", "--sampler", type=str, help="sampling technique [lhs, halton, sobol]", default="lhs")
     parser.add_argument(
-        "-d", "--delta", nargs="*", type=float, default=[], help="use an explicit deformation")
+        "-d", "--delta", nargs="*", type=float, default=None, help="Delta: D10 D20 .. D2nc (> 0)")
     args = parser.parse_args()
 
     check_file(args.file)
