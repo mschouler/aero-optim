@@ -68,7 +68,7 @@ will generate the figures below:
 #### First Simulation: [`auto_simulator.py`](https://github.com/mschouler/aero-optim/blob/master/auto_simulator.py)
 This script performs a single simulation according to its associated configuration file and mesh. For instance:
 ```sh
-auto_simulator.py -c input/naca_base.json -f output/naca_base.mesh
+python3 auto_simulator.py -c input/naca_base.json -f output/naca_base.mesh
 ```
 would run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
 ```sh
@@ -83,6 +83,9 @@ ResTot       CD       CL        ResCD        ResCL
 2.118700e-07 0.211356 0.285446 2.700434e-10 1.298195e-09
 >> simulation finished after 18.21726393699646 seconds
 ```
+
+!!! Warning
+    In order for the command to pass, don't forget to fix the `exec_cmd` executable path in `input/naca_base.json`.
 
 !!! Note
     As of 2024, [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) is not open-source and may not be available to the user. Guidelines on how to replace it with another solver are given in [Simulator](simulator.md).
