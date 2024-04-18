@@ -36,10 +36,10 @@ The `Optimizer` class acts as an `evaluator` and implements the `evaluate` metho
     The [`Generator`](https://github.com/mschouler/aero-optim/blob/master/src/ins_generator.py#L4-L46) class is based on [`scipy.qmc`](https://docs.scipy.org/doc/scipy/reference/stats.qmc.html) samplers. It supports three different sampling techniques: ["lhs"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHypercube.html#scipy.stats.qmc.LatinHypercube), ["halton"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.Halton.html#scipy.stats.qmc.Halton) and ["sobol"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.Sobol.html#scipy.stats.qmc.Sobol). The sampling technique is selected with the `sampler_name` entry of the `"optim"` dictionary in the configuration file.
 
 !!! Note
-    All optimizer parameters are described in their respective class definition (see [`Optimizer`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L26-L57), [`WolfSimulator`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L153-L158)).
+    All optimizer parameters are described in their respective class definition (see [`Optimizer`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L36-L67), [`WolfSimulator`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L163-L170)).
 
 ### Wolf Optimizer
-The [`WolfOptimizer`](https://github.com/mschouler/aero-optim/blob/add-docs/src/ins_optimizer.py#L148-L186) class illustrates how `Optimizer` can be inherited to perform a `Wolf`-based optimization.
+The [`WolfOptimizer`](https://github.com/mschouler/aero-optim/blob/add-docs/src/ins_optimizer.py#L158-L222) class illustrates how `Optimizer` can be inherited to perform a `Wolf`-based optimization.
 
 It first instantiates a `WolfSimulator` attribute that is then used in the `evaluate` method where for all candidates, the following steps are performed:
 
@@ -47,6 +47,11 @@ It first instantiates a `WolfSimulator` attribute that is then used in the `eval
 
 2) deformed geometry meshing,
 
-3) simulation execution
+3) simulation execution,
 
-In the end, all simulations results are post-processed to extract the appropriate QoIs returned as a list of floats.
+4) post-processing i.e. QoI extraction and constraint application.
+
+!!! Tip
+    The [`constraint`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L176-L188) method based on [`inspyred` documentation](https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection) is put in place in order to penalize inadequate geometries both in terms of area and lift coefficient.
+
+In the end, all simulations QoIs are returned as a list of floats.

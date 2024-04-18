@@ -18,6 +18,16 @@ from .utils import check_dir
 logger = logging.getLogger(__name__)
 
 
+def shoe_lace(xy: np.ndarray) -> float:
+    """
+    Returns the geometry area computed with the shoelace formula.
+    see https://rosettacode.org/wiki/Shoelace_formula_for_polygonal_area#Python
+    """
+    return 0.5 * np.abs(
+        np.sum([xy[i - 1, 0] * xy[i, 1] - xy[i, 0] * xy[i - 1, 1] for i in range(len(xy))])
+    )
+
+
 class Optimizer(ABC):
     """
     This class implements a basic Optimizer.
@@ -118,7 +128,7 @@ class Optimizer(ABC):
             )
             self.config["gmsh"]["view"]["GUI"] = False
 
-    def deform(self, Delta: np.ndarray, gid: int, cid: int) -> str:
+    def deform(self, Delta: np.ndarray, gid: int, cid: int) -> tuple[str, np.ndarray]:
         """
         Performs FFD on a given candidate and returns its resulting file.
         """
@@ -126,7 +136,7 @@ class Optimizer(ABC):
         check_dir(ffd_dir)
         logger.info(f"generate profile with deformation {Delta}")
         profile: np.ndarray = self.ffd.apply_ffd(Delta)
-        return self.ffd.write_ffd(profile, Delta, ffd_dir, gid=gid, cid=cid)
+        return self.ffd.write_ffd(profile, Delta, ffd_dir, gid=gid, cid=cid), profile
 
     def mesh(self, ffdfile: str) -> str:
         """
@@ -155,9 +165,27 @@ class WolfOptimizer(Optimizer):
 
         Inner
             >> simulator: WolfSimulator object to perform Wolf simulations.
+            >> baseline_area: the baseline area that is used as a structural constraint.
+            >> penalty_arg: a (key, value) constraint not to be worsen by the optimization.
         """
         super().__init__(config)
         self.simulator: WolfSimulator = WolfSimulator(self.config)
+        self.baseline_area: float = shoe_lace(self.ffd.pts)
+        self.penalty: list = config["optim"].get("penalty", ["CL", 0.])
+
+    def constraint(self, gid: int, cid: int, ffd_profile: np.ndarray, pen_value: float) -> float:
+        """
+        Returns a penalty value based on some specific constraints.
+        see https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection
+        """
+        area_cond: bool = (shoe_lace(ffd_profile) > 1.4 * self.baseline_area
+                           or shoe_lace(ffd_profile) < 0.6 * self.baseline_area)
+        penalty_cond: bool = pen_value < self.penalty[-1]
+        if area_cond or penalty_cond:
+            logger.info(f"penalized candidate g{gid} c{cid} "
+                        f"with area {shoe_lace(ffd_profile)} and CL {pen_value}")
+            return 1.
+        return 0.
 
     def evaluate(self, candidates: Individual, args: dict) -> list[float]:
         """
@@ -169,7 +197,7 @@ class WolfOptimizer(Optimizer):
         gid = self.gen_ctr
         # execute all candidates
         for cid, cand in enumerate(candidates):
-            ffd_file = self.deform(cand, gid, cid)
+            ffd_file, ffd_profile = self.deform(cand, gid, cid)
             # meshing with proper sigint management
             # see https://gitlab.onelab.info/gmsh/gmsh/-/issues/842
             ORIGINAL_SIGINT_HANDLER = signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -178,9 +206,16 @@ class WolfOptimizer(Optimizer):
             while self.simulator.monitor_sim_progress() * self.nproc_per_sim >= self.budget:
                 time.sleep(1)
             self.simulator.execute_sim(meshfile=mesh_file, gid=gid, cid=cid)
+            # add penalty to the candidate fitness
+            J.append(self.constraint(
+                gid,
+                cid,
+                ffd_profile,
+                self.simulator.df_list[-1][self.penalty[0]].iloc[-1]
+            ))
         # wait for last candidates
         while self.simulator.monitor_sim_progress() > 0:
             time.sleep(1)
-        J.extend([df[QoI].iloc[-1] for df in self.simulator.df_list[-self.doe_size:]])
+        J += [df[QoI].iloc[-1] for df in self.simulator.df_list[-self.doe_size:]]
         self.gen_ctr += 1
         return J
