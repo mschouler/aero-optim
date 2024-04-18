@@ -3,10 +3,13 @@ Free-form Deformation (FFD) is a technique designed to deform solid geometric mo
 
 The main steps of FFD are:
 
-1. create a lattice, i.e. the minimal parallelepiped box that embeds the geometry (a rectangle in 2D),
-2. project the geometry points into the lattice referential such that its coordinates now vary between [0;1] in both x and y directions,
-3. for a given deformation vector applied to each control points of the lattice, the displacements of all points forming the geometry are computed with the tensor product of the Bernstein basis polynomials,
-4. the deformed profile is finally projected back into the original referential.
+1) create a lattice, i.e. the minimal parallelepiped box that embeds the geometry (a rectangle in 2D),
+
+2) project the geometry points into the lattice referential such that its coordinates now vary between [0;1] in both x and y directions,
+
+3) for a given deformation vector applied to each control points of the lattice, the displacements of all points forming the geometry are computed with the tensor product of the Bernstein basis polynomials,
+
+4) the deformed profile is finally projected back into the original referential.
 
 !!! Note
     This implementation is limited to 2D geometries only. More sophisticated libraries exist such as [PyGeM](https://mathlab.github.io/PyGeM/index.html) or [pyGeo](https://mdolab-pygeo.readthedocs-hosted.com/en/latest/introduction.html) but they come with heavier dependencies and more cumbersome installation procedures.
@@ -14,8 +17,8 @@ The main steps of FFD are:
 ### The FFD Class
 [`FFD_2D`](https://github.com/mschouler/aero-optim/blob/master/src/ffd.py#L11-L132) is a straightforward class instantiated with two positional arguments:
 
-1. `file (str)` which indicates the filename of the baseline geometry to be deformed,
-2. `ncontrol (int)` which indicates the number of design points on each side of the lattice.
+- `file (str)` which indicates the filename of the baseline geometry to be deformed,
+- `ncontrol (int)` which indicates the number of design points on each side of the lattice.
 
 !!! Warning
     The input file is expected to have a specific formatting i.e. a 2 line header followed by coordinates given as tabulated entries (one point per row) with single space separators (see [`input/naca12.dat`](https://github.com/mschouler/aero-optim/blob/master/input/naca12.dat) for an example).
