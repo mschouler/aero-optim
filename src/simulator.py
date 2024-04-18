@@ -26,7 +26,7 @@ class Simulator(ABC):
             >> ref_input: a simulation input file template.
             >> sim_args: arguments to modify to customize ref_input.
             >> post_process_args: quantities to extract from result files.
-            >> def_list: list of dataframe containinf the extracted quantities of all simulation.
+            >> def_list: list of dataframes containing the extracted quantities of all simulation.
         """
         self.cwd: str = os.getcwd()
         self.config = config
@@ -86,11 +86,11 @@ class WolfSimulator(Simulator):
         Instantiates the WolfSimulator object.
 
         Inner
-            >> wolf_pro: list to track simulations and their associated subprocess.
+            >> sim_pro: list to track simulations and their associated subprocess.
                It has the following form ({'generation': gid, 'candidate': cid}, subprocess).
         """
         super().__init__(config)
-        self.wolf_pro: list[tuple[dict, subprocess.Popen[str]]] = []
+        self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
 
     def process_config(self):
         """
@@ -115,7 +115,7 @@ class WolfSimulator(Simulator):
     def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0):
         """
         Pre-processes and executes a Wolf simulation.
-        It also updates wolf_pro.
+        It also updates sim_pro.
         """
         # Pre-process
         # get the simulation meshfile
@@ -147,14 +147,14 @@ class WolfSimulator(Simulator):
                                         universal_newlines=True)
         os.chdir(self.cwd)
         # append simulation to the list of active processes
-        self.wolf_pro.append(({"generation": gid, "candidate": cid}, proc))
+        self.sim_pro.append(({"generation": gid, "candidate": cid}, proc))
 
     def monitor_sim_progress(self) -> int:
         """
         Updates and returns the list of simulations under execution.
         """
         finished_sim = []
-        for id, (dict_id, p_id) in enumerate(self.wolf_pro):
+        for id, (dict_id, p_id) in enumerate(self.sim_pro):
             returncode = p_id.poll()
             if returncode is None:
                 pass  # simulation still running
@@ -165,8 +165,8 @@ class WolfSimulator(Simulator):
                 break
             else:
                 raise Exception(f"ERROR -- simulation {p_id} crashed")
-        self.wolf_pro = [tup for id, tup in enumerate(self.wolf_pro) if id not in finished_sim]
-        return len(self.wolf_pro)
+        self.sim_pro = [tup for id, tup in enumerate(self.sim_pro) if id not in finished_sim]
+        return len(self.sim_pro)
 
     def post_process(self, dict_id: dict) -> pd.DataFrame:
         """
@@ -191,12 +191,12 @@ class WolfSimulator(Simulator):
         logger.info(
             f"g{dict_id['generation']}, c{dict_id['candidate']} converged in {len(df)} it."
         )
-        logger.info(f"last five values: {df.tail(n=5).to_string(index=False)}")
+        logger.info(f"last five values:\n{df.tail(n=5).to_string(index=False)}")
         return df
 
     def kill_all(self):
         """
         Kills all active processes.
         """
-        logger.info(f"{len(self.wolf_pro)} remaining simulation(s) will be killed")
-        _ = [subpro.terminate() for _, subpro in self.wolf_pro]
+        logger.info(f"{len(self.sim_pro)} remaining simulation(s) will be killed")
+        _ = [subpro.terminate() for _, subpro in self.sim_pro]

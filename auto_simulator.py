@@ -36,4 +36,4 @@ if __name__ == "__main__":
         else:
             break
 
-    print(f">> simulation finished after {time.time() - t0}")
+    print(f">> simulation finished after {time.time() - t0} seconds")
