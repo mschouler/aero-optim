@@ -16,7 +16,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray, in_lat: bool = False):
     """
-    Plot various generated elements in the lattice or original referential.
+    Plots various generated elements in the lattice or original referential.
     """
     # change of referential if necessary
     delta = ffd.pad_Delta(delta)
@@ -42,7 +42,7 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray, in_
             for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
         [ax.annotate(f"$P_{{{i}{j}}} + D_{{{i}{j}}}$",
                      (([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
-                     ([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
+                      ([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
             for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
         ax.set(xlabel="X", ylabel="Y", title="FFD representation in lattice ref.")
     else:
@@ -51,7 +51,7 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray, in_
                     c="k") for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
         [ax.annotate(f"$P_{{{i}{j}}} + D_{{{i}{j}}}$",
                      (ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
-                     ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
+                      ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
             for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
         ax.set(xlabel="X", ylabel="Y", title="FFD representation in original ref.")
     # legend and display
@@ -62,7 +62,7 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray, in_
 
 def get_sampler(sampler: str, ncontrol: int, seed: int = 123):
     """
-    build scipy qmc sampler.
+    Builds scipy qmc sampler.
     """
     if sampler not in ["lhs", "sobol", "halton"]:
         raise Exception(f"Unrecognized sampler {sampler}")
