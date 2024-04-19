@@ -19,10 +19,15 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", type=str, help="config: --config=/path/to/config.json")
     parser.add_argument("-f", "--file", type=str,
                         help="input mesh file: --file=/path/to/file.mesh", default="")
+    parser.add_argument("-o", "--outdir", type=str, help="simulation output directory", default="")
     args = parser.parse_args()
 
     check_file(args.config)
     config, study_type = check_config(args.config, sim=True)
+
+    if args.outdir:
+        print(f">> output directory superseded with {args.outdir}")
+        config["study"]["outdir"] = args.outdir
 
     t0 = time.time()
 
