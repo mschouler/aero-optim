@@ -96,7 +96,7 @@ class WolfSimulator(Simulator):
         """
         Makes sure the config file contains the required information and extract it.
         """
-        logger.info("process config..")
+        logger.info("processing config..")
         if "exec_cmd" not in self.config["simulator"]:
             raise Exception(f"ERROR -- no <exec_cmd> entry in {self.config['simulator']}")
         if "ref_input" not in self.config["simulator"]:
@@ -177,7 +177,8 @@ class WolfSimulator(Simulator):
         qty_list: list[list[float]] = []
         head_list: list[str] = []
         for key, value in self.post_process_args.items():
-            file = open(os.path.join(sim_out_dir, key), "r").read().splitlines()
+            # filter removes possible blank lines avoiding index out of range errors at L186
+            file = list(filter(None, open(os.path.join(sim_out_dir, key), "r").read().splitlines()))
             headers = file[0][2:].split()  # ignore "# " before first item in headers
             for qty in value:
                 try:
