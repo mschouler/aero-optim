@@ -59,7 +59,7 @@ class NACABaseMesh(Mesh):
         self.up: int = self.config["gmsh"]["mesh"].get("up", 70)
 
     def process_config(self):
-        logger.info("process config..")
+        logger.info("processing config..")
         if "inlet" not in self.config["gmsh"]["domain"]:
             logger.warning(f"no <inlet> entry in {self.config['gmsh']['domain']}")
         if "outlet" not in self.config["gmsh"]["domain"]:
