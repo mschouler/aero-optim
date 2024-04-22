@@ -1,10 +1,13 @@
 import logging
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
 from abc import ABC, abstractmethod
 from inspyred.ec import Individual
 from random import Random
+from typing import Any
 import signal
 import time
 
@@ -15,6 +18,7 @@ from .naca_block_mesh import NACABlockMesh
 from .simulator import WolfSimulator
 from .utils import check_dir
 
+plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
 
 
@@ -77,7 +81,7 @@ class Optimizer(ABC):
         # optional entries
         self.budget: int = config["optim"].get("budget", 4)
         self.nproc_per_sim: int = config["optim"].get("nproc_per_sim", 1)
-        self.bound: tuple[float, float] = config["optim"].get("bound", (-5, 5))
+        self.bound: tuple[Any, ...] = tuple(config["optim"].get("bound", [-1., 1.]))
         self.sampler_name: str = config["optim"].get("sampler_name", "halton")
         # reproducibility variables
         self.seed: int = config["optim"].get("seed", 123)
@@ -99,7 +103,7 @@ class Optimizer(ABC):
         """
         Makes sure the config file contains the required information.
         """
-        logger.info("process config..")
+        logger.info("processing config..")
         if "n_design" not in self.config["optim"]:
             raise Exception(f"ERROR -- no <n_design> entry in {self.config['optim']}")
         if "doe_size" not in self.config["optim"]:
@@ -165,13 +169,27 @@ class WolfOptimizer(Optimizer):
 
         Inner
             >> simulator: WolfSimulator object to perform Wolf simulations.
+            >> ffd_profiles: all deformed geometries {gid: {cid: ffd_profile}}.
+            >> QoI: the quantity of intereset to minimize/maximize.
+            >> n_plt: the number of best candidates results to display after each evaluation.
+            >> baseline_CD: the drag coefficient of the baseline geometry.
+            >> baseline_CL: the lift coefficient of the baseline geometry.
             >> baseline_area: the baseline area that is used as a structural constraint.
             >> penalty_arg: a (key, value) constraint not to be worsen by the optimization.
+            >> cmap: the colormaps used for the observer plot
+               (see https://matplotlib.org/stable/users/explain/colors/colormaps.html).
         """
         super().__init__(config)
         self.simulator: WolfSimulator = WolfSimulator(self.config)
+        self.J: list[float] = []
+        self.ffd_profiles: list[list[np.ndarray]] = []
+        self.QoI: str = config["optim"].get("QoI", "CD")
+        self.n_plt: int = config["optim"].get("n_plt", 5)
+        self.baseline_CD: float = config["optim"].get("baseline_CD", 0.150484)
+        self.baseline_CL: float = config["optim"].get("baseline_CL", 0.36236)
         self.baseline_area: float = shoe_lace(self.ffd.pts)
-        self.penalty: list = config["optim"].get("penalty", ["CL", 0.])
+        self.penalty: list = config["optim"].get("penalty", ["CL", self.baseline_CL])
+        self.cmap: str = config["optim"].get("cmap", "viridis")
 
     def constraint(self, gid: int, cid: int, ffd_profile: np.ndarray, pen_value: float) -> float:
         """
@@ -187,17 +205,86 @@ class WolfOptimizer(Optimizer):
             return 1.
         return 0.
 
+    def observe(
+            self,
+            population: Individual,
+            num_generations: int,
+            num_evaluations: int,
+            args: dict
+    ):
+        """
+        Displays the n_plt best results each time a generation has been evaluated:
+            - the simulations residuals,
+            - the simulations CD & CL,
+            - the candidates fitness,
+            - the baseline and deformed profiles.
+        """
+        fitness: np.ndarray = np.array(self.J[-self.doe_size:])
+        sorted_idx = np.argsort(fitness)[:self.n_plt]
+        baseline: np.ndarray = self.ffd.pts
+        logger.info(f"extracting {self.n_plt} best profiles in g{num_generations}: {sorted_idx}..")
+        profiles: list[np.ndarray] = self.ffd_profiles[num_generations][-self.doe_size:]
+        # plot settings
+        cmap = mpl.colormaps[self.cmap].resampled(self.n_plt)
+        colors = cmap(np.linspace(0, 1, self.n_plt))
+        # subplot construction
+        plt.figure(figsize=(16, 12))
+        ax1 = plt.subplot(2, 1, 1)  # profiles
+        ax2 = plt.subplot(2, 3, 4)  # ResTot
+        ax3 = plt.subplot(2, 3, 5)  # CD & CL
+        ax4 = plt.subplot(2, 3, 6)  # fitness (CD)
+        plt.subplots_adjust(wspace=0.25)
+        ax1.plot(baseline[:, 0], baseline[:, 1], color="k", lw=2, ls="--", label="baseline")
+        ax3.axhline(y=self.baseline_CD, color='k', label="baseline")
+        ax3.axhline(y=self.baseline_CL, color='k', linestyle="--", label="baseline")
+        ax4.axhline(y=self.baseline_CD, color='k', linestyle="--", label="baseline")
+        # loop over candidates through the last generated profiles
+        for color, cid in enumerate(sorted_idx):
+            ax1.plot(profiles[cid][:, 0], profiles[cid][:, 1], color=colors[color], label=f"c{cid}")
+            res_list = self.simulator.df_list[-self.doe_size:]
+            df_key = res_list[0].columns  # "ResTot", "CD", "CL", "ResCD", "ResCL", "x", "y", "Cp"
+            res_list[cid][df_key[0]].plot(ax=ax2, color=colors[color], label=f"c{cid}")  # ResTot
+            res_list[cid][df_key[1]].plot(ax=ax3, color=colors[color], label=f"{df_key[1]} c{cid}")
+            res_list[cid][df_key[2]].plot(
+                ax=ax3, color=colors[color], ls="--", label=f"{df_key[2]} c{cid}"
+            )
+            ax4.scatter(cid, fitness[cid], color=colors[color], label=f"c{cid} fitness")  # fitness
+        # legend and title
+        # top
+        ax1.set_title("FFD profiles")
+        ax1.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax1.set_xlabel('x')
+        ax1.set_ylabel('y')
+        # bottom left
+        ax2.set_title(f"{df_key[0]}")
+        ax2.set_yscale("log")
+        ax2.set_xlabel('it. #')
+        ax2.set_ylabel('residual')
+        # bottom center
+        ax3.set_title(f"{df_key[1]} & {df_key[2]}")
+        ax3.set_xlabel('it. #')
+        ax3.set_ylabel('aerodynamic coeff.')
+        # bottom right
+        ax4.set_title(f"fitness: penalized {self.QoI}")
+        ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax4.set_xlabel('candidate #')
+        ax4.set_ylabel("fitness")
+        # save figure as png
+        fig_name = f"res_g{num_generations}.png"
+        logger.info(f"saving {fig_name} to {self.outdir}")
+        plt.savefig(os.path.join(self.outdir, fig_name))
+
     def evaluate(self, candidates: Individual, args: dict) -> list[float]:
         """
         Executes Wolf simulations, extracts results and returns the list of candidates QoIs.
         """
-        logger.info("Enters evaluate")
-        J: list[float] = []
-        QoI: str = args.get("QoI", "CD")
+        logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
         gid = self.gen_ctr
+        self.ffd_profiles.append([])
         # execute all candidates
         for cid, cand in enumerate(candidates):
             ffd_file, ffd_profile = self.deform(cand, gid, cid)
+            self.ffd_profiles[gid].append(ffd_profile)
             # meshing with proper sigint management
             # see https://gitlab.onelab.info/gmsh/gmsh/-/issues/842
             ORIGINAL_SIGINT_HANDLER = signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -206,16 +293,18 @@ class WolfOptimizer(Optimizer):
             while self.simulator.monitor_sim_progress() * self.nproc_per_sim >= self.budget:
                 time.sleep(1)
             self.simulator.execute_sim(meshfile=mesh_file, gid=gid, cid=cid)
-            # add penalty to the candidate fitness
-            J.append(self.constraint(
-                gid,
-                cid,
-                ffd_profile,
-                self.simulator.df_list[-1][self.penalty[0]].iloc[-1]
-            ))
-        # wait for last candidates
+        # wait for last candidates to finish
         while self.simulator.monitor_sim_progress() > 0:
             time.sleep(1)
-        J += [df[QoI].iloc[-1] for df in self.simulator.df_list[-self.doe_size:]]
+        # add penalty to the candidates fitness
+        for cid, _ in enumerate(candidates):
+            self.J.append(
+                self.constraint(
+                    gid, cid,
+                    self.ffd_profiles[gid][cid],
+                    self.simulator.df_list[-self.doe_size + cid][self.penalty[0]].iloc[-1]
+                )
+            )
+            self.J[-1] += self.simulator.df_list[-self.doe_size + cid][self.QoI].iloc[-1]
         self.gen_ctr += 1
-        return J
+        return self.J[-self.doe_size:]

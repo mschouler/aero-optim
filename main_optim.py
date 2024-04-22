@@ -3,6 +3,7 @@ import inspyred
 import logging
 import os
 import signal
+import traceback
 
 from src.ins_optimizer import WolfOptimizer
 from src.utils import (check_file, check_config, check_dir,
@@ -21,13 +22,6 @@ def handle_signal(signo: int, frame: FrameType | None):
     signame = signal.Signals(signo).name
     logger.info(f"clean handling of {signame} signal")
     raise Exception("Program interruption")
-
-
-def my_observer(population, num_generations, num_evaluations, args):
-    best = max(population)
-    print('{0:6} -- {1} : {2}'.format(num_generations,
-                                      best.fitness,
-                                      str(best.candidate)))
 
 
 if __name__ == '__main__':
@@ -51,7 +45,7 @@ if __name__ == '__main__':
     # instantiate optimizer and inspyred objects
     opt = WolfOptimizer(config)
     ea = inspyred.ec.ES(opt.prng)
-    ea.observer = my_observer
+    ea.observer = opt.observe
     ea.terminator = inspyred.ec.terminators.generation_termination
 
     # signal interruption management
@@ -67,10 +61,11 @@ if __name__ == '__main__':
                               bounder=opt.bound,
                               maximize=False)
         best = max(final_pop)
-        logger.info('Best Solution: \n{0}'.format(str(best)))
+        logger.info(f"Best Solution: \n{best[:opt.doe_size]}")
 
     except Exception as e:
         logger.error(
             f"ERROR -- something went wrong in the optimization loop which raised Exception: {e}"
         )
+        logger.error(f"Traceback message: {traceback.format_exc()}")
         opt.simulator.kill_all()  # kill all remaining processes

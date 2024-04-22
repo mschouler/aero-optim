@@ -6,11 +6,14 @@
         "outdir": "output"
     },
     "optim": {
-        "n_design": 2,
-        "doe_size": 1,
-        "max_generations": 1,
-        "budget": 1,
-        "nproc_per_sim": 1
+        "n_design": 8,
+        "doe_size": 20,
+        "max_generations": 0,
+        "bound": [-1, 1],
+        "budget": 20,
+        "nproc_per_sim": 1,
+        "QoI": "CD",
+        "penalty": ["CL", 0.3623]
     },
     "gmsh": {
         "domain": {
@@ -40,8 +43,9 @@
         },
         "post_process": {
             "residual.dat": ["ResTot"],
-            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"]
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
+            "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "/Users/Marc/bin/wolf -in @.mesh"
+        "exec_cmd": "/home/mschouler/bin/wolf -in @.mesh"
     }
 }
