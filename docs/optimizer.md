@@ -51,7 +51,7 @@ It first instantiates a `WolfSimulator` attribute that is then used in the `eval
 
 4) post-processing i.e. QoI extraction and constraint application.
 
-!!! Tip
+!!! Note
     The [`constraint`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L176-L188) method based on [`inspyred` documentation](https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection) is put in place in order to penalize inadequate geometries both in terms of area and lift coefficient.
 
 In the end, all simulations QoIs are returned as a list of floats. In addition, after each evaluation the `observe` method is called to write or display the results of each generation candidates.
