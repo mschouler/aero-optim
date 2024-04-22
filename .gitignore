@@ -21,6 +21,8 @@ venv.bak/
 
 # results
 output
+RES
+tmp
 
 # mypy
 .mypy_cache/
