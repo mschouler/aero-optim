@@ -30,7 +30,14 @@
     },
     "simulator": {
         "ref_input": "template/naca_euler.wolf",
-        "sim_args": {},
-        "exec_cmd": "/Users/Marc/bin/wolf -in @.mesh"
+        "sim_args": {
+            "Processors": {"inplace": false, "param": ["20"]}
+        },
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
+            "wall.dat": ["x", "y", "Cp"]
+        },
+        "exec_cmd": "/home/mschouler/bin/wolf -in @.mesh"
     }
 }
