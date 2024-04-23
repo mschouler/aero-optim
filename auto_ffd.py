@@ -3,6 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
+import os
 import sys
 
 from scipy.stats import qmc
@@ -14,7 +15,8 @@ logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
-def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray, in_lat: bool = False):
+def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray,
+                 outdir: str, in_lat: bool = False):
     """
     Plots various generated elements in the lattice or original referential.
     """
@@ -58,6 +60,7 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray, in_
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
+    plt.savefig(os.path.join(outdir, "ffd.png"))
 
 
 def get_sampler(sampler: str, ncontrol: int, seed: int = 123):
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-s", "--sampler", type=str, help="sampling technique [lhs, halton, sobol]", default="lhs")
     parser.add_argument(
-        "-d", "--delta", nargs="*", type=float, default=None, help="Delta: D10 D20 .. D2nc (> 0)")
+        "-d", "--delta", type=str, default=None, help="Delta: 'D10 D20 .. D2nc'")
     args = parser.parse_args()
 
     check_file(args.file)
@@ -118,10 +121,10 @@ if __name__ == "__main__":
         sample = sampler.random(n=args.nprofile)
         scaled_sample = qmc.scale(sample, -0.5, 0.5)
     else:
-        scaled_sample = [np.array(args.delta)]
+        scaled_sample = [np.array([float(d) for d in args.delta.split()])]
     profiles = []
     for Delta in scaled_sample:
         profiles.append(ffd.apply_ffd(Delta))
-    plot_profile(ffd, profiles, Delta, args.referential)
+    plot_profile(ffd, profiles, Delta, args.outdir, args.referential)
     for pid, profile in enumerate(profiles):
         file_name = ffd.write_ffd(profile, scaled_sample[pid], "output")
