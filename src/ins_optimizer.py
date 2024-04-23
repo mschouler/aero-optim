@@ -273,6 +273,7 @@ class WolfOptimizer(Optimizer):
         fig_name = f"res_g{num_generations}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
         plt.savefig(os.path.join(self.outdir, fig_name))
+        plt.close()
 
     def evaluate(self, candidates: Individual, args: dict) -> list[float]:
         """
@@ -324,8 +325,11 @@ class WolfOptimizer(Optimizer):
         # loop over generations
         for gid in range(self.gen_ctr):
             for cid in range(self.doe_size):
-                ax.scatter(cid, self.J[gid * self.doe_size + cid],
-                           color=colors[gid], label=f"g{gid}")
+                if cid == 0:
+                    ax.scatter(cid, self.J[gid * self.doe_size + cid],
+                               color=colors[gid], label=f"g{gid}")
+                else:
+                    ax.scatter(cid, self.J[gid * self.doe_size + cid], color=colors[gid])
         # legend and title
         # top
         ax.set_title("Convergence of the optimization")
@@ -336,3 +340,4 @@ class WolfOptimizer(Optimizer):
         fig_name = f"optim_g{self.gen_ctr}_c{self.doe_size}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
         plt.savefig(os.path.join(self.outdir, fig_name))
+        plt.close()
