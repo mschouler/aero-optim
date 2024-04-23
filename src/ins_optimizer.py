@@ -82,7 +82,7 @@ class Optimizer(ABC):
         self.budget: int = config["optim"].get("budget", 4)
         self.nproc_per_sim: int = config["optim"].get("nproc_per_sim", 1)
         self.bound: tuple[Any, ...] = tuple(config["optim"].get("bound", [-1., 1.]))
-        self.sampler_name: str = config["optim"].get("sampler_name", "halton")
+        self.sampler_name: str = config["optim"].get("sampler_name", "lhs")
         # reproducibility variables
         self.seed: int = config["optim"].get("seed", 123)
         self.prng: Random = Random()
@@ -321,7 +321,7 @@ class WolfOptimizer(Optimizer):
         colors = cmap(np.linspace(0, 1, self.gen_ctr))
         # subplot construction
         _, ax = plt.subplots(figsize=(8, 8))
-        ax.axhline(y=self.baseline_CD, color='k', label="baseline")
+        ax.axhline(y=self.baseline_CD, color='k', ls="--", label="baseline")
         # loop over generations
         for gid in range(self.gen_ctr):
             for cid in range(self.doe_size):
