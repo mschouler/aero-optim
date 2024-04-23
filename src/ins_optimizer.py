@@ -272,7 +272,7 @@ class WolfOptimizer(Optimizer):
         # save figure as png
         fig_name = f"res_g{num_generations}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
-        plt.savefig(os.path.join(self.outdir, fig_name))
+        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
 
     def evaluate(self, candidates: Individual, args: dict) -> list[float]:
@@ -339,5 +339,5 @@ class WolfOptimizer(Optimizer):
         # save figure as png
         fig_name = f"optim_g{self.gen_ctr}_c{self.doe_size}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
-        plt.savefig(os.path.join(self.outdir, fig_name))
+        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
