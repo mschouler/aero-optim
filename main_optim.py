@@ -60,14 +60,15 @@ if __name__ == '__main__':
                               evaluator=opt.evaluate,
                               pop_size=opt.doe_size,
                               max_generations=opt.max_generations,
-                              bounder=opt.bound,
+                              bounder=inspyred.ec.Bounder(*opt.bound),
                               maximize=False)
+        opt.final_observe()
         best = max(final_pop)
-        logger.info(f"Best Solution: \n{best[:opt.doe_size]}")
+        logger.info(f"Best Solution: \n{best}")
 
     except Exception as e:
         logger.error(
             f"ERROR -- something went wrong in the optimization loop which raised Exception: {e}"
         )
-        logger.error(f"Traceback message: {traceback.format_exc()}")
+        logger.error(f"Traceback message:\n{traceback.format_exc()}")
         opt.simulator.kill_all()  # kill all remaining processes
