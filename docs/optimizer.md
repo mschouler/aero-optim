@@ -39,7 +39,7 @@ The `Optimizer` class acts as an `evaluator` and implements the `evaluate` metho
     All optimizer parameters are described in their respective class definition (see [`Optimizer`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L40-L71), [`WolfOptimizer`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L167-L181)).
 
 ### Wolf Optimizer
-The [`WolfOptimizer`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L162-L310) class illustrates how `Optimizer` can be inherited to perform a `Wolf`-based optimization.
+The [`WolfOptimizer`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L162-L338) class illustrates how `Optimizer` can be inherited to perform a `Wolf`-based optimization.
 
 It first instantiates a `WolfSimulator` attribute that is then used in the `evaluate` method where for all candidates, the following steps are performed:
 

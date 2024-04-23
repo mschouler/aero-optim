@@ -308,3 +308,31 @@ class WolfOptimizer(Optimizer):
             self.J[-1] += self.simulator.df_list[-self.doe_size + cid][self.QoI].iloc[-1]
         self.gen_ctr += 1
         return self.J[-self.doe_size:]
+
+    def final_observe(self):
+        """
+        Displays convergence progress by plotting the fitness values
+        obtained with the successive generations.
+        """
+        logger.info(f"plotting {self.gen_ctr} generations results..")
+        # plot settings
+        cmap = mpl.colormaps[self.cmap].resampled(self.gen_ctr)
+        colors = cmap(np.linspace(0, 1, self.gen_ctr))
+        # subplot construction
+        _, ax = plt.subplots(figsize=(8, 8))
+        ax.axhline(y=self.baseline_CD, color='k', label="baseline")
+        # loop over generations
+        for gid in range(self.gen_ctr):
+            for cid in range(self.doe_size):
+                ax.scatter(cid, self.J[gid * self.doe_size + cid],
+                           color=colors[gid], label=f"g{gid}")
+        # legend and title
+        # top
+        ax.set_title("Convergence of the optimization")
+        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax.set_xlabel('cid')
+        ax.set_ylabel('penalized fitness')
+        # save figure as png
+        fig_name = f"optim_g{self.gen_ctr}_c{self.doe_size}.png"
+        logger.info(f"saving {fig_name} to {self.outdir}")
+        plt.savefig(os.path.join(self.outdir, fig_name))
