@@ -53,7 +53,7 @@ def check_config(
     if "outdir" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <outdir>  entry in {config}[study]")
 
-    # check path correctness
+    # check path and study_type correctness
     if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
     if (optim or gmsh) and config_dict["study"]["study_type"] not in ["base", "block"]:
