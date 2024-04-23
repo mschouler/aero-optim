@@ -332,7 +332,7 @@ class WolfOptimizer(Optimizer):
                     ax.scatter(cid, self.J[gid * self.doe_size + cid], color=colors[gid])
         # legend and title
         # top
-        ax.set_title("Convergence of the optimization")
+        ax.set_title(f"Convergence of the optimization ({self.gen_ctr} g. x {self.doe_size} c.)")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax.set_xlabel('cid')
         ax.set_ylabel('penalized fitness')
