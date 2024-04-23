@@ -248,7 +248,7 @@ class WolfOptimizer(Optimizer):
             res_list[cid][df_key[2]].plot(
                 ax=ax3, color=colors[color], ls="--", label=f"{df_key[2]} c{cid}"
             )
-            ax4.scatter(cid, fitness[cid], color=colors[color], label=f"c{cid} fitness")  # fitness
+            ax4.scatter(cid, fitness[cid], color=colors[color], label=f"c{cid}")
         # legend and title
         # top
         ax1.set_title("FFD profiles")
@@ -332,12 +332,12 @@ class WolfOptimizer(Optimizer):
                     ax.scatter(cid, self.J[gid * self.doe_size + cid], color=colors[gid])
         # legend and title
         # top
-        ax.set_title(f"Convergence of the optimization ({self.gen_ctr} g. x {self.doe_size} c.)")
+        ax.set_title(f"Optimization evolution ({self.gen_ctr - 1} g. x {self.doe_size} c.)")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax.set_xlabel('cid')
         ax.set_ylabel('penalized fitness')
         # save figure as png
-        fig_name = f"optim_g{self.gen_ctr}_c{self.doe_size}.png"
+        fig_name = f"optim_g{self.gen_ctr - 1}_c{self.doe_size}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
         plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
