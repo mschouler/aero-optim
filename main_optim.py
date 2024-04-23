@@ -2,6 +2,7 @@ import argparse
 import inspyred
 import logging
 import os
+import shutil
 import signal
 import traceback
 
@@ -33,12 +34,13 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--verbose", type=int, help="logger verbosity level", default=3)
     args = parser.parse_args()
 
-    # check config
+    # check config and copy to outdir
     check_file(args.config)
     config, study_type = check_config(args.config, optim=True)
+    check_dir(config["study"]["outdir"])
+    shutil.copy(args.config, config["study"]["outdir"])
 
     # set logger
-    check_dir(config["study"]["outdir"])
     log_level = get_log_level_from_verbosity(args.verbose)
     configure_logger(logger, os.path.join(config["study"]["outdir"], "aero-optim.log"), log_level)
 
