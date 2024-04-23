@@ -106,7 +106,7 @@ python3 auto_gmsh.py --config=input/naca_block.json
 
 It is also possible to supersede the config `"file"` entry with the `--file` input argument. Hence, any previously generated deformed geometry can be meshed according to the naca routine with the commands below:
 ```sh
-python3 auto_ffd.py -f input/naca12.dat -nc 2 -d 0. 0. 1. 1.
+python3 auto_ffd.py -f input/naca12.dat -nc 2 -d "0. 0. 1. 1."
 python3 auto_gmsh.py --config=input/naca_base.json --file=output/naca12_g0_c0.dat
 ```
 <p float="left">
