@@ -1,6 +1,7 @@
 import argparse
 import inspyred
 import logging
+import operator
 import os
 import shutil
 import signal
@@ -61,10 +62,20 @@ if __name__ == '__main__':
                               pop_size=opt.doe_size,
                               max_generations=opt.max_generations,
                               bounder=inspyred.ec.Bounder(*opt.bound),
-                              maximize=False)
+                              maximize=opt.maximize)
+
         opt.final_observe()
+
+        # output results
         best = max(final_pop)
-        logger.info(f"Best Solution: \n{best}")
+        index, opt_J = (
+            max(enumerate(opt.J), key=operator.itemgetter(1)) if opt.maximize else
+            min(enumerate(opt.J), key=operator.itemgetter(1))
+        )
+        gid, cid = (index // opt.doe_size, index % opt.doe_size)
+        logger.info(f"optimal(J): {opt_J}, "
+                    f"D: {' '.join([str(d) for d in best.candidate[:opt.n_design]])} "
+                    f"[g{gid}, c{cid}]")
 
     except Exception as e:
         logger.error(

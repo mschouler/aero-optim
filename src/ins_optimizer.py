@@ -58,6 +58,7 @@ class Optimizer(ABC):
                 |__ wolf_gXX_cYY (contains the results of each simulation)
 
             >> study_type: use-case/meshing routine.
+            >> maximize: whether to maximize or minimize the objective QoIs.
             >> budget: maximum number of concurrent proc in use.
             >> nproc_per_sim: number of proc per simulation.
             >> bound: design variables boundaries.
@@ -79,6 +80,7 @@ class Optimizer(ABC):
         self.outdir: str = config["study"]["outdir"]
         self.study_type: str = config["study"]["study_type"]
         # optional entries
+        self.maximize: bool = config["optim"].get("maximize", False)
         self.budget: int = config["optim"].get("budget", 4)
         self.nproc_per_sim: int = config["optim"].get("nproc_per_sim", 1)
         self.bound: tuple[Any, ...] = tuple(config["optim"].get("bound", [-1., 1.]))
@@ -175,6 +177,9 @@ class WolfOptimizer(Optimizer):
             >> baseline_CD: the drag coefficient of the baseline geometry.
             >> baseline_CL: the lift coefficient of the baseline geometry.
             >> baseline_area: the baseline area that is used as a structural constraint.
+            >> area_margin: area tolerance margin given as a percentage wrt the baseline area
+               i.e. a candidate with an area greater/smaller than +/- area_margin % of the
+               baseline_area will be penalized.
             >> penalty_arg: a (key, value) constraint not to be worsen by the optimization.
             >> cmap: the colormaps used for the observer plot
                (see https://matplotlib.org/stable/users/explain/colors/colormaps.html).
@@ -188,6 +193,7 @@ class WolfOptimizer(Optimizer):
         self.baseline_CD: float = config["optim"].get("baseline_CD", 0.150484)
         self.baseline_CL: float = config["optim"].get("baseline_CL", 0.36236)
         self.baseline_area: float = shoe_lace(self.ffd.pts)
+        self.area_margin: float = config["optim"].get("area_margin", 40)
         self.penalty: list = config["optim"].get("penalty", ["CL", self.baseline_CL])
         self.cmap: str = config["optim"].get("cmap", "viridis")
 
@@ -196,8 +202,8 @@ class WolfOptimizer(Optimizer):
         Returns a penalty value based on some specific constraints.
         see https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection
         """
-        area_cond: bool = (shoe_lace(ffd_profile) > 1.4 * self.baseline_area
-                           or shoe_lace(ffd_profile) < 0.6 * self.baseline_area)
+        area_cond: bool = (shoe_lace(ffd_profile) > (1. + self.area_margin) * self.baseline_area
+                           or shoe_lace(ffd_profile) < (1. - self.area_margin) * self.baseline_area)
         penalty_cond: bool = pen_value < self.penalty[-1]
         if area_cond or penalty_cond:
             logger.info(f"penalized candidate g{gid} c{cid} "
