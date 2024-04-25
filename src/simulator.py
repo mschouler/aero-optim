@@ -94,7 +94,7 @@ class WolfSimulator(Simulator):
 
     def process_config(self):
         """
-        Makes sure the config file contains the required information and extract it.
+        Makes sure the config file contains the required information and extracts it.
         """
         logger.info("processing config..")
         if "exec_cmd" not in self.config["simulator"]:
