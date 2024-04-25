@@ -7,6 +7,7 @@ import shutil
 import signal
 import traceback
 
+from random import Random
 from src.ins_optimizer import WolfOptimizer
 from src.utils import (check_file, check_config, check_dir,
                        configure_logger, get_log_level_from_verbosity)
@@ -24,6 +25,25 @@ def handle_signal(signo: int, frame: FrameType | None):
     signame = signal.Signals(signo).name
     logger.info(f"clean handling of {signame} signal")
     raise Exception("Program interruption")
+
+
+def select_strategy(strategy_name: str, prng: Random) -> inspyred.ec.EvolutionaryComputation:
+    """
+    Returns the evolution algorithm object if the strategy is well defined,
+    an exception otherwise.
+    """
+    if strategy_name == "ES":
+        ea = inspyred.ec.ES(prng)
+    elif strategy_name == "GA":
+        ea = inspyred.ec.GA(prng)
+    elif strategy_name == "SA":
+        ea = inspyred.ec.SA(prng)
+    elif strategy_name == "PSO":
+        ea = inspyred.swarm.PSO(prng)
+    else:
+        raise Exception(f"ERROR -- unrecognized strategy {strategy_name}")
+    logger.info(f"optimization selected strategy: {strategy_name}")
+    return ea
 
 
 if __name__ == '__main__':
@@ -47,7 +67,7 @@ if __name__ == '__main__':
 
     # instantiate optimizer and inspyred objects
     opt = WolfOptimizer(config)
-    ea = inspyred.ec.ES(opt.prng)
+    ea = select_strategy(opt.strategy, opt.prng)
     ea.observer = opt.observe
     ea.terminator = inspyred.ec.terminators.generation_termination
 

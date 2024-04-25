@@ -58,6 +58,8 @@ class Optimizer(ABC):
                 |__ wolf_gXX_cYY (contains the results of each simulation)
 
             >> study_type: use-case/meshing routine.
+            >> strategy: the optimization algorithm amongst inspyred's [ES, GA, SA, PSO]
+               see https://pythonhosted.org/inspyred/examples.html#standard-algorithms.
             >> maximize: whether to maximize or minimize the objective QoIs.
             >> budget: maximum number of concurrent proc in use.
             >> nproc_per_sim: number of proc per simulation.
@@ -80,6 +82,7 @@ class Optimizer(ABC):
         self.outdir: str = config["study"]["outdir"]
         self.study_type: str = config["study"]["study_type"]
         # optional entries
+        self.strategy: str = config["optim"].get("strategy", "ES")
         self.maximize: bool = config["optim"].get("maximize", False)
         self.budget: int = config["optim"].get("budget", 4)
         self.nproc_per_sim: int = config["optim"].get("nproc_per_sim", 1)
@@ -319,31 +322,43 @@ class WolfOptimizer(Optimizer):
     def final_observe(self):
         """
         Displays convergence progress by plotting the fitness values
-        obtained with the successive generations.
+        obtained with the successive generations, see
+        https://pythonhosted.org/inspyred/reference.html#inspyred.ec.analysis.generation_plot.
         """
-        logger.info(f"plotting {self.gen_ctr} generations results..")
-        # plot settings
-        cmap = mpl.colormaps[self.cmap].resampled(self.gen_ctr)
-        colors = cmap(np.linspace(0, 1, self.gen_ctr))
-        # subplot construction
+        logger.info(f"plotting results after {self.gen_ctr} generations..")
+        # plot construction
         _, ax = plt.subplots(figsize=(8, 8))
+        psize = self.doe_size
         ax.axhline(y=self.baseline_CD, color='k', ls="--", label="baseline")
-        # loop over generations
-        for gid in range(self.gen_ctr):
-            for cid in range(self.doe_size):
-                if cid == 0:
-                    ax.scatter(cid, self.J[gid * self.doe_size + cid],
-                               color=colors[gid], label=f"g{gid}")
-                else:
-                    ax.scatter(cid, self.J[gid * self.doe_size + cid], color=colors[gid])
+        # generation statistics
+        logger.debug(f"gen {self.gen_ctr} psize {psize}, J {self.J}")
+        mean = [np.mean(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
+        logger.debug(f"mean {mean}")
+        median = [np.median(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
+        logger.debug(f"median {median}")
+        worst = [min(self.J[:psize * (g + 1)]) for g in range(self.gen_ctr)]
+        best = [max(self.J[:psize * (g + 1)]) for g in range(self.gen_ctr)]
+        if not self.maximize:
+            worst, best = best, worst
+        # plotting data
+        data = [mean, median, best, worst]
+        colors = ["grey", "blue", "green", "red"]
+        labels = ["mean", "median", "best", "worst"]
+        for val, col, lab in zip(data, colors, labels):
+            ax.plot(range(self.gen_ctr), val, color=col, label=lab)
+        plt.fill_between(range(self.gen_ctr), data[2], data[3], color='#e6f2e6')
+        plt.grid(True)
+        ymin = min([min(d) for d in data])
+        ymax = max([max(d) for d in data])
+        yrange = ymax - ymin
+        plt.ylim((ymin - 0.1 * yrange, ymax + 0.1 * yrange))
         # legend and title
-        # top
-        ax.set_title(f"Optimization evolution ({self.gen_ctr - 1} g. x {self.doe_size} c.)")
+        ax.set_title(f"Optimization evolution ({self.gen_ctr - 1} g. x {psize} c.)")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax.set_xlabel('cid')
+        ax.set_xlabel('generation #')
         ax.set_ylabel('penalized fitness')
         # save figure as png
-        fig_name = f"optim_g{self.gen_ctr - 1}_c{self.doe_size}.png"
+        fig_name = f"optim_g{self.gen_ctr - 1}_c{psize}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
         plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
