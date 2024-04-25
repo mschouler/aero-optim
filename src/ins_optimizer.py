@@ -325,19 +325,16 @@ class WolfOptimizer(Optimizer):
         obtained with the successive generations, see
         https://pythonhosted.org/inspyred/reference.html#inspyred.ec.analysis.generation_plot.
         """
-        logger.info(f"plotting results after {self.gen_ctr} generations..")
+        logger.info(f"plotting results after {self.gen_ctr - 1} generations..")
         # plot construction
         _, ax = plt.subplots(figsize=(8, 8))
         psize = self.doe_size
         ax.axhline(y=self.baseline_CD, color='k', ls="--", label="baseline")
         # generation statistics
-        logger.debug(f"gen {self.gen_ctr} psize {psize}, J {self.J}")
         mean = [np.mean(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
-        logger.debug(f"mean {mean}")
         median = [np.median(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
-        logger.debug(f"median {median}")
-        worst = [min(self.J[:psize * (g + 1)]) for g in range(self.gen_ctr)]
-        best = [max(self.J[:psize * (g + 1)]) for g in range(self.gen_ctr)]
+        worst = [min(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
+        best = [max(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
         if not self.maximize:
             worst, best = best, worst
         # plotting data
