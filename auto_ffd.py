@@ -125,6 +125,6 @@ if __name__ == "__main__":
     profiles = []
     for Delta in scaled_sample:
         profiles.append(ffd.apply_ffd(Delta))
-    plot_profile(ffd, profiles, Delta, args.outdir, args.referential)
     for pid, profile in enumerate(profiles):
         file_name = ffd.write_ffd(profile, scaled_sample[pid], args.outdir)
+    plot_profile(ffd, profiles, Delta, args.outdir, args.referential)
