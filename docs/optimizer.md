@@ -61,7 +61,7 @@ The `main_optim.py` script enables to launch full optimization loops in accordan
 
 For instance, `naca_base.json` executes a single iteration of the [Evolution Strategy](https://pythonhosted.org/inspyred/examples.html#evolution-strategy) algorithm with 20 candidates and 8 variables of design sampled between -1 and 1 (in lattice units):
 ```py
-python3 -c input/naca_base.json
+python3 main_optim.py -c input/naca_base.json
 ```
 <p float="left">
   <img src="../Figures/dummy_optim.png" width="100%" />

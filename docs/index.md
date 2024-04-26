@@ -45,7 +45,7 @@ Although the chaining of these steps is performed under the supervision of [`mai
 #### First FFD: [`auto_ffd.py`](https://github.com/mschouler/aero-optim/blob/master/auto_ffd.py)
 This script performs one or multiple FFD of the geometry passed as its input argument. For instance:
 ```sh
-python3 auto_ffd.py -f input/naca12.dat -nc 2 -d 0. 0. 1. 1.
+python3 auto_ffd.py -f input/naca12.dat -nc 2 -d "0. 0. 1. 1."
 ```
 will yield the figure below:
 <p float="left">
@@ -72,16 +72,15 @@ python3 auto_simulator.py -c input/naca_base.json -f output/naca_base.mesh
 ```
 would run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
 ```sh
-INFO:src.simulator:simulation {'generation': 0, 'candidate': 0} finished
-INFO:src.simulator:g0, c0 converged in 979 it.
+INFO:src.simulator:g0, c0 converged in 930 it.
 INFO:src.simulator:last five values:
-ResTot       CD       CL        ResCD        ResCL
-2.312145e-07 0.211356 0.285446 3.077764e-10 1.245845e-09
-2.262290e-07 0.211356 0.285446 2.979812e-10 1.260310e-09
-2.213444e-07 0.211356 0.285446 2.884310e-10 1.273839e-09
-2.165587e-07 0.211356 0.285446 2.791201e-10 1.286458e-09
-2.118700e-07 0.211356 0.285446 2.700434e-10 1.298195e-09
->> simulation finished after 18.21726393699646 seconds
+      ResTot       CD      CL        ResCD        ResCL   x   y  Cp
+2.204484e-07 0.150484 0.36236 5.926298e-11 3.847861e-10 NaN NaN NaN
+2.152950e-07 0.150484 0.36236 5.828636e-11 3.763017e-10 NaN NaN NaN
+2.102533e-07 0.150484 0.36236 5.732541e-11 3.680268e-10 NaN NaN NaN
+2.053209e-07 0.150484 0.36236 5.638070e-11 3.599595e-10 NaN NaN NaN
+2.004957e-07 0.150484 0.36236 5.545462e-11 3.520882e-10 NaN NaN NaN
+>> simulation finished after 8.026893615722656 seconds
 ```
 
 !!! Warning
