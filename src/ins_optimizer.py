@@ -206,7 +206,7 @@ class WolfOptimizer(Optimizer):
         self.baseline_CD: float = config["optim"].get("baseline_CD", 0.1505)
         self.baseline_CL: float = config["optim"].get("baseline_CL", 0.3624)
         self.baseline_area: float = shoe_lace(self.ffd.pts)
-        self.area_margin: float = config["optim"].get("area_margin", 40)
+        self.area_margin: float = config["optim"].get("area_margin", 40.) / 100.
         self.penalty: list = config["optim"].get("penalty", ["CL", self.baseline_CL])
         self.cmap: str = config["optim"].get("cmap", "viridis")
 
