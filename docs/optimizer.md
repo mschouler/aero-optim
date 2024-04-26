@@ -9,7 +9,7 @@ The optimizer module is designed to define all components required by an evoluti
 For each of them, an `Optimizer` attributes or methods are passed to the [`ec.evolve`](https://inspyred.readthedocs.io/en/latest/reference.html#ec-evolutionary-computation-framework) function.
 
 ### Optimizer
-The [`Optimizer`](https://github.com/mschouler/aero-optim/blob/add-docs/src/ins_optimizer.py#L35-L173) abstract class extracts general arguments from the `"optim"` and `"study"` dictionaries of the configuration file such as:
+The [`Optimizer`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L35-L173) abstract class extracts general arguments from the `"optim"` and `"study"` dictionaries of the configuration file such as:
 
 - `[optim] n_design (int)`: the number of design points i.e. the dimension of the problem,
 - `[optim] doe_size (int)`: the doe/population size i.e. the number of individuals per generation,
@@ -52,7 +52,7 @@ It first instantiates a `WolfSimulator` attribute that is then used in the `eval
 4) post-processing i.e. QoI extraction and constraint application.
 
 !!! Note
-    The [`constraint`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L203-L215) method based on [`inspyred` documentation](https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection) is put in place in order to penalize inadequate geometries both in terms of area and lift coefficient.
+    The [`constraint`](https://github.com/mschouler/aero-optim/blob/master/src/ins_optimizer.py#L213-L225) method based on [`inspyred` documentation](https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection) is put in place in order to penalize inadequate geometries both in terms of area and lift coefficient.
 
 In the end, all simulations QoIs are returned as a list of floats. In addition, after each evaluation the `observe` method is called to write or display the results of each generation candidates.
 
