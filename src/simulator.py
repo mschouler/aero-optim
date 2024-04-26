@@ -26,7 +26,7 @@ class Simulator(ABC):
             >> ref_input: a simulation input file template.
             >> sim_args: arguments to modify to customize ref_input.
             >> post_process_args: quantities to extract from result files.
-            >> def_list: list of dataframes containing the extracted quantities of all simulation.
+            >> df_dict: dictionary of dataframes containing all simulations extracted quantities.
         """
         self.cwd: str = os.getcwd()
         self.config = config
@@ -39,7 +39,7 @@ class Simulator(ABC):
         self.sim_args: dict = config["simulator"].get("sim_args", {})
         self.post_process_args: dict = config["simulator"].get("post_process", {})
         # simulation results
-        self.df_list: list[pd.DataFrame] = []
+        self.df_dict: dict[int, dict[int, pd.DataFrame]] = {}
 
     def custom_input(self, fname: str):
         """
@@ -71,7 +71,7 @@ class Simulator(ABC):
         """
 
     @abstractmethod
-    def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0):
+    def execute_sim(self, *args, **kwargs):
         """
         Runs a single simulation.
         """
@@ -87,7 +87,7 @@ class WolfSimulator(Simulator):
 
         Inner
             >> sim_pro: list to track simulations and their associated subprocess.
-               It has the following form ({'generation': gid, 'candidate': cid}, subprocess).
+               It has the following form ({'gid': gid, 'cid': cid}, subprocess).
         """
         super().__init__(config)
         self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
@@ -138,7 +138,7 @@ class WolfSimulator(Simulator):
         os.chdir(sim_outdir)
         with open(f"wolf_g{gid}_c{cid}.out", "wb") as out:
             with open(f"wolf_g{gid}_c{cid}.err", "wb") as err:
-                logger.info(f"execute simulation g{gid} c{cid} with Wolf")
+                logger.info(f"execute simulation g{gid}, c{cid} with Wolf")
                 proc = subprocess.Popen(exec_cmd,
                                         env=os.environ,
                                         stdin=subprocess.DEVNULL,
@@ -147,13 +147,17 @@ class WolfSimulator(Simulator):
                                         universal_newlines=True)
         os.chdir(self.cwd)
         # append simulation to the list of active processes
-        self.sim_pro.append(({"generation": gid, "candidate": cid}, proc))
+        self.sim_pro.append(({"gid": gid, "cid": cid}, proc))
+        # add gid entry to the results dictionary
+        if gid not in self.df_dict:
+            self.df_dict[gid] = {}
 
     def monitor_sim_progress(self) -> int:
         """
         Updates and returns the list of simulations under execution.
         """
         finished_sim = []
+        # loop over the list of simulation processes
         for id, (dict_id, p_id) in enumerate(self.sim_pro):
             returncode = p_id.poll()
             if returncode is None:
@@ -161,10 +165,11 @@ class WolfSimulator(Simulator):
             elif returncode == 0:
                 logger.info(f"simulation {dict_id} finished")
                 finished_sim.append(id)
-                self.df_list.append(self.post_process(dict_id))
+                self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(dict_id)
                 break
             else:
                 raise Exception(f"ERROR -- simulation {p_id} crashed")
+        # update the list of active processes
         self.sim_pro = [tup for id, tup in enumerate(self.sim_pro) if id not in finished_sim]
         return len(self.sim_pro)
 
@@ -173,9 +178,10 @@ class WolfSimulator(Simulator):
         Post-processes the results of a terminated simulation.
         Returns the extracted results in a DataFrame.
         """
-        sim_out_dir = self.get_sim_outdir(dict_id["generation"], dict_id["candidate"])
+        sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
         qty_list: list[list[float]] = []
         head_list: list[str] = []
+        # loop over the post-processing arguments to extract from the results
         for key, value in self.post_process_args.items():
             # filter removes possible blank lines avoiding index out of range errors at L186
             file = list(filter(None, open(os.path.join(sim_out_dir, key), "r").read().splitlines()))
@@ -191,7 +197,7 @@ class WolfSimulator(Simulator):
         # pd.Series allows columns of different lengths
         df = pd.DataFrame({head_list[i]: pd.Series(qty_list[i]) for i in range(len(qty_list))})
         logger.info(
-            f"g{dict_id['generation']}, c{dict_id['candidate']} converged in {len(df)} it."
+            f"g{dict_id['gid']}, c{dict_id['cid']} converged in {len(df)} it."
         )
         logger.info(f"last five values:\n{df.tail(n=5).to_string(index=False)}")
         return df
@@ -202,3 +208,52 @@ class WolfSimulator(Simulator):
         """
         logger.info(f"{len(self.sim_pro)} remaining simulation(s) will be killed")
         _ = [subpro.terminate() for _, subpro in self.sim_pro]
+
+
+class DEBUGSimulator(Simulator):
+    def __init__(self, config: dict):
+        super().__init__(config)
+
+    def process_config(self):
+        """
+        Dummy process_config.
+        """
+        logger.debug("not implemented")
+
+    def execute_sim(self, candidate: list[float], gid: int = 0, cid: int = 0):
+        """
+        Dummy execute_sim.
+        """
+        logger.debug(f"problem dim: {len(candidate)}")
+        sim_res = self.compute_sol(candidate)
+        self.post_process(sim_res, gid, cid)
+
+    def compute_sol(self, candidate) -> float:
+        """
+        Dummy compute_sol based on the Ackley function.
+        """
+        import math
+        dim = len(candidate)
+        return (
+            -20 * math.exp(-0.2 * math.sqrt(1.0 / dim * sum([x**2 for x in candidate])))
+            - math.exp(1.0 / dim * sum([math.cos(2 * math.pi * x) for x in candidate]))
+            + 20 + math.e
+        )
+
+    def post_process(self, sim_res: float, gid: int, cid: int):
+        """
+        Dummy post_process.
+        """
+        # pd.Series allows columns of different lengths
+        df = pd.DataFrame({"result": pd.Series(sim_res)})
+        logger.info(
+            f"g{gid}, c{cid} converged in {len(df)} it."
+        )
+        logger.info(f"last five values:\n{df.tail().to_string(index=False)}")
+        self.df_dict[gid][cid] = df
+
+    def kill_all(self):
+        """
+        Kills all active processes.
+        """
+        logger.debug("not implemented")

@@ -15,7 +15,7 @@ from .ffd import FFD_2D
 from .ins_generator import Generator
 from .naca_base_mesh import NACABaseMesh
 from .naca_block_mesh import NACABlockMesh
-from .simulator import WolfSimulator
+from .simulator import WolfSimulator, DEBUGSimulator
 from .utils import check_dir
 
 plt.set_loglevel(level='warning')
@@ -71,6 +71,10 @@ class Optimizer(ABC):
             >> generator: Generator object for the initial generation sampling.
             >> ffd: FFD_2D object to generate deformed geometries.
             >> gmsh_mesh: Mesh object to generate deformed geometries meshes.
+            >> mean: list of populations mean fitness.
+            >> median: list of populations median fitness.
+            >> max: list of populations max fitness.
+            >> min: list of populations min fitness.
         """
         self.config = config
         self.process_config()
@@ -103,6 +107,11 @@ class Optimizer(ABC):
             self.gmsh_mesh = NACABaseMesh
         elif self.study_type == "block":
             self.gmsh_mesh = NACABlockMesh
+        # population statistics
+        self.mean: list[float] = []
+        self.median: list[float] = []
+        self.max: list[float] = []
+        self.min: list[float] = []
 
     def process_config(self):
         """
@@ -143,7 +152,7 @@ class Optimizer(ABC):
         """
         ffd_dir = os.path.join(self.outdir, "FFD")
         check_dir(ffd_dir)
-        logger.info(f"generate profile with deformation {Delta}")
+        logger.info(f"g{gid}, c{cid} generate profile with deformation {Delta}")
         profile: np.ndarray = self.ffd.apply_ffd(Delta)
         return self.ffd.write_ffd(profile, Delta, ffd_dir, gid=gid, cid=cid), profile
 
@@ -158,7 +167,7 @@ class Optimizer(ABC):
         return gmsh_mesh.write_mesh(mesh_dir)
 
     @abstractmethod
-    def evaluate(self, candidates: Individual, args: dict) -> list[float]:
+    def evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """
         Computes all candidates outputs and return the optimizer list of QoIs.
         """
@@ -174,6 +183,7 @@ class WolfOptimizer(Optimizer):
 
         Inner
             >> simulator: WolfSimulator object to perform Wolf simulations.
+            >> J: the list of all generated candidates fitnesses.
             >> ffd_profiles: all deformed geometries {gid: {cid: ffd_profile}}.
             >> QoI: the quantity of intereset to minimize/maximize.
             >> n_plt: the number of best candidates results to display after each evaluation.
@@ -209,14 +219,14 @@ class WolfOptimizer(Optimizer):
                            or shoe_lace(ffd_profile) < (1. - self.area_margin) * self.baseline_area)
         penalty_cond: bool = pen_value < self.penalty[-1]
         if area_cond or penalty_cond:
-            logger.info(f"penalized candidate g{gid} c{cid} "
+            logger.info(f"penalized candidate g{gid}, c{cid} "
                         f"with area {shoe_lace(ffd_profile)} and CL {pen_value}")
             return 1.
         return 0.
 
     def observe(
             self,
-            population: Individual,
+            population: list[Individual],
             num_generations: int,
             num_evaluations: int,
             args: dict
@@ -228,16 +238,31 @@ class WolfOptimizer(Optimizer):
             - the candidates fitness,
             - the baseline and deformed profiles.
         """
+        gid = num_generations
+        res_dict = self.simulator.df_dict[gid]
+        df_key = res_dict[0].columns  # "ResTot", "CD", "CL", "ResCD", "ResCL", "x", "y", "Cp"
+
+        # extract generation best profiles
         fitness: np.ndarray = np.array(self.J[-self.doe_size:])
-        sorted_idx = np.argsort(fitness)[:self.n_plt]
+        sorted_idx = np.argsort(fitness, kind="stable")[:self.n_plt]
         baseline: np.ndarray = self.ffd.pts
-        logger.info(f"extracting {self.n_plt} best profiles in g{num_generations}: {sorted_idx}..")
-        profiles: list[np.ndarray] = self.ffd_profiles[num_generations][-self.doe_size:]
+        profiles: list[np.ndarray] = self.ffd_profiles[gid]
+
+        # compute population statistics
+        self.mean.append(np.mean([ind.fitness for ind in population]))
+        self.median.append(np.median([ind.fitness for ind in population]))
+        self.min.append(min([ind.fitness for ind in population]))
+        self.max.append(max([ind.fitness for ind in population]))
+
+        logger.info(f"extracting {self.n_plt} best profiles in g{gid}: {sorted_idx}..")
+        logger.debug(f"g{gid} J-fitnesses (candidates): {fitness}")
+        logger.debug(f"g{gid} P-fitness (population) {[ind.fitness for ind in population]}")
+
         # plot settings
         cmap = mpl.colormaps[self.cmap].resampled(self.n_plt)
         colors = cmap(np.linspace(0, 1, self.n_plt))
         # subplot construction
-        plt.figure(figsize=(16, 12))
+        fig = plt.figure(figsize=(16, 12))
         ax1 = plt.subplot(2, 1, 1)  # profiles
         ax2 = plt.subplot(2, 3, 4)  # ResTot
         ax3 = plt.subplot(2, 3, 5)  # CD & CL
@@ -250,15 +275,14 @@ class WolfOptimizer(Optimizer):
         # loop over candidates through the last generated profiles
         for color, cid in enumerate(sorted_idx):
             ax1.plot(profiles[cid][:, 0], profiles[cid][:, 1], color=colors[color], label=f"c{cid}")
-            res_list = self.simulator.df_list[-self.doe_size:]
-            df_key = res_list[0].columns  # "ResTot", "CD", "CL", "ResCD", "ResCL", "x", "y", "Cp"
-            res_list[cid][df_key[0]].plot(ax=ax2, color=colors[color], label=f"c{cid}")  # ResTot
-            res_list[cid][df_key[1]].plot(ax=ax3, color=colors[color], label=f"{df_key[1]} c{cid}")
-            res_list[cid][df_key[2]].plot(
+            res_dict[cid][df_key[0]].plot(ax=ax2, color=colors[color], label=f"c{cid}")  # ResTot
+            res_dict[cid][df_key[1]].plot(ax=ax3, color=colors[color], label=f"{df_key[1]} c{cid}")
+            res_dict[cid][df_key[2]].plot(
                 ax=ax3, color=colors[color], ls="--", label=f"{df_key[2]} c{cid}"
             )
             ax4.scatter(cid, fitness[cid], color=colors[color], label=f"c{cid}")
         # legend and title
+        fig.suptitle(f"Generation {gid} - {self.n_plt} best candidates")
         # top
         ax1.set_title("FFD profiles")
         ax1.legend(loc="center left", bbox_to_anchor=(1, 0.5))
@@ -284,13 +308,14 @@ class WolfOptimizer(Optimizer):
         plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
 
-    def evaluate(self, candidates: Individual, args: dict) -> list[float]:
+    def evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """
         Executes Wolf simulations, extracts results and returns the list of candidates QoIs.
         """
         logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
         gid = self.gen_ctr
         self.ffd_profiles.append([])
+
         # execute all candidates
         for cid, cand in enumerate(candidates):
             ffd_file, ffd_profile = self.deform(cand, gid, cid)
@@ -303,19 +328,22 @@ class WolfOptimizer(Optimizer):
             while self.simulator.monitor_sim_progress() * self.nproc_per_sim >= self.budget:
                 time.sleep(1)
             self.simulator.execute_sim(meshfile=mesh_file, gid=gid, cid=cid)
+
         # wait for last candidates to finish
         while self.simulator.monitor_sim_progress() > 0:
             time.sleep(1)
+
         # add penalty to the candidates fitness
         for cid, _ in enumerate(candidates):
             self.J.append(
                 self.constraint(
                     gid, cid,
                     self.ffd_profiles[gid][cid],
-                    self.simulator.df_list[-self.doe_size + cid][self.penalty[0]].iloc[-1]
+                    self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]
                 )
             )
-            self.J[-1] += self.simulator.df_list[-self.doe_size + cid][self.QoI].iloc[-1]
+            self.J[-1] += self.simulator.df_dict[gid][cid][self.QoI].iloc[-1]
+
         self.gen_ctr += 1
         return self.J[-self.doe_size:]
 
@@ -325,20 +353,17 @@ class WolfOptimizer(Optimizer):
         obtained with the successive generations, see
         https://pythonhosted.org/inspyred/reference.html#inspyred.ec.analysis.generation_plot.
         """
-        logger.info(f"plotting results after {self.gen_ctr - 1} generations..")
+        logger.info(f"plotting populations statistics after {self.gen_ctr - 1} generations..")
+
         # plot construction
         _, ax = plt.subplots(figsize=(8, 8))
         psize = self.doe_size
         ax.axhline(y=self.baseline_CD, color='k', ls="--", label="baseline")
-        # generation statistics
-        mean = [np.mean(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
-        median = [np.median(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
-        worst = [min(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
-        best = [max(self.J[psize * g: psize * (g + 1)]) for g in range(self.gen_ctr)]
-        if not self.maximize:
-            worst, best = best, worst
+
         # plotting data
-        data = [mean, median, best, worst]
+        best = self.max if self.maximize else self.min
+        worst = self.min if self.maximize else self.max
+        data = [self.mean, self.median, best, worst]
         colors = ["grey", "blue", "green", "red"]
         labels = ["mean", "median", "best", "worst"]
         for val, col, lab in zip(data, colors, labels):
@@ -349,11 +374,107 @@ class WolfOptimizer(Optimizer):
         ymax = max([max(d) for d in data])
         yrange = ymax - ymin
         plt.ylim((ymin - 0.1 * yrange, ymax + 0.1 * yrange))
+
+        # legend and title
+        ax.set_title(f"Populations evolution ({self.gen_ctr - 1} g. x {psize} c.)")
+        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax.set_xlabel('generation #')
+        ax.set_ylabel('penalized fitness')
+
+        # save figure as png
+        fig_name = f"optim_g{self.gen_ctr - 1}_c{psize}.png"
+        logger.info(f"saving {fig_name} to {self.outdir}")
+        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
+        plt.close()
+
+
+class DEBUGOptimizer(Optimizer):
+    def __init__(self, config: dict):
+        """
+        Dummy init.
+        """
+        super().__init__(config)
+        self.simulator: DEBUGSimulator = DEBUGSimulator(config)
+        self.J: list[float] = []
+        self.n_plt: int = 5
+
+    def evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
+        """
+        Executes dummy simulations, extracts results and returns the list of candidates QoIs.
+        """
+        logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
+        gid = self.gen_ctr
+        self.simulator.df_dict[gid] = {}
+        logger.debug(f"g{gid} evaluation..")
+
+        # execute all candidates
+        for cid, cand in enumerate(candidates):
+            logger.debug(f"g{gid}, c{cid} cand {cand}")
+            self.simulator.execute_sim(cand, gid, cid)
+            logger.debug(f"g{gid}, c{cid} cand {cand}, "
+                         f"fitness {self.simulator.df_dict[gid][cid]['result'].iloc[-1]}")
+
+        for cid, _ in enumerate(candidates):
+            self.J.append(self.simulator.df_dict[gid][cid]["result"].iloc[-1])
+
+        self.gen_ctr += 1
+        return self.J[-self.doe_size:]
+
+    def observe(
+            self,
+            population: list[Individual],
+            num_generations: int,
+            num_evaluations: int,
+            args: dict
+    ):
+        """
+        Dummy observe function.
+        """
+        # extract best profiles
+        gid = num_generations
+        fitness: np.ndarray = np.array(self.J[-self.doe_size:])
+        sorted_idx = np.argsort(fitness, kind="stable")[:self.n_plt]
+        logger.info(f"extracting {self.n_plt} best profiles in g{gid}: {sorted_idx}..")
+        logger.debug(f"g{gid} J-fitnesses (candidates): {fitness}")
+        logger.debug(f"g{gid} P-fitness (population) {[ind.fitness for ind in population]}")
+
+        # compute population statistics
+        self.mean.append(np.mean([ind.fitness for ind in population]))
+        self.median.append(np.median([ind.fitness for ind in population]))
+        self.min.append(min([ind.fitness for ind in population]))
+        self.max.append(max([ind.fitness for ind in population]))
+
+    def final_observe(self):
+        """
+        Dummy final oberve function.
+        """
+        logger.info(f"plotting populations statistics after {self.gen_ctr - 1} generations..")
+
+        # plot construction
+        _, ax = plt.subplots(figsize=(8, 8))
+        psize = self.doe_size
+
+        # plotting data
+        best = self.max if self.maximize else self.min
+        worst = self.min if self.maximize else self.max
+        data = [self.mean, self.median, best, worst]
+        colors = ["grey", "blue", "green", "red"]
+        labels = ["mean", "median", "best", "worst"]
+        for val, col, lab in zip(data, colors, labels):
+            ax.plot(range(self.gen_ctr), val, color=col, label=lab)
+        plt.fill_between(range(self.gen_ctr), data[2], data[3], color='#e6f2e6')
+        plt.grid(True)
+        ymin = min([min(d) for d in data])
+        ymax = max([max(d) for d in data])
+        yrange = ymax - ymin
+        plt.ylim((ymin - 0.1 * yrange, ymax + 0.1 * yrange))
+
         # legend and title
         ax.set_title(f"Optimization evolution ({self.gen_ctr - 1} g. x {psize} c.)")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax.set_xlabel('generation #')
         ax.set_ylabel('penalized fitness')
+
         # save figure as png
         fig_name = f"optim_g{self.gen_ctr - 1}_c{psize}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
