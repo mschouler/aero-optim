@@ -1,8 +1,8 @@
 ## Mesh Module
-The meshing module builds on the [`gmsh` Python API](https://gmsh.info/doc/texinfo/gmsh.html). Classes inheriting from a basic [`Mesh`](https://github.com/mschouler/aero-optim/blob/master/src/mesh.py#L65-L169) class are implemented for NACA airfoil use-cases:
+The meshing module builds on the [`gmsh` Python API](https://gmsh.info/doc/texinfo/gmsh.html). Classes inheriting from a basic [`Mesh`](https://github.com/mschouler/aero-optim/blob/master/src/mesh.py#L74-L184) class are implemented for NACA airfoil use-cases:
 
-* [`NACABase`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L9-L206): implements a simple meshing routine with minimal parameters,
-* [`NACABlock`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L9-L121):  implements a structured by blocks meshing routine.
+* [`NACABase`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L9-L209): implements a simple meshing routine with minimal parameters,
+* [`NACABlock`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L9-L125):  implements a structured by blocks meshing routine.
 
 Both cases are parameterized with a `json` formatted configuration file made of several dictionaries:
 ```json
@@ -38,10 +38,10 @@ The meshing routine then goes through the following steps:
 3)  the mesh is finally generated, GUI options are set and outputs (e.g. meshing log, output mesh) are written.
 
 !!! Note
-    All meshing parameters are described in their respective class definition (see [`Mesh`](https://github.com/mschouler/aero-optim/blob/master/src/mesh.py#L70-L91), [`NACABaseMesh`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L36-L49) and [`NACABlockMesh`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L24-L34)).
+    All meshing parameters are described in their respective class definition (see [`Mesh`](https://github.com/mschouler/aero-optim/blob/master/src/mesh.py#L79-L103), [`NACABaseMesh`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L36-L49) and [`NACABlockMesh`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L24-L34)).
 
 ### NACA Base
-Meshing details relative to the basic routine reside in the [`build_2dmesh()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L143-L206) method and its inner calls. For instance, the [`split_naca()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L106-L126) method describes how the naca profile should be split into its upper and lower parts. This is critical to the domain construction steps in `build_2dmesh()` since the trailing and leading edges may be used as construction points. 
+Meshing details relative to the basic routine reside in the [`build_2dmesh()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L143-L209) method and its inner calls. For instance, the [`split_naca()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L106-L126) method describes how the naca profile should be split into its upper and lower parts. This is critical to the domain construction steps in `build_2dmesh()` since the trailing and leading edges may be used as construction points. 
 
 The `build_2dmesh()` routine of the `NACABaseMesh` class also gives the possibility to mesh the boundary layer by calling [`build_bl()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_base_mesh.py#L128-L141). The meshing of the boundary layer is triggered by setting `"bl"`to `true` in the `"mesh"` category of the configuration file.
 
@@ -70,7 +70,7 @@ For this meshing routine, other `"mesh"` parameters can be used to parameterize 
 Finally, the `"view"` entry contains GUI options to turn it on or off, to display quality metrics and to split the view.
 
 ### NACA Block
-This meshing routine inherits from `NACABaseMesh` whose [`build_2dmesh()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L20-L121) method is overridden for this class. Hence, the boundary layer cannot be meshed with `build_bl()` which is not called anymore. In addition, the domain is this time made of several inner blocks.
+This meshing routine inherits from `NACABaseMesh` whose [`build_2dmesh()`](https://github.com/mschouler/aero-optim/blob/master/src/naca_block_mesh.py#L20-L125) method is overridden for this class. Hence, the boundary layer cannot be meshed with `build_bl()` which is not called anymore. In addition, the domain is this time made of several inner blocks.
 
 Hence for this class, the computational domain still has the same general structure (a rectangle with a semi-circular inlet) but inner blocks are defined and parameterized in `"domain"`:
 

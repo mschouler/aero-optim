@@ -2,6 +2,7 @@ import gmsh
 import logging
 import math
 import os
+import re
 
 from abc import ABC, abstractmethod
 from .utils import from_dat, check_dir
@@ -9,11 +10,13 @@ from .utils import from_dat, check_dir
 logger = logging.getLogger(__name__)
 
 
-def mesh_format2d(mesh_file: str):
+def mesh_format(mesh_file: str, non_corner_tags: list[int]):
     """
-    Makes gmsh default .mesh formatting consistent with WOLF's.
+    Makes gmsh default .mesh formatting consistent with WOLF's and defines 'Corners'.
     """
     mesh = open(mesh_file, "r").read().splitlines()
+    c_vertices: list[int] = []
+    logger.info(f"non-corner tags: {non_corner_tags}")
 
     # fix dimension if 2d
     try:
@@ -29,8 +32,14 @@ def mesh_format2d(mesh_file: str):
         n_vert = int(mesh[vert_idx + 1])
     except StopIteration:
         raise Exception("ERROR -- no 'Vertices' entry in mesh file")
-    for id in range(vert_idx + 2, vert_idx + 2 + n_vert):
-        mesh[id] = mesh[id][:-5]
+    for v_id, id in enumerate(range(vert_idx + 2, vert_idx + 2 + n_vert)):
+        line_data = re.findall(r'\d+(?:\.\d+)?', mesh[id])
+        if int(line_data[-1]) not in non_corner_tags:
+            c_vertices.append(v_id)
+        mesh[id] = mesh[id][:-len(str(line_data[-1]))]
+
+    # append corners
+    mesh = mesh[:-1] + ["Corners", str(len(c_vertices))] + [str(v) for v in c_vertices] + ["End"]
 
     # overwrite mesh file
     with open(mesh_file, 'w') as ftw:
@@ -88,6 +97,8 @@ class Mesh(ABC):
             >> nview: the number of sub-windows in gmsh GUI.
             >> quality: whether to display quality metrics in gmsh GUI (True) or not (False).
             >> pts: the geometry coordinates.
+            >> surf_tag: the tags of flow-field elements used to recombine the mesh if structured.
+            >> non_corner_tag: the tags of non-corner physical entity used to definer 'Corners'.
         """
         self.config = config
         self.process_config()
@@ -112,6 +123,9 @@ class Mesh(ABC):
         self.quality: bool = config["gmsh"]["view"].get("quality", False)
         # geometry coordinates loading
         self.pts: list[list[float]] = from_dat(self.dat_file, self.header, self.scale)
+        # flow-field and non-corner tags (for recombination and corners definition)
+        self.surf_tag: list[int] = []
+        self.non_corner_tag: list[int] = []
 
     def get_nlayer(self) -> int:
         """
@@ -123,11 +137,12 @@ class Mesh(ABC):
             / math.log(self.bl_ratio) - 1
         )
 
-    def write_mesh(self, mesh_dir: str = "") -> str:
+    def write_mesh(self, mesh_dir: str = "", format: bool = True) -> str:
         """
         Writes all output files: <file>.geo_unrolled, <file>.log, <file>.mesh and
         returns the mesh filename.
         >> mesh_dir: the name of the directory where all gmsh generated files are saved.
+        >> format: whether to perform medit formatting (True) or not (False) of the mesh.
         >> self.outfile: the core name of the outputed files e.g. outfile.log,
            outfile.mesh, etc.
         """
@@ -139,10 +154,10 @@ class Mesh(ABC):
         # .mesh
         logger.info(f"writing {self.outfile}.mesh to {mesh_dir}")
         gmsh.write(os.path.join(mesh_dir, self.outfile + ".mesh"))
-        # 2D formatting
-        if self.extrusion_layers == 0:
-            logger.info(f"2d formatting of {self.outfile}.mesh")
-            mesh_format2d(os.path.join(mesh_dir, self.outfile + ".mesh"))
+        # medit formatting
+        if format:
+            logger.info(f"medit formatting of {self.outfile}.mesh")
+            mesh_format(os.path.join(mesh_dir, self.outfile + ".mesh"), self.non_corner_tag)
         # .log
         log = gmsh.logger.get()
         log_file = open(os.path.join(mesh_dir, self.outfile + ".log"), "w")

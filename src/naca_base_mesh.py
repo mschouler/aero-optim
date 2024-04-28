@@ -190,7 +190,7 @@ class NACABaseMesh(Mesh):
         # closed curve loop and computational domain surface definition
         cloop = [-arc_inlet, top_side, outlet, bottom_side]
         boundary_loop = gmsh.model.geo.addCurveLoop(cloop)
-        self.surf_tag = gmsh.model.geo.addPlaneSurface([boundary_loop, naca_loop])
+        self.surf_tag = [gmsh.model.geo.addPlaneSurface([boundary_loop, naca_loop], tag=1000)]
 
         # define physical groups for boundary conditions
         gmsh.model.geo.addPhysicalGroup(1, [spline_low, spline_le, spline_up], tag=100)
@@ -203,4 +203,7 @@ class NACABaseMesh(Mesh):
         logger.info(f"BC: Top tags are {[top_side]}")
         gmsh.model.geo.addPhysicalGroup(1, [bottom_side], tag=500)
         logger.info(f"BC: Bottom tags are {[bottom_side]}")
-        gmsh.model.geo.addPhysicalGroup(2, [self.surf_tag], tag=600)
+        gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=600)
+
+        # flow-field nodes defined as non_corner points
+        self.non_corner_tag = self.surf_tag
