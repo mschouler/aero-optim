@@ -30,6 +30,6 @@ def test_pad_Delta():
 
 def test_apply_ffd():
     ffd: FFD_2D = get_ffd2d(input, nc)
-    null_Delta = np.zeros(4)
-    deformed_profile = ffd.apply_ffd(null_Delta)
+    null_Delta: np.ndarray = np.zeros(4)
+    deformed_profile: np.ndarray = ffd.apply_ffd(null_Delta)
     assert np.sum(np.abs(ffd.pts[:, :2] - deformed_profile)) < 1e-10
