@@ -1,0 +1,28 @@
+{
+    "study": {
+        "study_type": "base",
+        "file": "input/naca12.dat",
+        "outfile": "naca_base",
+        "outdir": "output"
+    },
+    "gmsh": {
+        "domain": {
+            "inlet": 20,
+            "outlet": 20,
+            "le_offset": 10
+        },
+        "mesh": {
+            "nodes_inlet": 40,
+            "nodes_outlet": 40,
+            "side_nodes": 20,
+            "le": 20,
+            "low": 70,
+            "up": 70
+        },
+        "view": {
+            "GUI": false,
+            "quality": false,
+            "nview": 1
+        }
+    }
+}
