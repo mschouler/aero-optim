@@ -46,7 +46,7 @@ def select_strategy(strategy_name: str, prng: Random) -> inspyred.ec.Evolutionar
     return ea
 
 
-if __name__ == '__main__':
+def main():
     """
     This program orchestrates a GA optimization loop.
     """
@@ -108,3 +108,7 @@ if __name__ == '__main__':
         )
         logger.error(f"Traceback message:\n{traceback.format_exc()}")
         opt.simulator.kill_all()  # kill all remaining processes
+
+
+if __name__ == '__main__':
+    main()
