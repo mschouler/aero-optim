@@ -56,7 +56,14 @@ jobs:
           pip install pytest-cov
       - name: Unit tests
         run: |
-          python -m pytest --cov=src tests/
+          echo "\`\`\`sh" >> docs/index.md
+          out=$(python -m pytest --cov=src tests/) && echo "$out" >> docs/index.md
+          exit_status="$?"
+          echo "\`\`\`" >> docs/index.md
+          echo "coverage report:"
+          echo "$out"
+          echo "exit status: $exit_status"
+          exit $exit_status
 
   deploy:
     runs-on: ubuntu-latest
