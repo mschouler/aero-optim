@@ -88,3 +88,5 @@ INFO:src.simulator:last five values:
 
 !!! Note
     As of 2024, [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) is not open-source and may not be available to the user. Guidelines on how to replace it with another solver are given in [Simulator](simulator.md).
+
+### Coverage Report
