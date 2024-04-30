@@ -5,10 +5,10 @@ import time
 from src.simulator import WolfSimulator
 from src.utils import check_file, check_config
 
-sim_config_path: str = "tests/test_simulator_config.json"
+sim_config_path: str = "tests/extras/test_simulator_config.json"
 mesh_file: str = "empty_file.mesh"
-mesh_file_path: str = "tests/" + mesh_file
-executable_path: str = os.path.join(os.getcwd(), "tests", "dummy_wolf.py")
+mesh_file_path: str = "tests/extras/" + mesh_file
+executable_path: str = os.path.join(os.getcwd(), "tests", "extras", "dummy_wolf.py")
 
 
 @pytest.fixture(scope='session')  # one server to rule'em all
