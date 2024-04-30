@@ -1,0 +1,19 @@
+{
+    "study": {
+        "study_type": "",
+        "outdir": "output"
+    },
+    "simulator": {
+        "ref_input": "template/naca_euler.wolf",
+        "sim_args": {
+            "InFlow": {"inplace": false, "param": ["1", "4"]},
+            "OutFlow": {"inplace": false, "param": ["3", "5 6 7"]}
+        },
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
+            "wall.dat": ["x", "y", "Cp"]
+        },
+        "exec_cmd": "python3 tests/dummy_wolf.py -in @.mesh"
+    }
+}
