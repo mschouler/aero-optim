@@ -14,6 +14,6 @@
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "python3 tests/dummy_wolf.py -in @.mesh"
+        "exec_cmd": "python3 @path -in @.mesh"
     }
 }

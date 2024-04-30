@@ -35,5 +35,4 @@ def test_block_mesh(tmpdir):
     block_mesh.build_mesh()
     _ = block_mesh.write_mesh(tmpdir)
     for file in block_files:
-        print(os.path.join(tmpdir, file))
         assert os.path.isfile(os.path.join(tmpdir, file))
