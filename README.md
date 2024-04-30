@@ -1,6 +1,6 @@
 ## AERO-Optim
 
-![Continuous Integration](https://github.com/mschouler/aero-optim/actions/workflows/ci.yml/badge.svg?event=push)
+[![Continuous Integration](https://github.com/mschouler/aero-optim/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/mschouler/aero-optim/actions/workflows/ci.yml)
 
 AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with [`gmsh`](https://gmsh.info/doc/texinfo/gmsh.html) and any CFD solver execution in the frame of an optimization algorithm based on [`inspyred`](https://inspyred.readthedocs.io/en/latest/). It is composed of the following core components:
 
