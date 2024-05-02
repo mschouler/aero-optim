@@ -58,7 +58,7 @@ def main():
 
     # check config and copy to outdir
     check_file(args.config)
-    config, study_type = check_config(args.config, optim=True)
+    config, _ = check_config(args.config, optim=True)
     check_dir(config["study"]["outdir"])
     shutil.copy(args.config, config["study"]["outdir"])
 
