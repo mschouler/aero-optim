@@ -88,6 +88,10 @@ class WolfSimulator(Simulator):
         """
         Instantiates the WolfSimulator object.
 
+        **Input**
+
+        - config (dict): the config file dictionary.
+
         **Inner**
 
         - sim_pro (list[tuple[dict, subprocess.Popen[str]]]): list to track simulations

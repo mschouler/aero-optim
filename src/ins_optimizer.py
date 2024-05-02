@@ -146,7 +146,7 @@ class Optimizer(ABC):
         if "outfile" in self.config["study"]:
             logger.warning(f"<outfile> entry in {self.config['study']} will be ignored")
             del self.config["study"]["outfile"]
-        if "GUI" in self.config["gmsh"]["view"]:
+        if "view" in self.config["gmsh"] and "GUI" in self.config["gmsh"]["view"]:
             logger.warning(
                 f"<GUI> entry in {self.config['gmsh']['view']} forced to False"
             )
@@ -186,6 +186,10 @@ class WolfOptimizer(Optimizer):
     def __init__(self, config: dict):
         """
         Instantiates the WolfOptimizer object.
+
+        **Input**
+
+        - config (dict): the config file dictionary.
 
         **Inner**
 
