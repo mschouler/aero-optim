@@ -56,14 +56,15 @@ jobs:
           pip install pytest-cov
       - name: Unit tests
         run: |
-          echo "\`\`\`sh" >> docs/index.md
-          out=$(python -m pytest --cov=src tests/) && echo "$out" >> docs/index.md
-          exit_status="$?"
-          echo "\`\`\`" >> docs/index.md
+          python -m pytest --cov=src tests/ >> coverage.txt
           echo "coverage report:"
           echo "$out"
-          echo "exit status: $exit_status"
-          exit $exit_status
+      - name: Archive coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.txt
+          retention-days: 1
 
   deploy:
     runs-on: ubuntu-latest
@@ -84,5 +85,9 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install .[doc]
-      - run: mkdocs gh-deploy --force
+      - run: |
+          pip install .[doc]
+          echo "\`\`\`sh" >> docs/index.md
+          cat coverage.txt >> docs/index.md
+          echo "\`\`\`" >> docs/index.md
+          mkdocs gh-deploy --force
