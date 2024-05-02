@@ -371,8 +371,8 @@ class WolfOptimizer(Optimizer):
     def final_observe(self):
         """
         **Plots** convergence progress by plotting the fitness values
-        obtained with the successive generations </br>see
-        https://pythonhosted.org/inspyred/reference.html#inspyred.ec.analysis.generation_plot
+        obtained with the successive generations</br>
+        see https://pythonhosted.org/inspyred/reference.html#inspyred.ec.analysis.generation_plot
         """
         logger.info(f"plotting populations statistics after {self.gen_ctr - 1} generations..")
 
