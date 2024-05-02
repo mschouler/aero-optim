@@ -11,7 +11,7 @@ mesh_file_path: str = "tests/extras/" + mesh_file
 executable_path: str = os.path.join(os.getcwd(), "tests", "extras", "dummy_wolf.py")
 
 
-@pytest.fixture(scope='session')  # one server to rule'em all
+@pytest.fixture(scope='session')
 def wolf() -> WolfSimulator:
     check_file(sim_config_path)
     config, _ = check_config(sim_config_path)

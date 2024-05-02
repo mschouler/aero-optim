@@ -5,10 +5,7 @@
     },
     "simulator": {
         "ref_input": "template/naca_euler.wolf",
-        "sim_args": {
-            "InFlow": {"inplace": false, "param": ["1", "4"]},
-            "OutFlow": {"inplace": false, "param": ["3", "5 6 7"]}
-        },
+        "sim_args": {},
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],

@@ -1,7 +1,12 @@
 import argparse
+import os
+import random
+import re
 import time
 
-from random import randrange
+
+def get_CD_CL(gid: int, cid: int) -> list[float]:
+    return [0.1 + (gid**cid + cid + gid) / 100., 0.3 + (gid + cid) / 100.]
 
 
 def main():
@@ -15,8 +20,12 @@ def main():
         "-in", "--input", type=str, help="meshfile")
     _ = parser.parse_args()
 
-    sleep = randrange(10) / 10.
+    sleep = random.uniform(0, 1)
     time.sleep(sleep)
+
+    cwd = os.getcwd()
+    gid, cid = re.findall(r'\d+', cwd.split('/')[-1])
+    CD, CL = get_CD_CL(int(gid), int(cid))
 
     # write dummy residual file
     fname = "residual.dat"
@@ -33,11 +42,11 @@ def main():
     # write dummy aerocoef file from simulation cid
     fname = "aerocoef.dat"
     output = ["# Iter    CD    CL    ResCD    ResCL",
-              f"1    {0.1 + sleep / 10.}    {0.3 + sleep / 10.}    0.01    0.01",
-              f"2    {0.1 + sleep / 10.}    {0.3 + sleep / 10.}    0.01    0.01",
-              f"3    {0.1 + sleep / 10.}    {0.3 + sleep / 10.}    0.01    0.01",
-              f"4    {0.1 + sleep / 10.}    {0.3 + sleep / 10.}    0.01    0.01",
-              f"5    {0.1 + sleep / 10.}    {0.3 + sleep / 10.}    0.01    0.01"]
+              f"1    {CD}    {CL}    0.01    0.01",
+              f"2    {CD}    {CL}    0.01    0.01",
+              f"3    {CD}    {CL}    0.01    0.01",
+              f"4    {CD}    {CL}    0.01    0.01",
+              f"5    {CD}    {CL}    0.01    0.01"]
     with open(fname, 'w') as ftw:
         ftw.write("\n".join(output))
         print(f"output saved to {fname}")
