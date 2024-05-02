@@ -57,8 +57,6 @@ jobs:
       - name: Unit tests
         run: |
           python -m pytest --cov=src tests/ >> coverage.txt
-          echo "coverage report:"
-          echo "$out"
       - name: Archive coverage results
         uses: actions/upload-artifact@v4
         with:
@@ -90,8 +88,8 @@ jobs:
         with:
           name: coverage-report
       - run: |
-          pip install .[doc]
           echo "\`\`\`sh" >> docs/index.md
           cat coverage.txt >> docs/index.md
           echo "\`\`\`" >> docs/index.md
+          pip install .[doc]
           mkdocs gh-deploy --force
