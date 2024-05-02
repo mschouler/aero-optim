@@ -14,8 +14,8 @@ The main steps of FFD are:
 !!! Note
     This implementation is limited to 2D geometries only. More sophisticated libraries exist such as [PyGeM](https://mathlab.github.io/PyGeM/index.html) or [pyGeo](https://mdolab-pygeo.readthedocs-hosted.com/en/latest/introduction.html) but they come with heavier dependencies and more cumbersome installation procedures.
 
-### The FFD Class
-[`FFD_2D`](https://github.com/mschouler/aero-optim/blob/master/src/ffd.py#L11-L132) is a straightforward class instantiated with two positional arguments:
+### 2D FFD
+Free-Form Deformation is implemented in `FFD_2D`, a straightforward class instantiated with two positional arguments:
 
 - `file (str)` which indicates the filename of the baseline geometry to be deformed,
 - `ncontrol (int)` which indicates the number of design points on each side of the lattice.

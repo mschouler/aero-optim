@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def shoe_lace(xy: np.ndarray) -> float:
     """
-    Returns the geometry area computed with the shoelace formula.
+    **Returns** the geometry area computed with the shoelace formula.</br>
     see https://rosettacode.org/wiki/Shoelace_formula_for_polygonal_area#Python
     """
     return 0.5 * np.abs(
@@ -34,47 +34,53 @@ def shoe_lace(xy: np.ndarray) -> float:
 
 class Optimizer(ABC):
     """
-    This class implements a basic Optimizer.
+    This class implements an abstract optimizer.
     """
     def __init__(self, config: dict):
         """
         Instantiates the Optimizer object.
 
-        Input
-            >> config: the config file dictionary.
+        **Input**
 
-        Inner
-            >> n_design: the number of design variables (dimensions of the problem).
-            >> doe_size: the size of the initial and subsequent generations.
-            >> max_generations: the number of generations before termination.
-            >> dat_file: path to input_geometry.dat (baseline geometry).
-            >> outdir: highest level optimization output directory.
+        - config (dict): the config file dictionary.
+
+        **Inner**
+
+        - n_design (int): the number of design variables (dimensions of the problem).
+        - doe_size (int): the size of the initial and subsequent generations.
+        - max_generations (int): the number of generations before termination.
+        - dat_file (str): path to input_geometry.dat (baseline geometry).
+        - outdir (str): highest level optimization output directory.
 
             Note: the result folder tree is structured as follows:
+            ```
             outdir
             |__ FFD (contains <geom>_gXX_cYY.dat)
             |__ MESH (contains <geom>_gXX_cYY.mesh, .log, .geo_unrolled)
-            |__ WOLF
-                |__ wolf_gXX_cYY (contains the results of each simulation)
+            |__ SOLVER
+                |__ solver_gXX_cYY (contains the results of each simulation)
+            ```
 
-            >> study_type: use-case/meshing routine.
-            >> strategy: the optimization algorithm amongst inspyred's [ES, GA, SA, PSO]
-               see https://pythonhosted.org/inspyred/examples.html#standard-algorithms.
-            >> maximize: whether to maximize or minimize the objective QoIs.
-            >> budget: maximum number of concurrent proc in use.
-            >> nproc_per_sim: number of proc per simulation.
-            >> bound: design variables boundaries.
-            >> sampler_name: name of the sampling algorithm used to generate the initial generation.
-            >> seed: seed number of the random processes involved in the optimization.
-            >> prng: pseudo-random generator passed to inspyred generator.
-            >> gen_ctr: generation counter.
-            >> generator: Generator object for the initial generation sampling.
-            >> ffd: FFD_2D object to generate deformed geometries.
-            >> gmsh_mesh: Mesh object to generate deformed geometries meshes.
-            >> mean: list of populations mean fitness.
-            >> median: list of populations median fitness.
-            >> max: list of populations max fitness.
-            >> min: list of populations min fitness.
+        - study_type (str): use-case/meshing routine.
+        - strategy (str): the optimization algorithm amongst inspyred's [ES, GA, SA, PSO]</br>
+            see https://pythonhosted.org/inspyred/examples.html#standard-algorithms
+
+        - maximize (bool): whether to maximize or minimize the objective QoIs.
+        - budget (int): maximum number of concurrent proc in use.
+        - nproc_per_sim (int): number of proc per simulation.
+        - bound tuple[float]: design variables boundaries.
+        - sampler_name (str): name of the sampling algorithm used to generate samples.
+          the initial generation.
+        - seed (int): seed number of the random processes involved in the optimization.
+        - prng (random.Random): pseudo-random generator passed to inspyred generator.
+        - gen_ctr (int): generation counter.
+        - generator (Generator): Generator object for the initial generation sampling.
+        - ffd (FFD_2D): FFD_2D object to generate deformed geometries.
+        - gmsh_mesh (Mesh): Mesh object to generate deformed geometries meshes.
+        - mean (list[float]): list of populations mean fitness.
+        - median (list[float]): list of populations median fitness.
+        - max (list[float]): list of populations max fitness.
+        - min (list[float]): list of populations min fitness.
         """
         self.config = config
         self.process_config()
@@ -115,7 +121,7 @@ class Optimizer(ABC):
 
     def process_config(self):
         """
-        Makes sure the config file contains the required information.
+        **Makes sure** the config file contains the required information.
         """
         logger.info("processing config..")
         if "n_design" not in self.config["optim"]:
@@ -140,7 +146,7 @@ class Optimizer(ABC):
         if "outfile" in self.config["study"]:
             logger.warning(f"<outfile> entry in {self.config['study']} will be ignored")
             del self.config["study"]["outfile"]
-        if "GUI" in self.config["gmsh"]["view"]:
+        if "view" in self.config["gmsh"] and "GUI" in self.config["gmsh"]["view"]:
             logger.warning(
                 f"<GUI> entry in {self.config['gmsh']['view']} forced to False"
             )
@@ -148,7 +154,7 @@ class Optimizer(ABC):
 
     def deform(self, Delta: np.ndarray, gid: int, cid: int) -> tuple[str, np.ndarray]:
         """
-        Performs FFD on a given candidate and returns its resulting file.
+        **Applies** FFD on a given candidate and returns its resulting file.
         """
         ffd_dir = os.path.join(self.outdir, "FFD")
         check_dir(ffd_dir)
@@ -158,7 +164,7 @@ class Optimizer(ABC):
 
     def mesh(self, ffdfile: str) -> str:
         """
-        Builds mesh for a given candidate and returns its resulting file.
+        **Builds** mesh for a given candidate and returns its resulting file.
         """
         mesh_dir = os.path.join(self.outdir, "MESH")
         check_dir(mesh_dir)
@@ -181,21 +187,26 @@ class WolfOptimizer(Optimizer):
         """
         Instantiates the WolfOptimizer object.
 
-        Inner
-            >> simulator: WolfSimulator object to perform Wolf simulations.
-            >> J: the list of all generated candidates fitnesses.
-            >> ffd_profiles: all deformed geometries {gid: {cid: ffd_profile}}.
-            >> QoI: the quantity of intereset to minimize/maximize.
-            >> n_plt: the number of best candidates results to display after each evaluation.
-            >> baseline_CD: the drag coefficient of the baseline geometry.
-            >> baseline_CL: the lift coefficient of the baseline geometry.
-            >> baseline_area: the baseline area that is used as a structural constraint.
-            >> area_margin: area tolerance margin given as a percentage wrt the baseline area
-               i.e. a candidate with an area greater/smaller than +/- area_margin % of the
-               baseline_area will be penalized.
-            >> penalty_arg: a (key, value) constraint not to be worsen by the optimization.
-            >> cmap: the colormaps used for the observer plot
-               (see https://matplotlib.org/stable/users/explain/colors/colormaps.html).
+        **Input**
+
+        - config (dict): the config file dictionary.
+
+        **Inner**
+
+        - simulator (WolfSimulator): WolfSimulator object to perform Wolf simulations.
+        - J (list[float]): the list of all generated candidates fitnesses.
+        - ffd_profiles (list[list[np.ndarray]]): all deformed geometries {gid: {cid: ffd_profile}}.
+        - QoI (str): the quantity of intereset to minimize/maximize.
+        - n_plt (int): the number of best candidates results to display after each evaluation.
+        - baseline_CD (float): the drag coefficient of the baseline geometry.
+        - baseline_CL (float): the lift coefficient of the baseline geometry.
+        - baseline_area (float): the baseline area that is used as a structural constraint.
+        - area_margin (float): area tolerance margin given as a percentage wrt baseline_area</br>
+            i.e. a candidate with an area greater/smaller than +/- area_margin % of the
+            baseline_area will be penalized.
+        - penalty (list): a [key, value] constraint not to be worsen by the optimization.
+        - cmap (str): the colormaps used for the observer plot</br>
+            see https://matplotlib.org/stable/users/explain/colors/colormaps.html.
         """
         super().__init__(config)
         self.simulator: WolfSimulator = WolfSimulator(self.config)
@@ -212,7 +223,7 @@ class WolfOptimizer(Optimizer):
 
     def constraint(self, gid: int, cid: int, ffd_profile: np.ndarray, pen_value: float) -> float:
         """
-        Returns a penalty value based on some specific constraints.
+        **Returns** a penalty value based on some specific constraints</br>
         see https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection
         """
         area_cond: bool = (shoe_lace(ffd_profile) > (1. + self.area_margin) * self.baseline_area
@@ -232,11 +243,16 @@ class WolfOptimizer(Optimizer):
             args: dict
     ):
         """
-        Displays the n_plt best results each time a generation has been evaluated:
-            - the simulations residuals,
-            - the simulations CD & CL,
-            - the candidates fitness,
-            - the baseline and deformed profiles.
+        **Plots** the n_plt best results each time a generation has been evaluated:</br>
+        > the simulations residuals,</br>
+        > the simulations CD & CL,</br>
+        > the candidates fitness,</br>
+        > the baseline and deformed profiles.
+
+        Note:
+            __num_generations__, __num_evaluations__ and __args__
+            are inspyred mandatory arguments</br>
+            see https://pythonhosted.org/inspyred/examples.html#custom-observer
         """
         gid = num_generations
         res_dict = self.simulator.df_dict[gid]
@@ -310,7 +326,12 @@ class WolfOptimizer(Optimizer):
 
     def evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """
-        Executes Wolf simulations, extracts results and returns the list of candidates QoIs.
+        **Executes** Wolf simulations, **extracts** results
+        and **returns** the list of candidates QoIs.
+
+        Note:
+            __candidates__ and __args__ are inspyred mandatory arguments</br>
+            see https://pythonhosted.org/inspyred/tutorial.html#the-evaluator
         """
         logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
         gid = self.gen_ctr
@@ -349,9 +370,9 @@ class WolfOptimizer(Optimizer):
 
     def final_observe(self):
         """
-        Displays convergence progress by plotting the fitness values
-        obtained with the successive generations, see
-        https://pythonhosted.org/inspyred/reference.html#inspyred.ec.analysis.generation_plot.
+        **Plots** convergence progress by plotting the fitness values
+        obtained with the successive generations</br>
+        see https://pythonhosted.org/inspyred/reference.html#inspyred.ec.analysis.generation_plot
         """
         logger.info(f"plotting populations statistics after {self.gen_ctr - 1} generations..")
 

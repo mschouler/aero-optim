@@ -12,21 +12,24 @@ logger = logging.getLogger(__name__)
 
 class Simulator(ABC):
     """
-    This class implements a basic Simulator class.
+    This class implements an abstract simulation class.
     """
     def __init__(self, config: dict):
         """
         Instantiates the Simulator object.
 
-        Input
-            >> config: the config file dictionary.
-        Inner
-            >> cwd: the working directory.
-            >> outdir: the output directory where the simulation results folder will be stored.
-            >> ref_input: a simulation input file template.
-            >> sim_args: arguments to modify to customize ref_input.
-            >> post_process_args: quantities to extract from result files.
-            >> df_dict: dictionary of dataframes containing all simulations extracted quantities.
+        **Input**
+
+        - config (dict): the config file dictionary.
+
+        **Inner**
+
+        - cwd (str): the working directory.
+        - outdir (str): the output directory where the simulation results folder will be stored.
+        - ref_input (str): a simulation input file template.
+        - sim_args (dict): arguments to modify to customize ref_input.
+        - post_process_args (dict): quantities to extract from result files.
+        - df_dict (dict): dictionary of dataframes containing all simulations extracted quantities.
         """
         self.cwd: str = os.getcwd()
         self.config = config
@@ -43,7 +46,7 @@ class Simulator(ABC):
 
     def custom_input(self, fname: str):
         """
-        Modifies the reference input to generate a new customized one.
+        **Writes** a customized input file.
         """
         ref_output = open(self.ref_input, "r").read().splitlines()
         for key, value in self.sim_args.items():
@@ -79,22 +82,29 @@ class Simulator(ABC):
 
 class WolfSimulator(Simulator):
     """
-    This class implements a WolfSimulator class.
+    This class implements a simulator for the CFD code WOLF.
     """
     def __init__(self, config: dict):
         """
         Instantiates the WolfSimulator object.
 
-        Inner
-            >> sim_pro: list to track simulations and their associated subprocess.
-               It has the following form ({'gid': gid, 'cid': cid}, subprocess).
+        **Input**
+
+        - config (dict): the config file dictionary.
+
+        **Inner**
+
+        - sim_pro (list[tuple[dict, subprocess.Popen[str]]]): list to track simulations
+          and their associated subprocess.
+
+            It has the following form ({'gid': gid, 'cid': cid}, subprocess).
         """
         super().__init__(config)
         self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
 
     def process_config(self):
         """
-        Makes sure the config file contains the required information and extracts it.
+        **Makes sure** the config file contains the required information and extracts it.
         """
         logger.info("processing config..")
         if "exec_cmd" not in self.config["simulator"]:
@@ -108,14 +118,13 @@ class WolfSimulator(Simulator):
 
     def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
         """
-        Returns the path to the folder containing the simulation results.
+        **Returns** the path to the folder containing the simulation results.
         """
         return os.path.join(self.outdir, "WOLF", f"wolf_g{gid}_c{cid}")
 
     def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0):
         """
-        Pre-processes and executes a Wolf simulation.
-        It also updates sim_pro.
+        **Pre-processes** and **executes** a Wolf simulation.
         """
         # Pre-process
         # get the simulation meshfile
@@ -154,7 +163,7 @@ class WolfSimulator(Simulator):
 
     def monitor_sim_progress(self) -> int:
         """
-        Updates and returns the list of simulations under execution.
+        **Returns** the list of simulations under execution.
         """
         finished_sim = []
         # loop over the list of simulation processes
@@ -175,8 +184,8 @@ class WolfSimulator(Simulator):
 
     def post_process(self, dict_id: dict) -> pd.DataFrame:
         """
-        Post-processes the results of a terminated simulation.
-        Returns the extracted results in a DataFrame.
+        **Post-processes** the results of a terminated simulation.</br>
+        **Returns** the extracted results in a DataFrame.
         """
         sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
         qty_list: list[list[float]] = []
@@ -204,13 +213,16 @@ class WolfSimulator(Simulator):
 
     def kill_all(self):
         """
-        Kills all active processes.
+        **Kills** all active processes.
         """
         logger.info(f"{len(self.sim_pro)} remaining simulation(s) will be killed")
         _ = [subpro.terminate() for _, subpro in self.sim_pro]
 
 
 class DEBUGSimulator(Simulator):
+    """
+    This class implements a basic simulator for debugging purposes.
+    """
     def __init__(self, config: dict):
         super().__init__(config)
 
@@ -254,6 +266,6 @@ class DEBUGSimulator(Simulator):
 
     def kill_all(self):
         """
-        Kills all active processes.
+        Dummy kill_all.
         """
         logger.debug("not implemented")

@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools >= 46.4.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aero-optim"
+version = "0.0.1"
+requires-python = ">=3.8"
+authors = [
+  {name = "Marc Schouler", email = "marc.schouler@sorbonne-universite.fr"},
+]
+description = "AERO-Optim is a simple aerodynamic shape optimization framework."
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["aerodynamic", "shape optimization", "CFD", "freeform deformation", "automatic meshing"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3"
+]
+
+[tool.setuptools.packages.find]
+include = ["main_optim.py", "auto_ffd.py", "auto_gmsh.py", "auto_simulator.py", "src"]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+doc = ["mkdocs-material", "mkdocstrings-python"]
+
+[project.urls]
+Homepage = "https://github.com/mschouler/aero-optim"
+Documentation = "https://mschouler.github.io/aero-optim/"
+Repository = "https://github.com/mschouler/aero-optim.git"
+"Bug Tracker" = "https://github.com/mschouler/aero-optim/issues"
+
+[project.scripts]
+# Using scripts would require to move auto scripts to another directory <dir>.
+# This is left aside for now..
+
+# ffd = "<dir>.auto_ffd:main"
+# mesh = "<dir>.auto_gmsh:main"
+# simulator = "<dir>.auto_simulator:main"
+# optim = "<dir>.main_optim:main"

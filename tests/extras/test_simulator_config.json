@@ -1,0 +1,16 @@
+{
+    "study": {
+        "study_type": "",
+        "outdir": "output"
+    },
+    "simulator": {
+        "ref_input": "template/naca_euler.wolf",
+        "sim_args": {},
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
+            "wall.dat": ["x", "y", "Cp"]
+        },
+        "exec_cmd": "python3 @path -in @.mesh"
+    }
+}

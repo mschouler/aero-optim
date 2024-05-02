@@ -73,32 +73,35 @@ def plot_quality():
 
 class Mesh(ABC):
     """
-    This class implements a basic Simulator class.
+    This class implements an abstract meshing class.
     """
     def __init__(self, config: dict, datfile: str = ""):
         """
         Instantiates the abstract Mesh object.
 
-        Input
-            >> config: the config file dictionary.
-            >> dat_file: path to input_geometry.dat.
-        Inner
-            >> outdir: path/to/outputdirectory
-            >> outfile: the core name of all outputed files e.g. outfile.log, outfile.mesh, etc.
-            >> scale: geometry scaling factor.
-            >> header: the number of header lines in dat_file.
-            >> bl: whether to mesh the boundary layer (True) or not (False).
-            >> bl_thickness: the BL meshing cumulated thickness.
-            >> bl_ratio: the BL meshing growth ratio.
-            >> bl_size: the BL first element size.
-            >> structured: whether to recombine triangles (True) or not (False).
-            >> extrusion_layers: the number of extrusion layers when generating a 3D mesh.
-            >> GUI: whether to launch gmsh GUI (True) or not (False).
-            >> nview: the number of sub-windows in gmsh GUI.
-            >> quality: whether to display quality metrics in gmsh GUI (True) or not (False).
-            >> pts: the geometry coordinates.
-            >> surf_tag: the tags of flow-field elements used to recombine the mesh if structured.
-            >> non_corner_tag: the tags of non-corner physical entity used to definer 'Corners'.
+        **Input**
+
+        - config (dict): the config file dictionary.
+        - dat_file (str): path to input_geometry.dat.
+
+        **Inner**
+
+        - outdir (str): path/to/outputdirectory
+        - outfile (str): the core name of all outputed files e.g. outfile.log, outfile.mesh, etc.
+        - scale (float): geometry scaling factor.
+        - header (int): the number of header lines in dat_file.
+        - bl (bool): whether to mesh the boundary layer (True) or not (False).
+        - bl_thickness (float): the BL meshing cumulated thickness.
+        - bl_ratio (float): the BL meshing growth ratio.
+        - bl_size (float): the BL first element size.
+        - structured (bool): whether to recombine triangles (True) or not (False).
+        - extrusion_layers (int): the number of extrusion layers when generating a 3D mesh.
+        - GUI (bool): whether to launch gmsh GUI (True) or not (False).
+        - nview (int): the number of sub-windows in gmsh GUI.
+        - quality (bool): whether to display quality metrics in gmsh GUI (True) or not (False).
+        - pts (list[list[float]]): the geometry coordinates.
+        - surf_tag (list[int]): flow-field elements tags used to recombine the mesh if structured.
+        - non_corner_tag (list[int]): non-corner physical entity tags used to define 'Corners'.
         """
         self.config = config
         self.process_config()
@@ -129,7 +132,7 @@ class Mesh(ABC):
 
     def get_nlayer(self) -> int:
         """
-        Returns the number of layers required to reach bl_thickness given the growth bl_ratio
+        **Returns** the number of layers required to reach bl_thickness given the growth bl_ratio
         and the first element size bl_size.
         """
         return math.ceil(
@@ -139,11 +142,12 @@ class Mesh(ABC):
 
     def write_mesh(self, mesh_dir: str = "", format: bool = True) -> str:
         """
-        Writes all output files: <file>.geo_unrolled, <file>.log, <file>.mesh and
+        **Writes** all output files: <file>.geo_unrolled, <file>.log, <file>.mesh and
         returns the mesh filename.
-        >> mesh_dir: the name of the directory where all gmsh generated files are saved.
-        >> format: whether to perform medit formatting (True) or not (False) of the mesh.
-        >> self.outfile: the core name of the outputed files e.g. outfile.log,
+
+        - mesh_dir: the name of the directory where all gmsh generated files are saved.
+        - format: whether to perform medit formatting (True) or not (False) of the mesh.
+        - self.outfile: the core name of the outputed files e.g. outfile.log,
            outfile.mesh, etc.
         """
         mesh_dir = self.outdir if not mesh_dir else mesh_dir

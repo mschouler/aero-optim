@@ -1,0 +1,28 @@
+{
+    "study": {
+        "study_type": "",
+        "file": "input/naca12.dat",
+        "outdir": "output"
+    },
+    "optim": {
+        "n_design": 4,
+        "doe_size": 3,
+        "max_generations": 1,
+        "bound": [-1, 1],
+        "budget": 1,
+        "QoI": "CD",
+        "penalty": ["CL", 0.31],
+        "area_margin": 100
+    },
+    "gmsh": {},
+    "simulator": {
+        "ref_input": "template/naca_euler.wolf",
+        "sim_args": {},
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
+            "wall.dat": ["x", "y", "Cp"]
+        },
+        "exec_cmd": "python3 @path -in @.mesh"
+    }
+}

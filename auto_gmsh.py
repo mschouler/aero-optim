@@ -10,7 +10,7 @@ logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
-if __name__ == "__main__":
+def main():
     """
     This program automatically generates a simple mesh with gmsh as part of a shape
     optimization routine. Depending on the configuration settings, the mesh is designed for:
@@ -37,4 +37,8 @@ if __name__ == "__main__":
 
     if gmsh_mesh:
         gmsh_mesh.build_mesh()
-        file_name = gmsh_mesh.write_mesh()
+        _ = gmsh_mesh.write_mesh()
+
+
+if __name__ == "__main__":
+    main()
