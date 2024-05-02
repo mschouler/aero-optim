@@ -1,3 +1,4 @@
+from random import Random
 from scipy.stats import qmc
 
 
@@ -14,20 +15,32 @@ class Generator:
                  ndesign: int,
                  doe_size: int,
                  sampler_name: str,
-                 bound: tuple[float, float]):
+                 bound: tuple[float]):
         """
-        Instantiate the Generator class with some optimization parameters and the sampler name.
+        Instantiates the Generator class with some optimization parameters and the sampler name.
+
+        **Input**
+
+        - seed (int): seed number of the sampler random number generator.
+        - ndesign (int): the number of design variables (dimensions of the problem).
+        - doe_size (int): the size of the initial and subsequent generations.
+        - sampler_name (str): name of the sampling algorithm used to generate samples.
+        - bound (tuple[float]): design variables boundaries.
+
+        **Inner**
+
+        - initial_doe (list[list[float]]): the initial generation sampled from the generator.
         """
         self.seed: int = seed
         self.ndesign: int = ndesign
         self.doe_size: int = doe_size
         self.sampler: qmc = self.get_sampler(sampler_name)
+        self.bound: tuple[float] = bound
         self.initial_doe: list[list[float]] = self.sampler.random(n=self.doe_size).tolist()
-        self.bound = bound
 
     def get_sampler(self, sampler_name: str):
         """
-        Build scipy qmc sampler.
+        **Returns** scipy qmc sampler.
         """
         if sampler_name not in self.sampler_list:
             raise Exception(f"Unrecognized sampler {sampler_name}")
@@ -38,9 +51,13 @@ class Generator:
                 else qmc.Sobol(d=self.ndesign, seed=self.seed)
             )
 
-    def custom_generator(self, random, args) -> list[float]:
+    def custom_generator(self, random: Random, args: dict) -> list[float]:
         """
-        Define a generator to sample elements one by one from the initial generation.
+        **Returns** a single sample from the initial generation.
+
+        Note:
+            __random__ and __args__ are inspyred mandatory arguments</br>
+            see https://pythonhosted.org/inspyred/tutorial.html#the-generator
         """
         element = self.initial_doe.pop(0)
         return qmc.scale([element], *self.bound).tolist()[0]

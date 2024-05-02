@@ -8,30 +8,49 @@ logger = logging.getLogger(__name__)
 
 class NACABlockMesh(NACABaseMesh):
     """
-    This class implements a blocking mesh routine for a naca profile based on:
+    This class implements a blocking mesh routine for a naca profile based on:</br>
     https://github.com/ComputationalDomain/CMesh_rae69ck-il
     """
     def __init__(self, config: dict, datfile: str = ""):
         """
         Instantiates the BlockMesh object.
+
+        **Input**
+
+        - config (dict): the config file dictionary.
+        - dat_file (str): path to input_geometry.dat.
         """
         super().__init__(config, datfile)
 
     def build_2dmesh(self):
         """
-        Builds the surface mesh of the computational domain.
+        **Builds** the surface mesh of the computational domain.
+
+        **Inner**
+
+        - R (float): radius of the outer circle.
+        - d_out (float): distance to the outlet.
+        - offset (int): offset from leading edge.
+        - b_width (float): block_width.
+        - n_inlet (int): nbr of lead edge & inlet nodes.
+        - n_vertical (int) : nbr of out & verti nodes.
+        - r_vertical (float): out & vert growth.
+        - n_airfoil (int): nbr of nodes on each sides.
+        - r_airfoil (float): airfoil sides growth.
+        - n_wake (int): nbr of nodes in the wake dir.
+        - r_wake (float): wake growth.
         """
-        R = self.dinlet  # radius of the outer circle
-        d_out = self.doutlet  # distance to the outlet
-        offset = self.config["gmsh"]["domain"].get("le_offset", 10)  # offset from leading edge
-        b_width = self.config["gmsh"]["domain"].get("block_width", 10)  # block_width
-        n_inlet = self.config["gmsh"]["mesh"].get("n_inlet", 60)  # nbr of lead edge & inlet nodes
-        n_vertical = self.config["gmsh"]["mesh"].get("n_vertical", 90)  # nbr of out & verti nodes
-        r_vertical = self.config["gmsh"]["mesh"].get("r_vertical", 1 / 0.95)  # out & vert growth
-        n_airfoil = self.config["gmsh"]["mesh"].get("n_airfoil", 50)  # nbr of nodes on each sides
-        r_airfoil = self.config["gmsh"]["mesh"].get("r_airfoil", 1)  # airfoil sides growth
-        n_wake = self.config["gmsh"]["mesh"].get("n_wake", 100)  # nbr of nodes in the wake dir.
-        r_wake = self.config["gmsh"]["mesh"].get("r_wake", 1 / 0.95)  # wake growth
+        R = self.dinlet
+        d_out = self.doutlet
+        offset = self.config["gmsh"]["domain"].get("le_offset", 10)
+        b_width = self.config["gmsh"]["domain"].get("block_width", 10)
+        n_inlet = self.config["gmsh"]["mesh"].get("n_inlet", 60)
+        n_vertical = self.config["gmsh"]["mesh"].get("n_vertical", 90)
+        r_vertical = self.config["gmsh"]["mesh"].get("r_vertical", 1 / 0.95)
+        n_airfoil = self.config["gmsh"]["mesh"].get("n_airfoil", 50)
+        r_airfoil = self.config["gmsh"]["mesh"].get("r_airfoil", 1)
+        n_wake = self.config["gmsh"]["mesh"].get("n_wake", 100)
+        r_wake = self.config["gmsh"]["mesh"].get("r_wake", 1 / 0.95)
 
         _, self.idx_le = min((p[0], idx) for (idx, p) in enumerate(self.pts))
         _, self.idx_te = max((p[0], idx) for (idx, p) in enumerate(self.pts))

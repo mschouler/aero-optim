@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 class NACABaseMesh(Mesh):
     """
     This class implements a meshing routine for a naca profile.
-    >> The computational domain has the following structure:
+
+    The computational domain has the following structure:
 
                     pt_hi_inlet
                        !   top_side
@@ -36,16 +37,22 @@ class NACABaseMesh(Mesh):
         """
         Instantiates the NACABaseMesh object.
 
-        Inner
-            >> dinlet: the radius of the inlet semi-circle.
-            >> doutlet: the distance between the airfoil trailing edge and the outlet.
-            >> offset: the leading edge portion defined in number of points from the leading edge.
-            >> nodes_inlet: the number of nodes to mesh the inlet.
-            >> nodes_outlet: the number of nodes to mesh the outlet.
-            >> snodes: the number of nodes to mesh the top and bottom sides.
-            >> le: the number of nodes to mesh the airfoil leading edge portion.
-            >> low: the number of nodes to mesh the airfoil trailing edge lower portion.
-            >> up: the number of nodes to mesh the airfoil trailing edge upper portion.
+        **Input**
+
+        - config (dict): the config file dictionary.
+        - dat_file (str): path to input_geometry.dat.
+
+        **Inner**
+
+        - dinlet (float): the radius of the inlet semi-circle.
+        - doutlet (float): the distance between the airfoil trailing edge and the outlet.
+        - offset (int): the leading edge portion defined in number of points from the leading edge.
+        - nodes_inlet (int): the number of nodes to mesh the inlet.
+        - nodes_outlet (int): the number of nodes to mesh the outlet.
+        - snodes (int): the number of nodes to mesh the top and bottom sides.
+        - le (int): the number of nodes to mesh the airfoil leading edge portion.
+        - low (int): the number of nodes to mesh the airfoil trailing edge lower portion.
+        - up (int): the number of nodes to mesh the airfoil trailing edge upper portion.
         """
         super().__init__(config, datfile)
         self.dinlet: float = self.config["gmsh"]["domain"].get("inlet", 2)
@@ -67,7 +74,7 @@ class NACABaseMesh(Mesh):
 
     def build_mesh(self):
         """
-        Defines the gmsh routine.
+        **Defines** the gmsh routine.
         """
         gmsh.initialize()
         gmsh.option.setNumber('General.Terminal', 0)
@@ -105,7 +112,8 @@ class NACABaseMesh(Mesh):
 
     def split_naca(self) -> tuple[list[list[float]], list[list[float]]]:
         """
-        Returns the upper and lower parts of the airfoil as ordered lists (wrt the x axis).
+        **Returns** the upper and lower parts of the airfoil as ordered lists (wrt the x axis).
+
         Note:
             The trailing and leading edges are voluntarily excluded from both parts
             since the geometry is closed and these points must each have a unique tag.
@@ -127,7 +135,7 @@ class NACABaseMesh(Mesh):
 
     def build_bl(self, naca_tag: list[int], te_tag: int):
         """
-        Builds the boundary layer around the blade part.
+        **Builds** the boundary layer around the blade part.
         """
         self.f = gmsh.model.mesh.field.add('BoundaryLayer')
         gmsh.model.mesh.field.setNumbers(self.f, 'CurvesList', naca_tag)
@@ -142,7 +150,7 @@ class NACABaseMesh(Mesh):
 
     def build_2dmesh(self):
         """
-        Builds the surface mesh of the computational domain.
+        **Builds** the surface mesh of the computational domain.
         """
         _, self.idx_le = min((p[0], idx) for (idx, p) in enumerate(self.pts))
         _, self.idx_te = max((p[0], idx) for (idx, p) in enumerate(self.pts))

@@ -10,6 +10,11 @@ nav:
     - 'Mesh Module': mesh.md
     - 'Simulator Module': simulator.md
     - 'Optimizer Module': optimizer.md
+  - Developer Guide:
+    - 'FFD Module': dev_ffd.md
+    - 'Mesh Module': dev_mesh.md
+    - 'Simulator Module': dev_simulator.md
+    - 'Optimizer Module': dev_optimizer.md
   - Optimization Examples:
     - None
 theme: 
@@ -27,3 +32,11 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
