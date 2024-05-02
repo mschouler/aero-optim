@@ -15,7 +15,7 @@ class Generator:
                  ndesign: int,
                  doe_size: int,
                  sampler_name: str,
-                 bound: tuple[float]):
+                 bound: tuple[float, float]):
         """
         Instantiates the Generator class with some optimization parameters and the sampler name.
 
@@ -25,7 +25,7 @@ class Generator:
         - ndesign (int): the number of design variables (dimensions of the problem).
         - doe_size (int): the size of the initial and subsequent generations.
         - sampler_name (str): name of the sampling algorithm used to generate samples.
-        - bound (tuple[float]): design variables boundaries.
+        - bound (tuple[float, float]): design variables boundaries.
 
         **Inner**
 
@@ -35,7 +35,7 @@ class Generator:
         self.ndesign: int = ndesign
         self.doe_size: int = doe_size
         self.sampler: qmc = self.get_sampler(sampler_name)
-        self.bound: tuple[float] = bound
+        self.bound: tuple[float, float] = bound
         self.initial_doe: list[list[float]] = self.sampler.random(n=self.doe_size).tolist()
 
     def get_sampler(self, sampler_name: str):

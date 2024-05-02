@@ -15,11 +15,11 @@ def main():
         "-in", "--input", type=str, help="meshfile")
     _ = parser.parse_args()
 
-    sleep: float = randrange(10) / 10.
+    sleep = randrange(10) / 10.
     time.sleep(sleep)
 
     # write dummy residual file
-    fname: str = "residual.dat"
+    fname = "residual.dat"
     output = ["# Iter    ResTot",
               "1    0.1",
               "2    0.2",
