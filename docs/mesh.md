@@ -28,7 +28,7 @@ Both cases are parameterized with a `json` formatted configuration file made of 
 
 The meshing routine then goes through the following steps:
 
-1) a `ChildMesh` object is instantiated from the configuration dictionary,
+1) a `Mesh` object is instantiated from the configuration dictionary,
 
 2) the `build_mesh()` method is called on the instantiated object which then triggers subsequent calls:
 

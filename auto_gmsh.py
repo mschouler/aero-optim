@@ -3,6 +3,7 @@ import logging
 import sys
 
 from src.utils import check_file, check_config
+from src.cascade_mesh import CascadeMesh
 from src.naca_base_mesh import NACABaseMesh
 from src.naca_block_mesh import NACABlockMesh
 
@@ -29,11 +30,13 @@ def main():
     check_file(args.config)
     config, study_type = check_config(args.config, gmsh=True)
 
-    gmsh_mesh: NACABaseMesh | NACABlockMesh | None = None
+    gmsh_mesh = None
     if study_type == "base":
         gmsh_mesh = NACABaseMesh(config, args.file)
     elif study_type == "block":
         gmsh_mesh = NACABlockMesh(config, args.file)
+    elif study_type == "cascade":
+        gmsh_mesh = CascadeMesh(config, args.file)
 
     if gmsh_mesh:
         gmsh_mesh.build_mesh()

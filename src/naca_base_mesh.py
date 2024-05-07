@@ -1,7 +1,7 @@
 import gmsh
 import logging
 
-from .mesh import Mesh, plot_quality, set_display, split_view
+from .mesh import Mesh
 
 logger = logging.getLogger(__name__)
 
@@ -72,44 +72,6 @@ class NACABaseMesh(Mesh):
         if "outlet" not in self.config["gmsh"]["domain"]:
             logger.warning(f"no <outlet> entry in {self.config['gmsh']['domain']}")
 
-    def build_mesh(self):
-        """
-        **Defines** the gmsh routine.
-        """
-        gmsh.initialize()
-        gmsh.option.setNumber('General.Terminal', 0)
-        gmsh.logger.start()
-        gmsh.model.add("model")
-
-        self.build_2dmesh()
-
-        if self.structured:
-            [gmsh.model.geo.mesh.setRecombine(2, abs(id)) for id in self.surf_tag]
-        gmsh.model.geo.synchronize()
-        gmsh.model.mesh.generate(2)
-
-        # visualization
-        if self.quality:
-            plot_quality()
-        elt_type = "Mesh.Triangles" if not self.structured else "Mesh.Quadrangles"
-        color = [
-            ("General.BackgroundGradient", 255, 255, 255),
-            (elt_type, 255, 0, 0)
-        ]
-        number = [
-            ("Geometry.Points", 0),
-            ("Geometry.Curves", 0),
-            ("Mesh.ColorCarousel", 0),
-        ]
-        if not self.quality:
-            number.append(("Mesh.SurfaceFaces", 1))
-        set_display(color, number)
-        split_view(self.nview) if self.nview > 1 else 0
-
-        # output
-        if self.GUI:
-            gmsh.fltk.run()
-
     def split_naca(self) -> tuple[list[list[float]], list[list[float]]]:
         """
         **Returns** the upper and lower parts of the airfoil as ordered lists (wrt the x axis).
@@ -135,7 +97,7 @@ class NACABaseMesh(Mesh):
 
     def build_bl(self, naca_tag: list[int], te_tag: int):
         """
-        **Builds** the boundary layer around the blade part.
+        **Builds** the boundary layer around the airfoil.
         """
         self.f = gmsh.model.mesh.field.add('BoundaryLayer')
         gmsh.model.mesh.field.setNumbers(self.f, 'CurvesList', naca_tag)
@@ -143,7 +105,6 @@ class NACABaseMesh(Mesh):
         gmsh.model.mesh.field.setNumber(self.f, 'Ratio', self.bl_ratio)
         gmsh.model.mesh.field.setNumber(self.f, 'Quads', int(self.structured))
         gmsh.model.mesh.field.setNumber(self.f, 'Thickness', self.bl_thickness)
-        gmsh.model.mesh.field.setNumber(self.f, 'IntersectMetrics', 1)
         gmsh.option.setNumber('Mesh.BoundaryLayerFanElements', 10)
         gmsh.model.mesh.field.setNumbers(self.f, 'FanPointsList', [te_tag])
         gmsh.model.mesh.field.setAsBoundaryLayer(self.f)
