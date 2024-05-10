@@ -161,6 +161,25 @@ class CascadeMesh(Mesh):
         l_27 = gmsh.model.geo.addLine(pt_337, pt_338)
         l_28 = gmsh.model.geo.addLine(pt_338, pt_339)
 
+        # transfinite curves on non-blade boundaries
+        gmsh.model.geo.mesh.setTransfiniteCurve(l_10, self.nodes_inlet, "Progression", 1.)
+        gmsh.model.geo.mesh.setTransfiniteCurve(l_13, self.nodes_inlet, "Progression", 1.)
+        gmsh.model.geo.mesh.setTransfiniteCurve(l_21, self.nodes_outlet, "Progression", 1.)
+        # bottom / top periodicity
+        bottom_tags = [l_11, l_14, l_15, l_16, l_17, l_18, l_19, l_20]
+        top_tags = [l_12, l_28, l_27, l_26, l_25, l_24, l_23, l_22]
+        # bottom non-curved side nodes
+        _ = [gmsh.model.geo.mesh.setTransfiniteCurve(l_i, self.snodes, "Progression", 1.)
+             for l_i in [l_11, l_20]]
+        # bottom curved side nodes
+        _ = [gmsh.model.geo.mesh.setTransfiniteCurve(l_i, self.c_snodes, "Progression", 1.)
+             for l_i in bottom_tags[1:-1]]
+        # periodic boundaries /y direction
+        gmsh.model.geo.synchronize()
+        translation = [1, 0, 0, 0, 0, 1, 0, 0.04039, 0, 0, 1, 0, 0, 0, 0, 1]
+        for tid, bid in zip(top_tags, bottom_tags):
+            gmsh.model.mesh.setPeriodic(1, [tid], [bid], translation)
+
         # closed curve loop and computational domain surface definition
         cloop_2 = gmsh.model.geo.addCurveLoop([l_10, l_11, l_12, l_13])
         cloop_3 = gmsh.model.geo.addCurveLoop(
@@ -170,17 +189,6 @@ class CascadeMesh(Mesh):
         surf_1 = gmsh.model.geo.addPlaneSurface([cloop_2], tag=1002)
         surf_2 = gmsh.model.geo.addPlaneSurface([cloop_3, blade_loop], tag=1003)
         gmsh.model.geo.mesh.setTransfiniteSurface(surf_1)
-
-        # transfinite curves on non-blade boundaries
-        gmsh.model.geo.mesh.setTransfiniteCurve(l_10, self.nodes_inlet, "Progression", 1.)
-        gmsh.model.geo.mesh.setTransfiniteCurve(l_13, self.nodes_inlet, "Progression", 1.)
-        gmsh.model.geo.mesh.setTransfiniteCurve(l_21, self.nodes_outlet, "Progression", 1.)
-        # side nodes
-        _ = [gmsh.model.geo.mesh.setTransfiniteCurve(l_i, self.snodes, "Progression", 1.)
-             for l_i in [l_11, l_12, l_20, l_22]]
-        # curved side nodes
-        _ = [gmsh.model.geo.mesh.setTransfiniteCurve(l_i, self.c_snodes, "Progression", 1.)
-             for l_i in [l_14, l_15, l_16, l_17, l_18, l_19, l_23, l_24, l_25, l_26, l_27, l_28]]
 
         # Fields definition
         # Boundary Layer
@@ -205,10 +213,10 @@ class CascadeMesh(Mesh):
         logger.info(f"BC: Outlet tags are {[l_21]}")
         gmsh.model.geo.addPhysicalGroup(1, spl_list, tag=30)
         logger.info(f"BC: Wall tags are {spl_list}")
-        gmsh.model.geo.addPhysicalGroup(1, [l_12, l_28, l_27, l_26, l_25, l_24, l_23, l_22], tag=40)
-        logger.info(f"BC: Top tags are {[l_12, l_28, l_27, l_26, l_25, l_24, l_23, l_22]}")
-        gmsh.model.geo.addPhysicalGroup(1, [l_11, l_20, l_19, l_18, l_17, l_16, l_15, l_14], tag=50)
-        logger.info(f"BC: Bottom tags are {[l_11, l_20, l_19, l_18, l_17, l_16, l_15, l_14]}")
+        gmsh.model.geo.addPhysicalGroup(1, top_tags, tag=40)
+        logger.info(f"BC: Top tags are {top_tags}")
+        gmsh.model.geo.addPhysicalGroup(1, bottom_tags, tag=50)
+        logger.info(f"BC: Bottom tags are {bottom_tags}")
 
         # non-corner points defined as flow-field and inner block line nodes
         self.non_corner_tag.extend([abs(s_tag) for s_tag in self.surf_tag])
