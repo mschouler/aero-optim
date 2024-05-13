@@ -67,7 +67,6 @@ def main():
     configure_logger(logger, os.path.join(config["study"]["outdir"], "aero-optim.log"), log_level)
 
     # instantiate optimizer and inspyred objects
-    opt: DEBUGOptimizer | WolfOptimizer | None = None
     if args.DEBUG:
         opt = DEBUGOptimizer(config)
     else:

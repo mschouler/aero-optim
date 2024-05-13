@@ -7,7 +7,7 @@ import os
 from abc import ABC, abstractmethod
 from inspyred.ec import Individual
 from random import Random
-from typing import Any
+from typing import Any, Type
 import signal
 import time
 
@@ -15,6 +15,7 @@ from .ffd import FFD_2D
 from .ins_generator import Generator
 from .naca_base_mesh import NACABaseMesh
 from .naca_block_mesh import NACABlockMesh
+from .cascade_mesh import CascadeMesh
 from .simulator import WolfSimulator, DEBUGSimulator
 from .utils import check_dir
 
@@ -109,10 +110,13 @@ class Optimizer(ABC):
             self.seed, self.n_design, self.doe_size, self.sampler_name, self.bound
         )
         self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
+        self.gmsh_mesh: Type[NACABaseMesh] | Type[NACABlockMesh] | Type[CascadeMesh]
         if self.study_type == "base":
             self.gmsh_mesh = NACABaseMesh
         elif self.study_type == "block":
             self.gmsh_mesh = NACABlockMesh
+        elif self.study_type == "cascade":
+            self.gmsh_mesh = CascadeMesh
         # population statistics
         self.mean: list[float] = []
         self.median: list[float] = []

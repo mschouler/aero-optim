@@ -35,7 +35,7 @@ def mesh_format(mesh_file: str, non_corner_tags: list[int]):
     for v_id, id in enumerate(range(vert_idx + 2, vert_idx + 2 + n_vert)):
         line_data = re.findall(r'\d+(?:\.\d+)?', mesh[id])
         if int(line_data[-1]) not in non_corner_tags:
-            c_vertices.append(v_id)
+            c_vertices.append(v_id + 1)
         mesh[id] = mesh[id][:-len(str(line_data[-1]))]
 
     # append corners
@@ -140,6 +140,44 @@ class Mesh(ABC):
             / math.log(self.bl_ratio) - 1
         )
 
+    def build_mesh(self):
+        """
+        **Defines** the gmsh routine.
+        """
+        gmsh.initialize()
+        gmsh.option.setNumber('General.Terminal', 0)
+        gmsh.logger.start()
+        gmsh.model.add("model")
+
+        self.build_2dmesh()
+
+        if self.structured:
+            [gmsh.model.geo.mesh.setRecombine(2, abs(id)) for id in self.surf_tag]
+        gmsh.model.geo.synchronize()
+        gmsh.model.mesh.generate(2)
+
+        # visualization
+        if self.quality:
+            plot_quality()
+        elt_type = "Mesh.Triangles" if not self.structured else "Mesh.Quadrangles"
+        color = [
+            ("General.BackgroundGradient", 255, 255, 255),
+            (elt_type, 255, 0, 0)
+        ]
+        number = [
+            ("Geometry.Points", 0),
+            ("Geometry.Curves", 0),
+            ("Mesh.ColorCarousel", 0),
+        ]
+        if not self.quality:
+            number.append(("Mesh.SurfaceFaces", 1))
+        set_display(color, number)
+        split_view(self.nview) if self.nview > 1 else 0
+
+        # output
+        if self.GUI:
+            gmsh.fltk.run()
+
     def write_mesh(self, mesh_dir: str = "", format: bool = True) -> str:
         """
         **Writes** all output files: <file>.geo_unrolled, <file>.log, <file>.mesh and
@@ -179,10 +217,4 @@ class Mesh(ABC):
     def process_config(self):
         """
         Makes sure the config file contains the required information.
-        """
-
-    @abstractmethod
-    def build_mesh(self):
-        """
-        Defines the gmsh routine.
         """
