@@ -15,6 +15,7 @@ from .ffd import FFD_2D
 from .ins_generator import Generator
 from .naca_base_mesh import NACABaseMesh
 from .naca_block_mesh import NACABlockMesh
+from .cascade_mesh import CascadeMesh
 from .simulator import WolfSimulator, DEBUGSimulator
 from .utils import check_dir
 
@@ -113,6 +114,8 @@ class Optimizer(ABC):
             self.gmsh_mesh = NACABaseMesh
         elif self.study_type == "block":
             self.gmsh_mesh = NACABlockMesh
+        elif self.study_type == "cascade":
+            self.gmsh_mesh = CascadeMesh
         # population statistics
         self.mean: list[float] = []
         self.median: list[float] = []
