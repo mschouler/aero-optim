@@ -5,7 +5,7 @@ import os
 import re
 
 from abc import ABC, abstractmethod
-from .utils import from_dat, check_dir
+from src.utils import from_dat, check_dir
 
 logger = logging.getLogger(__name__)
 

@@ -35,7 +35,7 @@ Repository = "https://github.com/mschouler/aero-optim.git"
 # Using scripts would require to move auto scripts to another directory <dir>.
 # This is left aside for now..
 
-# ffd = "<dir>.auto_ffd:main"
-# mesh = "<dir>.auto_gmsh:main"
-# simulator = "<dir>.auto_simulator:main"
-# optim = "<dir>.main_optim:main"
+ffd = "src.MAIN.auto_ffd:main"
+mesh = "src.MAIN.auto_gmsh:main"
+simulator = "src.MAIN.auto_simulator:main"
+optim = "src.MAIN.main_optim:main"

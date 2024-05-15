@@ -5,7 +5,7 @@ import shutil
 import subprocess
 
 from abc import ABC, abstractmethod
-from .utils import check_dir
+from src.utils import check_dir
 
 logger = logging.getLogger(__name__)
 

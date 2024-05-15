@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from src.ffd import FFD_2D
+from src.FFD.ffd import FFD_2D
 
 input: str = "input/naca12.dat"
 Delta: np.ndarray = np.array([1., 1., 1., 1.])

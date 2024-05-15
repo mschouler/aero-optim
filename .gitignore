@@ -10,6 +10,9 @@ __pycache__/
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 
+# Packaging
+*.egg-info/
+
 # Environments
 .env
 .venv
@@ -20,7 +23,7 @@ env.bak/
 venv.bak/
 
 # results
-output*
+examples/*/output
 RES*
 tmp
 

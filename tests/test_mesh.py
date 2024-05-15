@@ -1,7 +1,7 @@
 import os
 
-from src.naca_base_mesh import NACABaseMesh
-from src.naca_block_mesh import NACABlockMesh
+from src.MESH.naca_base_mesh import NACABaseMesh
+from src.MESH.naca_block_mesh import NACABlockMesh
 from src.utils import check_config, check_file
 
 base_config_path: str = "tests/extras/test_base_config.json"

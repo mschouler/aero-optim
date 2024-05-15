@@ -1,7 +1,7 @@
 import gmsh
 import logging
 
-from .naca_base_mesh import NACABaseMesh
+from src.MESH.naca_base_mesh import NACABaseMesh
 
 logger = logging.getLogger(__name__)
 

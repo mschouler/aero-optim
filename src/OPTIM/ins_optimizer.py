@@ -7,17 +7,17 @@ import os
 from abc import ABC, abstractmethod
 from inspyred.ec import Individual
 from random import Random
-from typing import Any, Type
+from typing import Type
 import signal
 import time
 
-from .ffd import FFD_2D
-from .ins_generator import Generator
-from .naca_base_mesh import NACABaseMesh
-from .naca_block_mesh import NACABlockMesh
-from .cascade_mesh import CascadeMesh
-from .simulator import WolfSimulator, DEBUGSimulator
-from .utils import check_dir
+from src.FFD.ffd import FFD_2D
+from src.OPTIM.ins_generator import Generator
+from src.MESH.naca_base_mesh import NACABaseMesh
+from src.MESH.naca_block_mesh import NACABlockMesh
+from src.MESH.cascade_mesh import CascadeMesh
+from src.SIMULATOR.simulator import WolfSimulator, DEBUGSimulator
+from src.utils import check_dir
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -97,7 +97,9 @@ class Optimizer(ABC):
         self.maximize: bool = config["optim"].get("maximize", False)
         self.budget: int = config["optim"].get("budget", 4)
         self.nproc_per_sim: int = config["optim"].get("nproc_per_sim", 1)
-        self.bound: tuple[Any, ...] = tuple(config["optim"].get("bound", [-1., 1.]))
+        self.bound: tuple[float, float] = tuple(
+            config["optim"].get("bound", [-1, 1])
+        )  # type: ignore
         self.sampler_name: str = config["optim"].get("sampler_name", "lhs")
         # reproducibility variables
         self.seed: int = config["optim"].get("seed", 123)
