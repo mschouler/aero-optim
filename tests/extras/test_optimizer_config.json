@@ -16,7 +16,7 @@
     },
     "gmsh": {},
     "simulator": {
-        "ref_input": "template/naca_euler.wolf",
+        "ref_input": "tests/extras/empty_file.wolf",
         "sim_args": {},
         "post_process": {
             "residual.dat": ["ResTot"],
