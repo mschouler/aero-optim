@@ -1,17 +1,16 @@
 {
     "study": {
         "study_type": "base",
-        "file": "input/naca12.dat",
+        "file": "../data/naca12.dat",
         "outfile": "naca_base",
         "outdir": "output"
     },
     "optim": {
         "n_design": 8,
-        "doe_size": 20,
+        "doe_size": 5,
         "max_generations": 0,
-        "bound": [-1, 1],
+        "bound": [-0.5, 0.5],
         "budget": 20,
-        "nproc_per_sim": 1,
         "QoI": "CD",
         "penalty": ["CL", 0.3623]
     },
@@ -36,7 +35,7 @@
         }
     },
     "simulator": {
-        "ref_input": "template/naca_euler.wolf",
+        "ref_input": "../../../template/naca_euler.wolf",
         "sim_args": {
             "InFlow": {"inplace": false, "param": ["1", "4"]},
             "OutFlow": {"inplace": false, "param": ["3", "5 6 7"]}
