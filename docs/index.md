@@ -24,6 +24,7 @@ cd aero-optim
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 ```
 
 !!! Warning
@@ -45,7 +46,9 @@ Although the chaining of these steps is performed under the supervision of [`mai
 #### First FFD: [`auto_ffd.py`](https://github.com/mschouler/aero-optim/blob/master/auto_ffd.py)
 This script performs one or multiple FFD of the geometry passed as its input argument. For instance:
 ```sh
-python3 auto_ffd.py -f input/naca12.dat -nc 2 -d "0. 0. 1. 1."
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+ffd -f ../data/naca12.dat -nc 2 -d "0. 0. 1. 1."
 ```
 will yield the figure below:
 <p float="left">
@@ -56,8 +59,11 @@ where the deformation vector is $$[D_{10}, D_{20}, D_{11}, D_{21}] = [0., 0., 1.
 #### First Mesh: [`auto_gmsh.py`](https://github.com/mschouler/aero-optim/blob/master/auto_gmsh.py)
 This script generates a simple mesh parameterized according to its associated configuration file. For instance:
 ```sh
-python3 auto_gmsh.py --config=input/naca_base.json  # left figure
-python3 auto_gmsh.py --config=input/naca_block.json # right figure
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+mesh --config=naca_base.json  # left figure
+cd ../naca_block
+mesh --config=input/naca_block.json # right figure
 ```
 will generate the figures below:
 <p float="left">
@@ -68,7 +74,9 @@ will generate the figures below:
 #### First Simulation: [`auto_simulator.py`](https://github.com/mschouler/aero-optim/blob/master/auto_simulator.py)
 This script performs a single simulation according to its associated configuration file and mesh. For instance:
 ```sh
-python3 auto_simulator.py -c input/naca_base.json -f output/naca_base.mesh
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+simulator -c naca_base.json -f output/naca_base.mesh
 ```
 would run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
 ```sh

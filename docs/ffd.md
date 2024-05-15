@@ -56,7 +56,9 @@ options:
 
 Hence, the command below will perform 3 control points FFDs for 4 random deformations sampled with an LHS sampler:
 ```py
-python3 auto_ffd.py -f input/naca12.dat -np 4 -nc 3 -s lhs
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+ffd -f ../data/naca12.dat -np 4 -nc 3 -s lhs
 ```
 <p float="left">
   <img src="../Figures/naca12_lhs.png" width="100%" />
