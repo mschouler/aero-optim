@@ -3,9 +3,9 @@ import logging
 import sys
 
 from src.utils import check_file, check_config
-from src.MESH.cascade_mesh import CascadeMesh
-from src.MESH.naca_base_mesh import NACABaseMesh
-from src.MESH.naca_block_mesh import NACABlockMesh
+from src.mesh.cascade_mesh import CascadeMesh
+from src.mesh.naca_base_mesh import NACABaseMesh
+from src.mesh.naca_block_mesh import NACABlockMesh
 
 logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

@@ -11,12 +11,12 @@ from typing import Type
 import signal
 import time
 
-from src.FFD.ffd import FFD_2D
-from src.OPTIM.ins_generator import Generator
-from src.MESH.naca_base_mesh import NACABaseMesh
-from src.MESH.naca_block_mesh import NACABlockMesh
-from src.MESH.cascade_mesh import CascadeMesh
-from src.SIMULATOR.simulator import WolfSimulator, DEBUGSimulator
+from src.ffd.ffd import FFD_2D
+from src.optim.ins_generator import Generator
+from src.mesh.naca_base_mesh import NACABaseMesh
+from src.mesh.naca_block_mesh import NACABlockMesh
+from src.mesh.cascade_mesh import CascadeMesh
+from src.simulator.simulator import WolfSimulator, DEBUGSimulator
 from src.utils import check_dir
 
 plt.set_loglevel(level='warning')

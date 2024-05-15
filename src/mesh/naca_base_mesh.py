@@ -1,7 +1,7 @@
 import gmsh
 import logging
 
-from src.MESH.mesh import Mesh
+from src.mesh.mesh import Mesh
 
 logger = logging.getLogger(__name__)
 

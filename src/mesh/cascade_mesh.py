@@ -2,7 +2,7 @@ import gmsh
 import logging
 import numpy as np
 
-from src.MESH.mesh import Mesh
+from src.mesh.mesh import Mesh
 
 logger = logging.getLogger(__name__)
 
