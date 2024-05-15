@@ -30,9 +30,7 @@
     },
     "simulator": {
         "ref_input": "../../../template/naca_euler.wolf",
-        "sim_args": {
-            "Processors": {"inplace": false, "param": ["20"]}
-        },
+        "sim_args": {},
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
