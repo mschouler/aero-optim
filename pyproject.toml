@@ -32,9 +32,6 @@ Repository = "https://github.com/mschouler/aero-optim.git"
 "Bug Tracker" = "https://github.com/mschouler/aero-optim/issues"
 
 [project.scripts]
-# Using scripts would require to move auto scripts to another directory <dir>.
-# This is left aside for now..
-
 ffd = "src.MAIN.auto_ffd:main"
 mesh = "src.MAIN.auto_gmsh:main"
 simulator = "src.MAIN.auto_simulator:main"

@@ -3,7 +3,7 @@ import os
 
 from src.FFD.ffd import FFD_2D
 
-input: str = "input/naca12.dat"
+input: str = "examples/NACA12/data/naca12.dat"
 Delta: np.ndarray = np.array([1., 1., 1., 1.])
 nc: int = 2
 
