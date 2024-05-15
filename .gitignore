@@ -24,6 +24,7 @@ venv.bak/
 
 # results
 examples/*/output
+examples/*/*/output
 RES*
 tmp
 
