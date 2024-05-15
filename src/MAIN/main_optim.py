@@ -8,7 +8,7 @@ import signal
 import traceback
 
 from random import Random
-from src.ins_optimizer import WolfOptimizer, DEBUGOptimizer
+from src.OPTIM.ins_optimizer import WolfOptimizer, DEBUGOptimizer
 from src.utils import (check_file, check_config, check_dir,
                        configure_logger, get_log_level_from_verbosity)
 from types import FrameType
