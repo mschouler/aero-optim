@@ -142,12 +142,14 @@ class WolfSimulator(Simulator):
         # generate custom input by altering the wolf template
         sim_outdir = self.get_sim_outdir(gid=gid, cid=cid)
         check_dir(sim_outdir)
-        self.custom_input(os.path.join(sim_outdir, f"{meshfile[:-5]}.wolf"))
+        self.custom_input(os.path.join(sim_outdir, f"{meshfile.split('.')[0]}.wolf"))
         # copy meshfile to the output directory
         shutil.copy(os.path.join(path_to_meshfile, meshfile), sim_outdir)
         logger.info(f"{os.path.join(path_to_meshfile, meshfile)} copied to {sim_outdir}")
         # copy any other solver expected files
-        [shutil.copy(file, sim_outdir) for file in self.files_to_cp]
+        suffix_list = [file.split(".")[-1] for file in self.files_to_cp]
+        [shutil.copy(file, os.path.join(sim_outdir, f"{meshfile.split('.')[0]}.{suffix}"))
+         for file, suffix in zip(self.files_to_cp, suffix_list)]
         logger.info(f"{self.files_to_cp} copied to {sim_outdir}")
         # update the execution command with the right mesh file
         exec_cmd = self.exec_cmd.copy()
