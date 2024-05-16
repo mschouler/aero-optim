@@ -80,15 +80,15 @@ simulator -c naca_base.json -f output/naca_base.mesh
 ```
 would run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
 ```sh
-INFO:src.simulator.simulator:g0, c0 converged in 529 it.
+INFO:src.simulator.simulator:g0, c0 converged in 518 it.
 INFO:src.simulator.simulator:last five values:
-      ResTot       CD       CL        ResCD        ResCL   x   y  Cp
-7.488921e-07 0.152784 0.360282 1.634993e-15 3.389693e-15 NaN NaN NaN
-5.032508e-07 0.152784 0.360282 1.816659e-16 1.540770e-16 NaN NaN NaN
-3.398878e-07 0.152784 0.360282 1.816659e-15 1.386693e-15 NaN NaN NaN
-2.309551e-07 0.152784 0.360282 1.634993e-15 3.081540e-16 NaN NaN NaN
-1.576437e-07 0.152784 0.360282 7.266635e-16 3.081540e-16 NaN NaN NaN
->> simulation finished after 5.019391775131226 seconds
+      ResTot      CD       CL        ResCD        ResCL   x   y  Cp
+1.188239e-06 0.15354 0.354171 2.169250e-15 2.664503e-15 NaN NaN NaN
+7.784275e-07 0.15354 0.354171 3.615416e-16 7.836773e-16 NaN NaN NaN
+5.064301e-07 0.15354 0.354171 2.530791e-15 2.037561e-15 NaN NaN NaN
+3.286895e-07 0.15354 0.354171 2.530791e-15 1.410619e-15 NaN NaN NaN
+2.132616e-07 0.15354 0.354171 9.038540e-16 2.037561e-15 NaN NaN NaN
+>> simulation finished after 4.014565944671631 seconds
 ```
 
 !!! Warning
