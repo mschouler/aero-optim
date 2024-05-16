@@ -54,7 +54,7 @@ jobs:
           pip install pytest-cov
       - name: Unit tests
         run: |
-          python -m pytest --cov=src tests/ >> coverage.txt
+          python -m pytest --cov=src tests/ 2>&1 | tee coverage.txt
       - name: Archive coverage results
         uses: actions/upload-artifact@v4
         with:
