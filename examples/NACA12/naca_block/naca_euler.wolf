@@ -34,7 +34,7 @@ HardLimiter
 0.1 0.00001
 
 FreezeLimiter
-FreezeIteration
+FreezeIterationStrict
 500
 
 MedianCell
