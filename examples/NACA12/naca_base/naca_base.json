@@ -12,7 +12,7 @@
         "bound": [-0.5, 0.5],
         "budget": 20,
         "QoI": "CD",
-        "penalty": ["CL", 0.3623]
+        "penalty": ["CL", 0.36]
     },
     "gmsh": {
         "domain": {
@@ -25,8 +25,8 @@
             "nodes_outlet": 40,
             "side_nodes": 20,
             "le": 20,
-            "low": 70,
-            "up": 70
+            "low": 35,
+            "up": 35
         },
         "view": {
             "GUI": true,
