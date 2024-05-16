@@ -34,6 +34,8 @@ def select_strategy(strategy_name: str, prng: Random) -> inspyred.ec.Evolutionar
     """
     if strategy_name == "ES":
         ea = inspyred.ec.ES(prng)
+    if strategy_name == "DEA":
+        ea = inspyred.ec.DEA(prng)
     elif strategy_name == "GA":
         ea = inspyred.ec.GA(prng)
     elif strategy_name == "SA":
