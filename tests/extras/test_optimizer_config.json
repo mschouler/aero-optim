@@ -1,7 +1,7 @@
 {
     "study": {
         "study_type": "",
-        "file": "input/naca12.dat",
+        "file": "examples/NACA12/data/naca12.dat",
         "outdir": "output"
     },
     "optim": {
@@ -16,7 +16,7 @@
     },
     "gmsh": {},
     "simulator": {
-        "ref_input": "template/naca_euler.wolf",
+        "ref_input": "tests/extras/empty_file.wolf",
         "sim_args": {},
         "post_process": {
             "residual.dat": ["ResTot"],

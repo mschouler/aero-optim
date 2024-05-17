@@ -2,7 +2,7 @@ import gmsh
 import logging
 import numpy as np
 
-from .mesh import Mesh
+from src.mesh.mesh import Mesh
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class CascadeMesh(Mesh):
         else:
             return [[p[0], p[1], p[2]] for p in self.pts[:start] + self.pts[start:]]
 
-    def build_bl(self, blade_tag: list[int]) -> None:
+    def build_bl(self, blade_tag: list[int]):
         """
         **Builds** the boundary layer around the blade.
         """

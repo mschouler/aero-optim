@@ -4,7 +4,7 @@ import operator
 import os
 import pytest
 
-from src.ins_optimizer import WolfOptimizer
+from src.optim.ins_optimizer import WolfOptimizer
 from src.utils import check_file, check_config
 
 sim_config_path: str = "tests/extras/test_optimizer_config.json"

@@ -7,17 +7,17 @@ import os
 from abc import ABC, abstractmethod
 from inspyred.ec import Individual
 from random import Random
-from typing import Any, Type
+from typing import Type
 import signal
 import time
 
-from .ffd import FFD_2D
-from .ins_generator import Generator
-from .naca_base_mesh import NACABaseMesh
-from .naca_block_mesh import NACABlockMesh
-from .cascade_mesh import CascadeMesh
-from .simulator import WolfSimulator, DEBUGSimulator
-from .utils import check_dir
+from src.ffd.ffd import FFD_2D
+from src.optim.ins_generator import Generator
+from src.mesh.naca_base_mesh import NACABaseMesh
+from src.mesh.naca_block_mesh import NACABlockMesh
+from src.mesh.cascade_mesh import CascadeMesh
+from src.simulator.simulator import WolfSimulator, DEBUGSimulator
+from src.utils import check_dir
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -74,6 +74,7 @@ class Optimizer(ABC):
           the initial generation.
         - seed (int): seed number of the random processes involved in the optimization.
         - prng (random.Random): pseudo-random generator passed to inspyred generator.
+        - ea_kwargs (dict): additional arguments to be passed to the evolution algorithm.
         - gen_ctr (int): generation counter.
         - generator (Generator): Generator object for the initial generation sampling.
         - ffd (FFD_2D): FFD_2D object to generate deformed geometries.
@@ -97,8 +98,11 @@ class Optimizer(ABC):
         self.maximize: bool = config["optim"].get("maximize", False)
         self.budget: int = config["optim"].get("budget", 4)
         self.nproc_per_sim: int = config["optim"].get("nproc_per_sim", 1)
-        self.bound: tuple[Any, ...] = tuple(config["optim"].get("bound", [-1., 1.]))
+        self.bound: tuple[float, float] = tuple(
+            config["optim"].get("bound", [-1, 1])
+        )  # type: ignore
         self.sampler_name: str = config["optim"].get("sampler_name", "lhs")
+        self.ea_kwargs: dict = config["optim"].get("ea_kwargs", {})
         # reproducibility variables
         self.seed: int = config["optim"].get("seed", 123)
         self.prng: Random = Random()
@@ -218,8 +222,8 @@ class WolfOptimizer(Optimizer):
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = config["optim"].get("QoI", "CD")
         self.n_plt: int = config["optim"].get("n_plt", 5)
-        self.baseline_CD: float = config["optim"].get("baseline_CD", 0.1505)
-        self.baseline_CL: float = config["optim"].get("baseline_CL", 0.3624)
+        self.baseline_CD: float = config["optim"].get("baseline_CD", 0.15)
+        self.baseline_CL: float = config["optim"].get("baseline_CL", 0.36)
         self.baseline_area: float = shoe_lace(self.ffd.pts)
         self.area_margin: float = config["optim"].get("area_margin", 40.) / 100.
         self.penalty: list = config["optim"].get("penalty", ["CL", self.baseline_CL])
@@ -302,23 +306,25 @@ class WolfOptimizer(Optimizer):
             )
             ax4.scatter(cid, fitness[cid], color=colors[color], label=f"c{cid}")
         # legend and title
-        fig.suptitle(f"Generation {gid} - {self.n_plt} best candidates")
+        fig.suptitle(
+            f"Generation {gid} - {self.n_plt} top candidates", size="x-large", weight="bold", y=0.93
+        )
         # top
-        ax1.set_title("FFD profiles")
+        ax1.set_title("FFD profiles", weight="bold")
         ax1.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax1.set_xlabel('x')
         ax1.set_ylabel('y')
         # bottom left
-        ax2.set_title(f"{df_key[0]}")
+        ax2.set_title(f"{df_key[0]}", weight="bold")
         ax2.set_yscale("log")
         ax2.set_xlabel('it. #')
         ax2.set_ylabel('residual')
         # bottom center
-        ax3.set_title(f"{df_key[1]} & {df_key[2]}")
+        ax3.set_title(f"{df_key[1]} & {df_key[2]}", weight="bold")
         ax3.set_xlabel('it. #')
         ax3.set_ylabel('aerodynamic coeff.')
         # bottom right
-        ax4.set_title(f"fitness: penalized {self.QoI}")
+        ax4.set_title(f"fitness: penalized {self.QoI}", weight="bold")
         ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax4.set_xlabel('candidate #')
         ax4.set_ylabel("fitness")

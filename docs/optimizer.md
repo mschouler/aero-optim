@@ -59,9 +59,11 @@ In the end, all simulations QoIs are returned as a list of floats. In addition, 
 ### Quick Experiments
 The `main_optim.py` script enables to launch full optimization loops in accordance with the configuration file specifications.
 
-For instance, `naca_base.json` executes a single iteration of the [Evolution Strategy](https://pythonhosted.org/inspyred/examples.html#evolution-strategy) algorithm with 20 candidates and 8 variables of design sampled between -1 and 1 (in lattice units):
+For instance, `naca_base.json` executes a single iteration of the [Evolution Strategy](https://pythonhosted.org/inspyred/examples.html#evolution-strategy) algorithm with 5 candidates and 8 variables of design sampled in [-0.5, 0.5] (in lattice units):
 ```py
-python3 main_optim.py -c input/naca_base.json
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+optim -c naca_base.json
 ```
 <p float="left">
   <img src="../Figures/dummy_optim.png" width="100%" />

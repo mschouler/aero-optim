@@ -7,7 +7,7 @@ import os
 import sys
 
 from scipy.stats import qmc
-from src.ffd import FFD_2D
+from src.ffd.ffd import FFD_2D
 from src.utils import check_file
 
 plt.set_loglevel(level='warning')

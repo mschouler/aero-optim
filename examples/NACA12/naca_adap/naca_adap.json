@@ -1,19 +1,18 @@
 {
     "study": {
         "study_type": "base",
-        "file": "input/naca12.dat",
-        "outfile": "naca_base",
+        "file": "../data/naca12.dat",
+        "outfile": "naca_adap",
         "outdir": "output"
     },
     "optim": {
         "n_design": 8,
-        "doe_size": 20,
+        "doe_size": 5,
         "max_generations": 0,
-        "bound": [-1, 1],
+        "bound": [-0.5, 0.5],
         "budget": 20,
-        "nproc_per_sim": 1,
         "QoI": "CD",
-        "penalty": ["CL", 0.3623]
+        "penalty": ["CL", 0.36]
     },
     "gmsh": {
         "domain": {
@@ -26,8 +25,8 @@
             "nodes_outlet": 40,
             "side_nodes": 20,
             "le": 20,
-            "low": 70,
-            "up": 70
+            "low": 35,
+            "up": 35
         },
         "view": {
             "GUI": true,
@@ -36,16 +35,13 @@
         }
     },
     "simulator": {
-        "ref_input": "template/naca_euler.wolf",
-        "sim_args": {
-            "InFlow": {"inplace": false, "param": ["1", "4"]},
-            "OutFlow": {"inplace": false, "param": ["3", "5 6 7"]}
-        },
+        "ref_input": "naca_adap.wolf",
+        "files_to_cp": ["naca_adap.metrix"],
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "/home/mschouler/bin/wolf -in @.mesh"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/NACA12/naca_adap/adap_robust.py -in @.mesh -cmp 4000 -cmax 5000"
     }
 }

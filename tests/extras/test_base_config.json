@@ -1,7 +1,7 @@
 {
     "study": {
         "study_type": "base",
-        "file": "input/naca12.dat",
+        "file": "examples/NACA12/data/naca12.dat",
         "outfile": "naca_base",
         "outdir": "output"
     },
@@ -16,8 +16,8 @@
             "nodes_outlet": 40,
             "side_nodes": 20,
             "le": 20,
-            "low": 70,
-            "up": 70
+            "low": 35,
+            "up": 35
         },
         "view": {
             "GUI": false,

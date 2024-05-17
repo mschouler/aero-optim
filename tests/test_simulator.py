@@ -2,7 +2,7 @@ import os
 import pytest
 import time
 
-from src.simulator import WolfSimulator
+from src.simulator.simulator import WolfSimulator
 from src.utils import check_file, check_config
 
 sim_config_path: str = "tests/extras/test_simulator_config.json"

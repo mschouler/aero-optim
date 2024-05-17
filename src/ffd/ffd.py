@@ -3,7 +3,7 @@ import math
 import numpy as np
 import os
 
-from .utils import from_dat, check_dir
+from src.utils import from_dat, check_dir
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ import shutil
 import subprocess
 
 from abc import ABC, abstractmethod
-from .utils import check_dir
+from src.utils import check_dir
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,10 @@ class Simulator(ABC):
 
         - cwd (str): the working directory.
         - outdir (str): the output directory where the simulation results folder will be stored.
+        - exec_cmd (list[str]): solver execution command.
         - ref_input (str): a simulation input file template.
         - sim_args (dict): arguments to modify to customize ref_input.
+        - files_to_cp (list[str]): list of files to be copied to the output directory.
         - post_process_args (dict): quantities to extract from result files.
         - df_dict (dict): dictionary of dataframes containing all simulations extracted quantities.
         """
@@ -40,6 +42,7 @@ class Simulator(ABC):
         self.exec_cmd: list[str] = config["simulator"]["exec_cmd"].split(" ")
         self.ref_input: str = config["simulator"]["ref_input"]
         self.sim_args: dict = config["simulator"].get("sim_args", {})
+        self.files_to_cp: list[str] = config["simulator"].get("files_to_cp", [])
         self.post_process_args: dict = config["simulator"].get("post_process", {})
         # simulation results
         self.df_dict: dict[int, dict[int, pd.DataFrame]] = {}
@@ -94,6 +97,11 @@ class WolfSimulator(Simulator):
 
         **Inner**
 
+        - exec_cmd (list[str]): solver execution command.
+
+            Note: with wolf, the exec_cmd is expected to contain a @.mesh argument that is
+            automatically replaced with the simulation input mesh file name.
+
         - sim_pro (list[tuple[dict, subprocess.Popen[str]]]): list to track simulations
           and their associated subprocess.
 
@@ -134,10 +142,15 @@ class WolfSimulator(Simulator):
         # generate custom input by altering the wolf template
         sim_outdir = self.get_sim_outdir(gid=gid, cid=cid)
         check_dir(sim_outdir)
-        self.custom_input(os.path.join(sim_outdir, f"{meshfile[:-5]}.wolf"))
+        self.custom_input(os.path.join(sim_outdir, f"{meshfile.split('.')[0]}.wolf"))
         # copy meshfile to the output directory
         shutil.copy(os.path.join(path_to_meshfile, meshfile), sim_outdir)
         logger.info(f"{os.path.join(path_to_meshfile, meshfile)} copied to {sim_outdir}")
+        # copy any other solver expected files
+        suffix_list = [file.split(".")[-1] for file in self.files_to_cp]
+        [shutil.copy(file, os.path.join(sim_outdir, f"{meshfile.split('.')[0]}.{suffix}"))
+         for file, suffix in zip(self.files_to_cp, suffix_list)]
+        logger.info(f"{self.files_to_cp} copied to {sim_outdir}")
         # update the execution command with the right mesh file
         exec_cmd = self.exec_cmd.copy()
         idx = self.exec_cmd.index("@.mesh")

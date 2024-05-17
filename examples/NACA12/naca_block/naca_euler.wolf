@@ -26,16 +26,16 @@ Order
 2
 
 NumericalDissipation
-6
+4
 
-DervieuxLimiter
+PipernoLimiter
 
 HardLimiter
 0.1 0.00001
 
 FreezeLimiter
-FreezeIteration
-  300
+FreezeIterationStrict
+500
 
 MedianCell
 
@@ -46,10 +46,14 @@ L2ProjectionGradient
 #  -------------------
 
 Implicit
-GMRESLUSGS
-GMRESNumberOfSubIterations
-10
-RusanovJacobian
+SGSNew
+SGSFastSolve
+SGSFastResidual
+SGSHighOrder
+SGSNumberOfSubIterations
+20
+LinearSystemResidual
+0.02
 
 LocalTimeStepping
 TimeStepMaximalRatio
@@ -58,10 +62,11 @@ TimeStepMaximalRatio
 Cfl
 0.1
 CflMax
-1.
-
-CflLocalDynamicLinear
-10.
+100000.
+CflLocalDynamicGeometric
+1.025
+CflUnderRelaxationNewtonExact
+FlipFlopUnderRelaxation
 
 #  -------------------
 #  Resolution parameters
@@ -75,8 +80,15 @@ PhysicalTime
 NumberOfTimeSteps
 10000
 
-Residual
+LogAvgResidual
 1.e-7
+LogAvgResidualOverMax
+1.e-6
+statisticalresidualovermax
+1.e-12
+
+BFSRenumberingXYZ
+-10. -10. 0.
 
 #  -------------------
 #  Output parameters
@@ -114,10 +126,3 @@ BodySlip
 OutFlow
 4
 9 10 11 12
-
-#  -------------------
-#  Extra
-#  -------------------
-
-Processors
-1

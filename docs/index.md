@@ -24,6 +24,7 @@ cd aero-optim
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 ```
 
 !!! Warning
@@ -45,7 +46,9 @@ Although the chaining of these steps is performed under the supervision of [`mai
 #### First FFD: [`auto_ffd.py`](https://github.com/mschouler/aero-optim/blob/master/auto_ffd.py)
 This script performs one or multiple FFD of the geometry passed as its input argument. For instance:
 ```sh
-python3 auto_ffd.py -f input/naca12.dat -nc 2 -d "0. 0. 1. 1."
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+ffd -f ../data/naca12.dat -nc 2 -d "0. 0. 1. 1."
 ```
 will yield the figure below:
 <p float="left">
@@ -56,8 +59,11 @@ where the deformation vector is $$[D_{10}, D_{20}, D_{11}, D_{21}] = [0., 0., 1.
 #### First Mesh: [`auto_gmsh.py`](https://github.com/mschouler/aero-optim/blob/master/auto_gmsh.py)
 This script generates a simple mesh parameterized according to its associated configuration file. For instance:
 ```sh
-python3 auto_gmsh.py --config=input/naca_base.json  # left figure
-python3 auto_gmsh.py --config=input/naca_block.json # right figure
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+mesh --config=naca_base.json  # left figure
+cd ../naca_block
+mesh --config=input/naca_block.json # right figure
 ```
 will generate the figures below:
 <p float="left">
@@ -68,19 +74,21 @@ will generate the figures below:
 #### First Simulation: [`auto_simulator.py`](https://github.com/mschouler/aero-optim/blob/master/auto_simulator.py)
 This script performs a single simulation according to its associated configuration file and mesh. For instance:
 ```sh
-python3 auto_simulator.py -c input/naca_base.json -f output/naca_base.mesh
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+simulator -c naca_base.json -f output/naca_base.mesh
 ```
 would run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
 ```sh
-INFO:src.simulator:g0, c0 converged in 930 it.
-INFO:src.simulator:last five values:
-      ResTot       CD      CL        ResCD        ResCL   x   y  Cp
-2.204484e-07 0.150484 0.36236 5.926298e-11 3.847861e-10 NaN NaN NaN
-2.152950e-07 0.150484 0.36236 5.828636e-11 3.763017e-10 NaN NaN NaN
-2.102533e-07 0.150484 0.36236 5.732541e-11 3.680268e-10 NaN NaN NaN
-2.053209e-07 0.150484 0.36236 5.638070e-11 3.599595e-10 NaN NaN NaN
-2.004957e-07 0.150484 0.36236 5.545462e-11 3.520882e-10 NaN NaN NaN
->> simulation finished after 8.026893615722656 seconds
+INFO:src.simulator.simulator:g0, c0 converged in 530 it.
+INFO:src.simulator.simulator:last five values:
+      ResTot       CD       CL        ResCD        ResCL   x   y  Cp
+8.954465e-07 0.152784 0.360282 2.361657e-15 2.465232e-15 NaN NaN NaN
+6.094393e-07 0.152784 0.360282 3.633318e-16 4.622309e-16 NaN NaN NaN
+4.161994e-07 0.152784 0.360282 0.000000e+00 6.163079e-16 NaN NaN NaN
+2.851701e-07 0.152784 0.360282 1.089995e-15 2.927463e-15 NaN NaN NaN
+1.960139e-07 0.152784 0.360282 1.089995e-15 1.078539e-15 NaN NaN NaN
+>> simulation finished after 4.014134407043457 seconds
 ```
 
 !!! Warning

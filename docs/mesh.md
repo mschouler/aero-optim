@@ -101,7 +101,9 @@ The `auto_gmsh.py` scripts enables basic testing and visualization for a given c
 
 For instance setting `"structured"` to `true` in `naca_block_mesh.json` will produce a fully structured mesh:
 ```sh
-python3 auto_gmsh.py --config=input/naca_block.json
+# from aero-optim to naca_block
+cd examples/NACA12/naca_block
+mesh --config=naca_block.json
 ```
 <p float="left">
   <img src="../Figures/naca_block_mesh_structured.png" width="100%" />
@@ -109,8 +111,10 @@ python3 auto_gmsh.py --config=input/naca_block.json
 
 It is also possible to supersede the config `"file"` entry with the `--file` input argument. Hence, any previously generated deformed geometry can be meshed according to the naca routine with the commands below:
 ```sh
-python3 auto_ffd.py -f input/naca12.dat -nc 2 -d "0. 0. 1. 1."
-python3 auto_gmsh.py --config=input/naca_base.json --file=output/naca12_g0_c0.dat
+# from naca_block to naca_base
+cd ../naca_base
+ffd -f ../data/naca12.dat -nc 2 -d "0. 0. 1. 1."
+mesh --config=naca_base.json --file=output/naca12_g0_c0.dat
 ```
 <p float="left">
   <img src="../Figures/naca_base_mesh_ffd.png" width="100%" />

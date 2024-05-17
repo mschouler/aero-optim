@@ -2,10 +2,9 @@ import gmsh
 import logging
 import math
 import os
-import re
 
 from abc import ABC, abstractmethod
-from .utils import from_dat, check_dir
+from src.utils import from_dat, check_dir
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +32,12 @@ def mesh_format(mesh_file: str, non_corner_tags: list[int]):
     except StopIteration:
         raise Exception("ERROR -- no 'Vertices' entry in mesh file")
     for v_id, id in enumerate(range(vert_idx + 2, vert_idx + 2 + n_vert)):
-        line_data = re.findall(r'\d+(?:\.\d+)?', mesh[id])
+        line_data = list(map(float, mesh[id].split()))
         if int(line_data[-1]) not in non_corner_tags:
             c_vertices.append(v_id + 1)
-        mesh[id] = mesh[id][:-len(str(line_data[-1]))]
+        mesh[id] = " " * 4 + f"{line_data[0]:>20}" + \
+                   " " * 4 + f"{line_data[1]:>20}" + \
+                   " " * 4 + f"{int(line_data[-1]):>20}"
 
     # append corners
     mesh = mesh[:-1] + ["Corners", str(len(c_vertices))] + [str(v) for v in c_vertices] + ["End"]
