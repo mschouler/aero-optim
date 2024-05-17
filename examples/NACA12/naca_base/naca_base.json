@@ -35,7 +35,7 @@
         }
     },
     "simulator": {
-        "ref_input": "naca_euler.wolf",
+        "ref_input": "naca_base.wolf",
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
