@@ -25,8 +25,8 @@
             "nodes_outlet": 40,
             "side_nodes": 20,
             "le": 20,
-            "low": 20,
-            "up": 20
+            "low": 35,
+            "up": 35
         },
         "view": {
             "GUI": true,
