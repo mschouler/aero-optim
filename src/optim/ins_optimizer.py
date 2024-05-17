@@ -220,8 +220,8 @@ class WolfOptimizer(Optimizer):
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = config["optim"].get("QoI", "CD")
         self.n_plt: int = config["optim"].get("n_plt", 5)
-        self.baseline_CD: float = config["optim"].get("baseline_CD", 0.1505)
-        self.baseline_CL: float = config["optim"].get("baseline_CL", 0.3624)
+        self.baseline_CD: float = config["optim"].get("baseline_CD", 0.15)
+        self.baseline_CL: float = config["optim"].get("baseline_CL", 0.36)
         self.baseline_area: float = shoe_lace(self.ffd.pts)
         self.area_margin: float = config["optim"].get("area_margin", 40.) / 100.
         self.penalty: list = config["optim"].get("penalty", ["CL", self.baseline_CL])
@@ -304,23 +304,25 @@ class WolfOptimizer(Optimizer):
             )
             ax4.scatter(cid, fitness[cid], color=colors[color], label=f"c{cid}")
         # legend and title
-        fig.suptitle(f"Generation {gid} - {self.n_plt} best candidates")
+        fig.suptitle(
+            f"Generation {gid} - {self.n_plt} top candidates", size="x-large", weight="bold", y=0.93
+        )
         # top
-        ax1.set_title("FFD profiles")
+        ax1.set_title("FFD profiles", weight="bold")
         ax1.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax1.set_xlabel('x')
         ax1.set_ylabel('y')
         # bottom left
-        ax2.set_title(f"{df_key[0]}")
+        ax2.set_title(f"{df_key[0]}", weight="bold")
         ax2.set_yscale("log")
         ax2.set_xlabel('it. #')
         ax2.set_ylabel('residual')
         # bottom center
-        ax3.set_title(f"{df_key[1]} & {df_key[2]}")
+        ax3.set_title(f"{df_key[1]} & {df_key[2]}", weight="bold")
         ax3.set_xlabel('it. #')
         ax3.set_ylabel('aerodynamic coeff.')
         # bottom right
-        ax4.set_title(f"fitness: penalized {self.QoI}")
+        ax4.set_title(f"fitness: penalized {self.QoI}", weight="bold")
         ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax4.set_xlabel('candidate #')
         ax4.set_ylabel("fitness")
