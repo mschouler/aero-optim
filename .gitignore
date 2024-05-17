@@ -23,8 +23,8 @@ env.bak/
 venv.bak/
 
 # results
-examples/*/output
-examples/*/*/output
+examples/*/output*
+examples/*/*/output*
 RES*
 tmp
 
