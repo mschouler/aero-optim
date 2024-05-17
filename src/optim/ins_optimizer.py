@@ -74,6 +74,7 @@ class Optimizer(ABC):
           the initial generation.
         - seed (int): seed number of the random processes involved in the optimization.
         - prng (random.Random): pseudo-random generator passed to inspyred generator.
+        - ea_kwargs (dict): additional arguments to be passed to the evolution algorithm.
         - gen_ctr (int): generation counter.
         - generator (Generator): Generator object for the initial generation sampling.
         - ffd (FFD_2D): FFD_2D object to generate deformed geometries.
@@ -101,6 +102,7 @@ class Optimizer(ABC):
             config["optim"].get("bound", [-1, 1])
         )  # type: ignore
         self.sampler_name: str = config["optim"].get("sampler_name", "lhs")
+        self.ea_kwargs: dict = config["optim"].get("ea_kwargs", {})
         # reproducibility variables
         self.seed: int = config["optim"].get("seed", 123)
         self.prng: Random = Random()
