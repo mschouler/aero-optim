@@ -34,16 +34,10 @@ def select_strategy(strategy_name: str, prng: Random) -> inspyred.ec.Evolutionar
     """
     if strategy_name == "ES":
         ea = inspyred.ec.ES(prng)
-    elif strategy_name == "DEA":
-        ea = inspyred.ec.DEA(prng)
-    elif strategy_name == "GA":
-        ea = inspyred.ec.GA(prng)
-    elif strategy_name == "SA":
-        ea = inspyred.ec.SA(prng)
     elif strategy_name == "PSO":
         ea = inspyred.swarm.PSO(prng)
     else:
-        raise Exception(f"ERROR -- unrecognized strategy {strategy_name}")
+        raise Exception(f"ERROR -- unsupported strategy {strategy_name}")
     logger.info(f"optimization selected strategy: {strategy_name}")
     return ea
 
@@ -88,7 +82,8 @@ def main():
                               pop_size=opt.doe_size,
                               max_generations=opt.max_generations,
                               bounder=inspyred.ec.Bounder(*opt.bound),
-                              maximize=opt.maximize)
+                              maximize=opt.maximize,
+                              **opt.ea_kwargs)
 
         opt.final_observe()
 
