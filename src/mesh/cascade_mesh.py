@@ -19,6 +19,10 @@ class CascadeMesh(Mesh):
 
         - config (dict): the config file dictionary.
         - dat_file (str): path to input_geometry.dat.
+        - nodes_inlet (int): the number of nodes to mesh the inlet.
+        - nodes_outlet (int): the number of nodes to mesh the outlet.
+        - snodes (int): the number of nodes to mesh the top and bottom sides.
+        - c_snodes (int): the number of nodes to mesh the inner sides.
 
         **Inner**
 

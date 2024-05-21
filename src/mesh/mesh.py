@@ -219,3 +219,9 @@ class Mesh(ABC):
         """
         Makes sure the config file contains the required information.
         """
+
+    @abstractmethod
+    def build_2dmesh(self):
+        """
+        Builds the surface mesh of the computational domain.
+        """
