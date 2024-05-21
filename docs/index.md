@@ -41,9 +41,9 @@ The framework was designed to automate aerodynamic optimization which, in this c
 
 as many times as required to obtain a geometry maximizing/minimizing certain quantities of interest (QoIs).
 
-Although the chaining of these steps is performed under the supervision of [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/add-docs/main_optim.py), the three subscripts presented below were introduced to facilitate each step's individual evaluation:
+Although the chaining of these steps is performed under the supervision of [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/main_optim.py), the three subscripts presented below were introduced to facilitate each step's individual evaluation:
 
-#### First FFD: [`auto_ffd.py`](https://github.com/mschouler/aero-optim/blob/master/auto_ffd.py)
+#### First FFD: [`auto_ffd.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/auto_ffd.py)
 This script performs one or multiple FFD of the geometry passed as its input argument. For instance:
 ```sh
 # from aero-optim to naca_base
@@ -56,7 +56,7 @@ will yield the figure below:
 </p>
 where the deformation vector is $$[D_{10}, D_{20}, D_{11}, D_{21}] = [0., 0., 1., 1.]$$ in lattice unit (see [FFD](ffd.md)).
 
-#### First Mesh: [`auto_gmsh.py`](https://github.com/mschouler/aero-optim/blob/master/auto_gmsh.py)
+#### First Mesh: [`auto_gmsh.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/auto_gmsh.py)
 This script generates a simple mesh parameterized according to its associated configuration file. For instance:
 ```sh
 # from aero-optim to naca_base
@@ -71,11 +71,12 @@ will generate the figures below:
   <img src="./Figures/naca_block_mesh.png" width="49%" /> 
 </p>
 
-#### First Simulation: [`auto_simulator.py`](https://github.com/mschouler/aero-optim/blob/master/auto_simulator.py)
+#### First Simulation: [`auto_simulator.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/auto_simulator.py)
 This script performs a single simulation according to its associated configuration file and mesh. For instance:
 ```sh
 # from aero-optim to naca_base
 cd examples/NACA12/naca_base
+mesh -c naca_base.json
 simulator -c naca_base.json -f output/naca_base.mesh
 ```
 would run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:

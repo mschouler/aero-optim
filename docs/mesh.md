@@ -1,10 +1,11 @@
 ## Mesh Module
 The meshing module builds on the [`gmsh` Python API](https://gmsh.info/doc/texinfo/gmsh.html). Classes inheriting from a basic `Mesh` class are implemented for NACA airfoil use-cases:
 
-* `NACABaseMesh`: implements a simple meshing routine with minimal parameters,
-* `NACABlockMesh`:  implements a structured by blocks meshing routine.
+* `NACABaseMesh`: implements a simple meshing routine for a naca12 profile with minimal parameters,
+* `NACABlockMesh`:  implements a structured by blocks meshing routine for a naca12 profile,
+* `CascadeMesh`: implements an unstructured meshing routine for a compressor cascade with periodic elements.
 
-Both cases are parameterized with a `json` formatted configuration file made of several dictionaries:
+All three meshes are parameterized with a `json` formatted configuration file made of several dictionaries:
 ```json
 {
   "study": {
@@ -33,7 +34,7 @@ The meshing routine then goes through the following steps:
 2) the `build_mesh()` method is called on the instantiated object which then triggers subsequent calls:
 
   * `build_2dmesh()` that builds the computational domain and defines 2D meshing parameters (e.g. number of nodes, growth ratio)
-  * `split_naca()` that pre-processes the geometry coordinates list
+  * `split_naca()` or `reorder_blade()` that pre-processes the geometry coordinates list
 
 3)  the mesh is finally generated, GUI options are set and outputs (e.g. meshing log, output mesh) are written.
 
@@ -41,7 +42,7 @@ The meshing routine then goes through the following steps:
     All meshing parameters are described in their respective class definition (see [Developer Guide](dev_mesh.md)).
 
 ### NACA Base
-Meshing details relative to the basic routine reside in the `build_2dmesh()` method and its inner calls. For instance, the `split_naca()` method describes how the naca profile should be split into its upper and lower parts. This is critical to the domain construction steps in `build_2dmesh()` since the trailing and leading edges may be used as construction points. 
+Meshing details relative to this routine reside in the `build_2dmesh()` method and its inner calls. For instance, the `split_naca()` method describes how the naca profile should be split into its upper and lower parts. This is critical to the domain construction steps in `build_2dmesh()` since the trailing and leading edges may be used as construction points. 
 
 The `build_2dmesh()` routine of the `NACABaseMesh` class also gives the possibility to mesh the boundary layer by calling `build_bl()`. The meshing of the boundary layer is triggered by setting `"bl"`to `true` in the `"mesh"` category of the configuration file.
 
@@ -70,7 +71,7 @@ For this meshing routine, other `"mesh"` parameters can be used to parameterize 
 Finally, the `"view"` entry contains GUI options to turn it on or off, to display quality metrics and to split the view.
 
 ### NACA Block
-This meshing routine inherits from `NACABaseMesh` whose `build_2dmesh()` method is overridden for this class. Hence, the boundary layer cannot be meshed with `build_bl()` which is not called anymore. In addition, the domain is this time made of several inner blocks.
+This meshing routine also inherits from `Mesh`. Particularities of this routine mostly lies in the `build_2dmesh()` method. Hence, the boundary layer cannot be meshed with `build_bl()` which is not called anymore. In addition, the domain is this time made of several inner blocks.
 
 Hence for this class, the computational domain still has the same general structure (a rectangle with a semi-circular inlet) but inner blocks are defined and parameterized in `"domain"`:
 
@@ -89,11 +90,24 @@ The `"mesh"` entry contains various meshing parameters such as the number of nod
 - `n_wake (int)`: the number of nodes in the wake direction,
 - `r_wake (int)`: the wake growth ratio.
 
+### Cascade
+This meshing routine corresponds to an internal flow simulation. For this reason, the `build_bl()` method contains several specificities such as the definition of periodic elements on the upper and lower sides of the domain.
+
+In addition, multiple gmsh "size fields" are defined to mesh the boundary layer and locally refine the mesh in the blade's wake.
+
+!!! Note
+    This meshing routine was adapted from an existing gmsh file. For this reason, many parameters are hard coded inside the class definition (e.g. the spline defining the blade and their number of nodes).
+
 ### Illustration
-Examples of unstructured meshes obtained with both routines are given below:
+Examples of unstructured meshes obtained with the naca routines are given below:
 <p float="left">
   <img src="../Figures/naca_base_mesh.png" width="49%" />
   <img src="../Figures/naca_block_mesh.png" width="49%" /> 
+</p>
+
+The compressor cascade mesh obtained with the cascade routine is illustrated next:
+<p float="left">
+  <img src="../Figures/cascade_mesh.png" width="100%" />
 </p>
 
 ### Quick Experiments

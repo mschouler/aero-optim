@@ -8,7 +8,7 @@ AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeFor
 * [`ffd.py`](src/ffd/ffd.py): which defines a class to perform 2D FFD of a given geometry,
 * [`*mesh.py`](src/mesh/): which define multiples classes to generate automatic meshes,
 * [`simulator.py`](src/simulator/simulator.py): which defines a class to orchestrate CFD simulations including pre- and post-processing steps as well as progress monitoring,
-* [ins_optimizer.py](src/optim/ins_optimizer.py): which defines a class to coordinate the optimization procedure according to [`inspyred`](https://inspyred.readthedocs.io/en/latest/) conventions.
+* [`ins_optimizer.py`](src/optim/ins_optimizer.py): which defines a class to coordinate the optimization procedure according to [`inspyred`](https://inspyred.readthedocs.io/en/latest/) conventions.
 
 The full documentation is available [**HERE**](https://mschouler.github.io/aero-optim/).
 

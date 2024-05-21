@@ -35,8 +35,8 @@ Considering the figure notations, one notices that the deformation vector `Delta
 ### Quick Experiments
 The `auto_ffd.py` scripts enables basic testing and visualization. It comes with a few options:
 ```py
-python3 auto_ffd.py --help
-usage: auto_ffd.py [-h] [-f FILE] [-o OUTDIR] [-nc NCONTROL] [-np NPROFILE] [-r] [-s SAMPLER] [-d [DELTA ...]]
+ffd --help
+usage: ffd [-h] [-f FILE] [-o OUTDIR] [-nc NCONTROL] [-np NPROFILE] [-r] [-s SAMPLER] [-d [DELTA ...]]
 
 options:
   -h, --help            show this help message and exit
