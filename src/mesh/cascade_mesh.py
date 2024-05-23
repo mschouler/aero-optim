@@ -37,10 +37,6 @@ class CascadeMesh(Mesh):
 
     def process_config(self):
         logger.info("processing config..")
-        if "inlet" not in self.config["gmsh"]["domain"]:
-            logger.warning(f"no <inlet> entry in {self.config['gmsh']['domain']}")
-        if "outlet" not in self.config["gmsh"]["domain"]:
-            logger.warning(f"no <outlet> entry in {self.config['gmsh']['domain']}")
 
     def reorder_blade(self) -> list[list[float]]:
         """
