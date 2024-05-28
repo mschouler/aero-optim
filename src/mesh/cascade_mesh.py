@@ -21,7 +21,8 @@ class CascadeMesh(Mesh):
         - dat_file (str): path to input_geometry.dat.
         - nodes_inlet (int): the number of nodes to mesh the inlet.
         - nodes_outlet (int): the number of nodes to mesh the outlet.
-        - snodes (int): the number of nodes to mesh the top and bottom sides.
+        - snodes_inlet (int): the number of nodes to mesh the inlet top and bottom sides.
+        - snodes_outlet (int): the number of nodes to mesh the inlet top and bottom sides.
         - c_snodes (int): the number of nodes to mesh the inner sides.
 
         **Inner**
@@ -32,7 +33,8 @@ class CascadeMesh(Mesh):
         self.bl_sizefar: float = config["gmsh"]["mesh"].get("bl_sizefar", 1e-5)
         self.nodes_inlet: int = self.config["gmsh"]["mesh"].get("nodes_inlet", 25)
         self.nodes_outlet: int = self.config["gmsh"]["mesh"].get("nodes_outlet", 17)
-        self.snodes: int = self.config["gmsh"]["mesh"].get("side_nodes", 31)
+        self.snodes_inlet: int = self.config["gmsh"]["mesh"].get("side_nodes_inlet", 31)
+        self.snodes_outlet: int = self.config["gmsh"]["mesh"].get("side_nodes_outlet", 31)
         self.c_snodes: int = self.config["gmsh"]["mesh"].get("curved_side_nodes", 7)
 
     def process_config(self):
@@ -169,8 +171,8 @@ class CascadeMesh(Mesh):
         bottom_tags = [l_11, l_14, l_15, l_16, l_17, l_18, l_19, l_20]
         top_tags = [l_12, l_28, l_27, l_26, l_25, l_24, l_23, l_22]
         # bottom non-curved side nodes
-        _ = [gmsh.model.geo.mesh.setTransfiniteCurve(l_i, self.snodes, "Progression", 1.)
-             for l_i in [l_11, l_20]]
+        gmsh.model.geo.mesh.setTransfiniteCurve(l_11, self.snodes_inlet, "Progression", 1.)
+        gmsh.model.geo.mesh.setTransfiniteCurve(l_20, self.snodes_outlet, "Progression", 1.)
         # bottom curved side nodes
         _ = [gmsh.model.geo.mesh.setTransfiniteCurve(l_i, self.c_snodes, "Progression", 1.)
              for l_i in bottom_tags[1:-1]]
