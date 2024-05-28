@@ -130,7 +130,7 @@ def main() -> int:
         print("** MESH ADAPTATION **")
         cp_filelist([f"file.{mesh}", "file.metric.solb"], [f"adap.met.{mesh}", "adap.met.solb"])
         feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out", f"file.{mesh}",
-                     "-noref", "-nordg", "-ucad", "ucad.dylib", "-hgrad", "1.5"]
+                     "-noref", "-nordg", "-hgrad", "1.5"]
         with open("fefloa.job", "wb") as out:
             subprocess.run(feflo_cmd, stdout=out, stderr=out, check=True)
 
