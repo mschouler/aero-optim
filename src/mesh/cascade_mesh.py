@@ -24,6 +24,8 @@ class CascadeMesh(Mesh):
         - snodes_inlet (int): the number of nodes to mesh the inlet top and bottom sides.
         - snodes_outlet (int): the number of nodes to mesh the inlet top and bottom sides.
         - c_snodes (int): the number of nodes to mesh the inner sides.
+        - le (int): the number of nodes to mesh the blade leading edge portion.
+        - te (int): the number of nodes to mesh the blade trailing edge lower portion.
 
         **Inner**
 
@@ -36,6 +38,8 @@ class CascadeMesh(Mesh):
         self.snodes_inlet: int = self.config["gmsh"]["mesh"].get("side_nodes_inlet", 31)
         self.snodes_outlet: int = self.config["gmsh"]["mesh"].get("side_nodes_outlet", 31)
         self.c_snodes: int = self.config["gmsh"]["mesh"].get("curved_side_nodes", 7)
+        self.le: int = self.config["gmsh"]["mesh"].get("le", 16)
+        self.te: int = self.config["gmsh"]["mesh"].get("te", 16)
 
     def process_config(self):
         logger.info("processing config..")
@@ -110,15 +114,15 @@ class CascadeMesh(Mesh):
         spl_7 = gmsh.model.geo.addSpline(pt_wall[179 - 1:245])
         spl_8 = gmsh.model.geo.addSpline(pt_wall[245 - 1:287])
         spl_9 = gmsh.model.geo.addSpline(pt_wall[287 - 1:322] + [pt_wall[0]])
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_1, 8, "Progression", 1.02)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_1, self.le // 2, "Progression", 1.02)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_2, 42, "Progression", 1.03)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_3, 42, "Progression", 1)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_4, 14, "Progression", 0.94)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_5, 8, "Progression", 0.97)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_6, 8, "Progression", 1.025)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_5, self.te // 2, "Progression", 0.97)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_6, self.te // 2, "Progression", 1.025)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_7, 57, "Progression", 1.015)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_8, 32, "Progression", 0.955)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_9, 8, "Progression", 0.9)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_9, self.le // 2, "Progression", 0.9)
         spl_list = [spl_1, spl_2, spl_3, spl_4, spl_5, spl_6, spl_7, spl_8, spl_9]
         blade_loop = gmsh.model.geo.addCurveLoop(spl_list)
 
