@@ -45,6 +45,9 @@ class CascadeMesh(Mesh):
 
     def process_config(self):
         logger.info("processing config..")
+        if "domain" not in self.config["gmsh"]:
+            logger.warning(f"no <domain> entry in {self.config['gmsh']}, empty entry added")
+            self.config["gmsh"]["domain"] = {}
 
     def reorder_blade(self) -> list[list[float]]:
         """
