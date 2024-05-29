@@ -19,6 +19,10 @@ class CascadeMesh(Mesh):
 
         - config (dict): the config file dictionary.
         - dat_file (str): path to input_geometry.dat.
+
+        **Inner**
+
+        - bl_sizefar (float): boundary layer mesh size far from the curves.
         - nodes_inlet (int): the number of nodes to mesh the inlet.
         - nodes_outlet (int): the number of nodes to mesh the outlet.
         - snodes_inlet (int): the number of nodes to mesh the inlet top and bottom sides.
@@ -26,10 +30,6 @@ class CascadeMesh(Mesh):
         - c_snodes (int): the number of nodes to mesh the inner sides.
         - le (int): the number of nodes to mesh the blade leading edge portion.
         - te (int): the number of nodes to mesh the blade trailing edge lower portion.
-
-        **Inner**
-
-        - bl_sizefar (float): boundary layer mesh size far from the curves.
         """
         super().__init__(config, datfile)
         self.bl_sizefar: float = config["gmsh"]["mesh"].get("bl_sizefar", 1e-5)
