@@ -22,16 +22,18 @@ class CascadeMesh(Mesh):
 
         **Inner**
 
+        - doutlet (float): outlet distance to the blade trailing edge.
         - bl_sizefar (float): boundary layer mesh size far from the curves.
         - nodes_inlet (int): the number of nodes to mesh the inlet.
         - nodes_outlet (int): the number of nodes to mesh the outlet.
         - snodes_inlet (int): the number of nodes to mesh the inlet top and bottom sides.
-        - snodes_outlet (int): the number of nodes to mesh the inlet top and bottom sides.
+        - snodes_outlet (int): the number of nodes to mesh the outlet top and bottom sides.
         - c_snodes (int): the number of nodes to mesh the inner sides.
         - le (int): the number of nodes to mesh the blade leading edge portion.
         - te (int): the number of nodes to mesh the blade trailing edge lower portion.
         """
         super().__init__(config, datfile)
+        self.doutlet: float = self.config["gmsh"]["domain"].get("outlet", 6.3e-2)
         self.bl_sizefar: float = config["gmsh"]["mesh"].get("bl_sizefar", 1e-5)
         self.nodes_inlet: int = self.config["gmsh"]["mesh"].get("nodes_inlet", 25)
         self.nodes_outlet: int = self.config["gmsh"]["mesh"].get("nodes_outlet", 17)
@@ -135,8 +137,8 @@ class CascadeMesh(Mesh):
         pt_328 = gmsh.model.geo.addPoint(3.934429e-02, -4.053609e-03, 0.)
         pt_329 = gmsh.model.geo.addPoint(5.308943e-02, -1.631280e-03, 0.)
         pt_330 = gmsh.model.geo.addPoint(6.7e-2, 0., 0.)
-        pt_331 = gmsh.model.geo.addPoint(1.3e-1, 0., 0.)
-        pt_332 = gmsh.model.geo.addPoint(1.3e-1, 4.039e-2, 0.)
+        pt_331 = gmsh.model.geo.addPoint(6.7e-2 + self.doutlet, 0., 0.)
+        pt_332 = gmsh.model.geo.addPoint(6.7e-2 + self.doutlet, 4.039e-2, 0.)
         pt_333 = gmsh.model.geo.addPoint(6.7e-2, 4.039e-2, 0.)
         pt_334 = gmsh.model.geo.addPoint(5.308943e-02, 3.875872e-02, 0.)
         pt_335 = gmsh.model.geo.addPoint(3.934429e-02, 3.633639e-02, 0.)
