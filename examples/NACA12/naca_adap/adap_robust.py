@@ -1,4 +1,5 @@
 import argparse
+import functools
 import glob
 import os
 import shutil
@@ -14,9 +15,10 @@ METRIX: str = "/home/mschouler/bin/metrix2"
 FEFLO: str = "/home/mschouler/bin/fefloa_margaret"
 INTERPOL: str = "/home/mschouler/bin/interpol2"
 
-gro: float = 1.
 resTgt: float = 1e-6
 m_field: str = "mach"
+
+print = functools.partial(print, flush=True)
 
 
 def sed_in_file(fname: str, key: str, new_key: str):
@@ -63,6 +65,7 @@ def main() -> int:
     parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
     parser.add_argument("-cmp", type=int, help="targetted complexity")
     parser.add_argument("-cmax", type=int, help="maximal complexity")
+    parser.add_argument("-gro", type=float, help="complexity growth factor", default=1.)
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
     parser.add_argument("-nite", type=int, help="number of adaptation iterations", default=5)
     parser.add_argument("-smax", type=int, help="max. number of adaptation perturbation", default=3)
@@ -106,6 +109,7 @@ def main() -> int:
     print(f">> initial Cd = {old_Cd}\n")
 
     # main loop
+    gro = args.gro
     cmp = args.cmp
     ite, sub_ite = 1, 0
     aero_cv = False
@@ -120,7 +124,6 @@ def main() -> int:
         cp_filelist(init_files, backup_files)
 
         print("** METRIC CONSTRUCTION **")
-        cmp *= gro
         cp_filelist([f"{m_field}.solb"], ["adap.solb"])
         metrix_cmd = [METRIX, "-O", "1", "-in", "adap", "-out", "adap.met.solb", "-v", "6", "-Cmp",
                       f"{cmp}", "-Cmax", f"{args.cmax}", "-hmax", "5"]
@@ -159,6 +162,7 @@ def main() -> int:
             old_Cd = new_Cd
             ite += 1
             sub_ite = 1
+            cmp *= gro
         else:
             print(f">> WOLF has not converged (residual {res})")
             sub_ite += 1
