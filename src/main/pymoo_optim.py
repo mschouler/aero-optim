@@ -1,32 +1,18 @@
 import argparse
 import logging
-import operator
 import os
 import shutil
-import signal
 import traceback
 
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 
-from src.optim.pymoo_optimizer import DEBUGOptimizer
-from src.utils import (check_file, check_config, check_dir,
-                       configure_logger, get_log_level_from_verbosity)
-from types import FrameType
-
-signals = [signal.SIGINT, signal.SIGPIPE, signal.SIGTERM]
+from src.optim.pymoo_optimizer import DEBUGOptimizer, WolfOptimizer
+from src.utils import (check_file, check_config, check_dir, configure_logger,
+                       get_log_level_from_verbosity, catch_signal)
 
 logger = logging.getLogger()
-
-
-def handle_signal(signo: int, frame: FrameType | None):
-    """
-    Raises exception in case of interruption signal.
-    """
-    signame = signal.Signals(signo).name
-    logger.info(f"clean handling of {signame} signal")
-    raise Exception("Program interruption")
 
 
 def main():
@@ -50,13 +36,15 @@ def main():
     configure_logger(logger, os.path.join(config["study"]["outdir"], "aero-optim.log"), log_level)
 
     # instantiate optimizer and pymoo objects
-    opt = DEBUGOptimizer(config)
+    if args.DEBUG:
+        opt = DEBUGOptimizer(config)
+    else:
+        opt = WolfOptimizer(config)
 
     algorithm = PSO(pop_size=opt.doe_size, sampling=opt.generator._pymoo_generator())
 
     # signal interruption management
-    for s in signals:
-        signal.signal(s, handle_signal)
+    catch_signal()
 
     # optimization
     try:
@@ -68,9 +56,11 @@ def main():
 
         opt.final_observe()
 
-        index, opt_J = (min(enumerate(opt.J), key=operator.itemgetter(1)))
+        # output results
+        best = res.F
+        index, opt_J = min(enumerate(opt.J), key=lambda x: abs(best - x[1]))
         gid, cid = (index // opt.doe_size, index % opt.doe_size)
-        logger.info(f"optimal(J): {opt_J} ({res.F}), "
+        logger.info(f"optimal(J): {opt_J} ({best}), "
                     f"D: {' '.join([str(d) for d in res.X])} "
                     f"[g{gid}, c{cid}]")
 

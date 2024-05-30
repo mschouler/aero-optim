@@ -1,18 +1,34 @@
+import inspyred
 import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
-from inspyred.ec import Individual
 import signal
 import time
 
+from inspyred.ec import Individual
+from random import Random
 from src.optim.optimizer import Optimizer, shoe_lace
 from src.simulator.simulator import WolfSimulator, DEBUGSimulator
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
+
+
+def select_strategy(strategy_name: str, prng: Random) -> inspyred.ec.EvolutionaryComputation:
+    """
+    Returns the evolution algorithm object if the strategy is well defined,
+    an exception otherwise.
+    """
+    if strategy_name == "ES":
+        ea = inspyred.ec.ES(prng)
+    elif strategy_name == "PSO":
+        ea = inspyred.swarm.PSO(prng)
+    else:
+        raise Exception(f"ERROR -- unsupported strategy {strategy_name}")
+    logger.info(f"optimization selected strategy: {strategy_name}")
+    return ea
 
 
 class WolfOptimizer(Optimizer):

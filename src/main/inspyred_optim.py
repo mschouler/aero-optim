@@ -4,47 +4,18 @@ import logging
 import operator
 import os
 import shutil
-import signal
 import traceback
 
-from random import Random
-from src.optim.inspyred_optimizer import WolfOptimizer, DEBUGOptimizer
-from src.utils import (check_file, check_config, check_dir,
-                       configure_logger, get_log_level_from_verbosity)
-from types import FrameType
-
-signals = [signal.SIGINT, signal.SIGPIPE, signal.SIGTERM]
+from src.optim.inspyred_optimizer import DEBUGOptimizer, WolfOptimizer, select_strategy
+from src.utils import (check_file, check_config, check_dir, configure_logger,
+                       get_log_level_from_verbosity, catch_signal)
 
 logger = logging.getLogger()
 
 
-def handle_signal(signo: int, frame: FrameType | None):
-    """
-    Raises exception in case of interruption signal.
-    """
-    signame = signal.Signals(signo).name
-    logger.info(f"clean handling of {signame} signal")
-    raise Exception("Program interruption")
-
-
-def select_strategy(strategy_name: str, prng: Random) -> inspyred.ec.EvolutionaryComputation:
-    """
-    Returns the evolution algorithm object if the strategy is well defined,
-    an exception otherwise.
-    """
-    if strategy_name == "ES":
-        ea = inspyred.ec.ES(prng)
-    elif strategy_name == "PSO":
-        ea = inspyred.swarm.PSO(prng)
-    else:
-        raise Exception(f"ERROR -- unsupported strategy {strategy_name}")
-    logger.info(f"optimization selected strategy: {strategy_name}")
-    return ea
-
-
 def main():
     """
-    This program orchestrates a GA optimization loop.
+    This program orchestrates a GA optimization loop with inspyred.
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--config", type=str, help="config: --config=/path/to/config.json")
@@ -72,8 +43,7 @@ def main():
     ea.terminator = inspyred.ec.terminators.generation_termination
 
     # signal interruption management
-    for s in signals:
-        signal.signal(s, handle_signal)
+    catch_signal()
 
     # optimization
     try:

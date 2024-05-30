@@ -1,6 +1,9 @@
 import json
 import logging
 import os.path
+import signal
+
+from types import FrameType
 
 logger = logging.getLogger(__name__)
 
@@ -105,3 +108,21 @@ def get_log_level_from_verbosity(verbosity: int) -> int:
         return logging.ERROR
     else:
         return logging.DEBUG
+
+
+def handle_signal(signo: int, frame: FrameType | None):
+    """
+    Raises exception in case of interruption signal.
+    """
+    signame = signal.Signals(signo).name
+    logger.info(f"clean handling of {signame} signal")
+    raise Exception("Program interruption")
+
+
+def catch_signal():
+    """
+    Makes sure interruption signals are catched.
+    """
+    signals = [signal.SIGINT, signal.SIGPIPE, signal.SIGTERM]
+    for s in signals:
+        signal.signal(s, handle_signal)
