@@ -8,7 +8,7 @@ import signal
 import traceback
 
 from random import Random
-from src.optim.ins_optimizer import WolfOptimizer, DEBUGOptimizer
+from src.optim.inspyred_optimizer import WolfOptimizer, DEBUGOptimizer
 from src.utils import (check_file, check_config, check_dir,
                        configure_logger, get_log_level_from_verbosity)
 from types import FrameType
@@ -68,7 +68,7 @@ def main():
     else:
         opt = WolfOptimizer(config)
     ea = select_strategy(opt.strategy, opt.prng)
-    ea.observer = opt.observe
+    ea.observer = opt._observe
     ea.terminator = inspyred.ec.terminators.generation_termination
 
     # signal interruption management
@@ -77,8 +77,8 @@ def main():
 
     # optimization
     try:
-        final_pop = ea.evolve(generator=opt.generator.custom_generator,
-                              evaluator=opt.evaluate,
+        final_pop = ea.evolve(generator=opt.generator._ins_generator,
+                              evaluator=opt._evaluate,
                               pop_size=opt.doe_size,
                               max_generations=opt.max_generations,
                               bounder=inspyred.ec.Bounder(*opt.bound),
