@@ -4,7 +4,7 @@ import operator
 import os
 import pytest
 
-from src.optim.ins_optimizer import WolfOptimizer
+from src.optim.inspyred_optimizer import WolfOptimizer
 from src.utils import check_file, check_config
 
 sim_config_path: str = "tests/extras/test_optimizer_config.json"
@@ -33,14 +33,14 @@ def dummy_mesh(ffdfile: str) -> str:
     return mesh_file_path
 
 
-def test_optimizer(opt: WolfOptimizer):
+def test_ins_optimizer(opt: WolfOptimizer):
     # simplify deform and mesh methods
     setattr(opt, "deform", dummy_deform)
     setattr(opt, "mesh", dummy_mesh)
-    ea = inspyred.ec.ES(opt.prng)
+    ea = inspyred.swarm.PSO(opt.prng)
     ea.terminator = inspyred.ec.terminators.generation_termination
-    final_pop = ea.evolve(generator=opt.generator.custom_generator,
-                          evaluator=opt.evaluate,
+    final_pop = ea.evolve(generator=opt.generator._ins_generator,
+                          evaluator=opt._evaluate,
                           pop_size=opt.doe_size,
                           max_generations=opt.max_generations,
                           bounder=inspyred.ec.Bounder(*opt.bound),
@@ -50,10 +50,11 @@ def test_optimizer(opt: WolfOptimizer):
         min(enumerate(opt.J), key=operator.itemgetter(1))
     )
     gid, cid = (index // opt.doe_size, index % opt.doe_size)
-    # CD, CL = [0.1 + (gid**cid + cid + gid) / 100., 0.3 + (gid + cid) / 100.]
+    # CD, CL = [0.1 + (gid**cid + cid + gid) / 100. + cid / 200., 0.3 + (gid + cid) / 100.]
     # CL < 0.31 => fitness = CD + 1
-    expected_J = [1.11, 0.11, 0.12, 0.12, 0.13, 0.14]
+    print(opt.J)
+    expected_J = [1.11, 0.115, 0.13, 0.12, 0.135, 0.15]
     assert opt.max_generations == opt.gen_ctr - 1
     assert np.sum([abs(i - j) for i, j in zip(opt.J, expected_J)]) < 1e-10
-    assert min([c.fitness for c in final_pop]) == min(opt.J)
+    assert min([c.fitness for c in final_pop]) == min(opt.J[-opt.doe_size:])
     assert (gid, cid) == (0, 1)
