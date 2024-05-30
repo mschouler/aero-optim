@@ -17,7 +17,8 @@ logger = logging.getLogger()
 
 def main():
     """
-    This program orchestrates a GA optimization loop.
+    This program orchestrates a GA optimization loop with pymoo
+    https://pymoo.org/
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--config", type=str, help="config: --config=/path/to/config.json")

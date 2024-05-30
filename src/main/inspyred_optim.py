@@ -15,7 +15,8 @@ logger = logging.getLogger()
 
 def main():
     """
-    This program orchestrates a GA optimization loop with inspyred.
+    This program orchestrates a GA optimization loop with inspyred
+    https://pythonhosted.org/inspyred/
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--config", type=str, help="config: --config=/path/to/config.json")
