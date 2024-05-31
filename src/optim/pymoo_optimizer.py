@@ -3,16 +3,32 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
-from pymoo.core.problem import Problem
 import signal
 import time
 
+from pymoo.algorithms.soo.nonconvex.ga import GA
+from pymoo.algorithms.soo.nonconvex.pso import PSO
+from pymoo.core.problem import Problem
 from src.optim.optimizer import Optimizer, shoe_lace
 from src.simulator.simulator import DEBUGSimulator, WolfSimulator
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
+
+
+def select_strategy(strategy_name: str, doe_size: int, X0: np.ndarray, options: dict) -> GA | PSO:
+    """
+    Returns the evolution algorithm object if the strategy is well defined,
+    an exception otherwise.
+    """
+    if strategy_name == "GA":
+        ea = GA(pop_size=doe_size, sampling=X0, **options)
+    elif strategy_name == "PSO":
+        ea = PSO(pop_size=doe_size, sampling=X0, **options)
+    else:
+        raise Exception(f"ERROR -- unsupported strategy {strategy_name}")
+    logger.info(f"optimization selected strategy: {strategy_name}")
+    return ea
 
 
 class WolfOptimizer(Optimizer, Problem):
