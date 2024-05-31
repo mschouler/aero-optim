@@ -65,11 +65,11 @@ def main() -> int:
     parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
     parser.add_argument("-cmp", type=int, help="targetted complexity")
     parser.add_argument("-cmax", type=int, help="maximal complexity")
-    parser.add_argument("-gro", type=float, help="complexity growth factor", default=1.)
+    parser.add_argument("-gro", type=float, help="complexity growth factor", default=1.25)
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
     parser.add_argument("-nite", type=int, help="number of adaptation iterations", default=5)
     parser.add_argument("-smax", type=int, help="max. number of adaptation perturbation", default=3)
-    parser.add_argument("-delta", type=float, help="aerocoef convergence criteria", default=0.05)
+    parser.add_argument("-delta", type=float, help="aerocoef convergence criteria", default=1)
 
     args = parser.parse_args()
     t0 = time.time()
@@ -84,14 +84,14 @@ def main() -> int:
     # Initialization
     # generate InitialSol if missing
     if not os.path.isfile(input + ".solb"):
-        print("** INITIAL SOLUTION COMPUTATION WITH 1000 ITERATIONS **")
-        print("** ------------------------------------------------- **")
+        print("** INITIAL SOLUTION COMPUTATION WITH ~2000 ITERATIONS **")
+        print("** -------------------------------------------------- **")
         wolf_cmd = [WOLF, "-in", f"{input}", "-out", f"{input}", "-nproc", f"{args.nproc}"]
-        sed_in_file(f"{input}.wolf", "InitialSol", "UniformSol")
         with open("wolf.job", "wb") as out:
-            subprocess.run(wolf_cmd + ["-ite", "1000"], stdout=out, stderr=out, check=True)
+            subprocess.run(wolf_cmd + ["-ite", "2000"], stdout=out, stderr=out, check=True)
         sed_in_file(f"{input}.wolf", "UniformSol", "InitialSol")
         print(f">> execution time: {time.time() - t0} seconds.\n")
+
     # setup working directory
     open("tmp.surf", 'a').close()
     cp_filelist(
@@ -99,16 +99,13 @@ def main() -> int:
         ["file.wolf", "file.solb", "file.o.solb", f"file.{mesh}", "adap.metrix"]
     )
     os.symlink(f"file.{mesh}", f"adap.{mesh}")
-    # wolf execution
-    print("** ADVANCE INITIAL SOLUTION WITH 100 ITERATIONS **")
-    print("** -------------------------------------------- **")
-    wolf_cmd = [WOLF, "-in", "file", "-out", "file.o", "-nproc", f"{args.nproc}", "-v", "6"]
-    with open("wolf.job", "wb") as out:
-        subprocess.run(wolf_cmd + ["-ite", "100"], stdout=out, stderr=out, check=True)
+    # get Cd
     old_Cd = get_aerocoef()
     print(f">> initial Cd = {old_Cd}\n")
+    # update Wolf cmd
+    wolf_cmd = [WOLF, "-in", "file", "-out", "file.o", "-nproc", f"{args.nproc}", "-v", "6"]
 
-    # main loop
+    # adaptation loop
     gro = args.gro
     cmp = args.cmp
     ite, sub_ite = 1, 0
@@ -126,14 +123,14 @@ def main() -> int:
         print("** METRIC CONSTRUCTION **")
         cp_filelist([f"{m_field}.solb"], ["adap.solb"])
         metrix_cmd = [METRIX, "-O", "1", "-in", "adap", "-out", "adap.met.solb", "-v", "6", "-Cmp",
-                      f"{cmp}", "-Cmax", f"{args.cmax}", "-hmax", "5"]
+                      f"{cmp}", "-Cmax", f"{args.cmax}", "-hmax", "0.005"]
         with open("metrix.job", "wb") as out:
             subprocess.run(metrix_cmd, stdout=out, stderr=out, check=True)
 
         print("** MESH ADAPTATION **")
         cp_filelist([f"file.{mesh}", "file.metric.solb"], [f"adap.met.{mesh}", "adap.met.solb"])
         feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out", f"file.{mesh}",
-                     "-noref", "-nordg", "-hgrad", "1.5"]
+                     "-noref", "-nordg", "-hgrad", "1.5", "-adap-line-ids", "1-9,13,21"]
         with open("fefloa.job", "wb") as out:
             subprocess.run(feflo_cmd, stdout=out, stderr=out, check=True)
 

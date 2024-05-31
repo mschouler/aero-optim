@@ -19,28 +19,35 @@ class CascadeMesh(Mesh):
 
         - config (dict): the config file dictionary.
         - dat_file (str): path to input_geometry.dat.
-        - nodes_inlet (int): the number of nodes to mesh the inlet.
-        - nodes_outlet (int): the number of nodes to mesh the outlet.
-        - snodes (int): the number of nodes to mesh the top and bottom sides.
-        - c_snodes (int): the number of nodes to mesh the inner sides.
 
         **Inner**
 
+        - doutlet (float): outlet distance to the blade trailing edge.
         - bl_sizefar (float): boundary layer mesh size far from the curves.
+        - nodes_inlet (int): the number of nodes to mesh the inlet.
+        - nodes_outlet (int): the number of nodes to mesh the outlet.
+        - snodes_inlet (int): the number of nodes to mesh the inlet top and bottom sides.
+        - snodes_outlet (int): the number of nodes to mesh the outlet top and bottom sides.
+        - c_snodes (int): the number of nodes to mesh the inner sides.
+        - le (int): the number of nodes to mesh the blade leading edge portion.
+        - te (int): the number of nodes to mesh the blade trailing edge lower portion.
         """
         super().__init__(config, datfile)
+        self.doutlet: float = self.config["gmsh"]["domain"].get("outlet", 6.3e-2)
         self.bl_sizefar: float = config["gmsh"]["mesh"].get("bl_sizefar", 1e-5)
         self.nodes_inlet: int = self.config["gmsh"]["mesh"].get("nodes_inlet", 25)
         self.nodes_outlet: int = self.config["gmsh"]["mesh"].get("nodes_outlet", 17)
-        self.snodes: int = self.config["gmsh"]["mesh"].get("side_nodes", 31)
+        self.snodes_inlet: int = self.config["gmsh"]["mesh"].get("side_nodes_inlet", 31)
+        self.snodes_outlet: int = self.config["gmsh"]["mesh"].get("side_nodes_outlet", 31)
         self.c_snodes: int = self.config["gmsh"]["mesh"].get("curved_side_nodes", 7)
+        self.le: int = self.config["gmsh"]["mesh"].get("le", 16)
+        self.te: int = self.config["gmsh"]["mesh"].get("te", 16)
 
     def process_config(self):
         logger.info("processing config..")
-        if "inlet" not in self.config["gmsh"]["domain"]:
-            logger.warning(f"no <inlet> entry in {self.config['gmsh']['domain']}")
-        if "outlet" not in self.config["gmsh"]["domain"]:
-            logger.warning(f"no <outlet> entry in {self.config['gmsh']['domain']}")
+        if "domain" not in self.config["gmsh"]:
+            logger.warning(f"no <domain> entry in {self.config['gmsh']}, empty entry added")
+            self.config["gmsh"]["domain"] = {}
 
     def reorder_blade(self) -> list[list[float]]:
         """
@@ -112,15 +119,15 @@ class CascadeMesh(Mesh):
         spl_7 = gmsh.model.geo.addSpline(pt_wall[179 - 1:245])
         spl_8 = gmsh.model.geo.addSpline(pt_wall[245 - 1:287])
         spl_9 = gmsh.model.geo.addSpline(pt_wall[287 - 1:322] + [pt_wall[0]])
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_1, 8, "Progression", 1.02)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_1, self.le // 2, "Progression", 1.02)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_2, 42, "Progression", 1.03)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_3, 42, "Progression", 1)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_4, 14, "Progression", 0.94)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_5, 8, "Progression", 0.97)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_6, 8, "Progression", 1.025)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_5, self.te // 2, "Progression", 0.97)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_6, self.te // 2, "Progression", 1.025)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_7, 57, "Progression", 1.015)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_8, 32, "Progression", 0.955)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_9, 8, "Progression", 0.9)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_9, self.le // 2, "Progression", 0.9)
         spl_list = [spl_1, spl_2, spl_3, spl_4, spl_5, spl_6, spl_7, spl_8, spl_9]
         blade_loop = gmsh.model.geo.addCurveLoop(spl_list)
 
@@ -133,8 +140,8 @@ class CascadeMesh(Mesh):
         pt_328 = gmsh.model.geo.addPoint(3.934429e-02, -4.053609e-03, 0.)
         pt_329 = gmsh.model.geo.addPoint(5.308943e-02, -1.631280e-03, 0.)
         pt_330 = gmsh.model.geo.addPoint(6.7e-2, 0., 0.)
-        pt_331 = gmsh.model.geo.addPoint(1.3e-1, 0., 0.)
-        pt_332 = gmsh.model.geo.addPoint(1.3e-1, 4.039e-2, 0.)
+        pt_331 = gmsh.model.geo.addPoint(6.7e-2 + self.doutlet, 0., 0.)
+        pt_332 = gmsh.model.geo.addPoint(6.7e-2 + self.doutlet, 4.039e-2, 0.)
         pt_333 = gmsh.model.geo.addPoint(6.7e-2, 4.039e-2, 0.)
         pt_334 = gmsh.model.geo.addPoint(5.308943e-02, 3.875872e-02, 0.)
         pt_335 = gmsh.model.geo.addPoint(3.934429e-02, 3.633639e-02, 0.)
@@ -173,8 +180,8 @@ class CascadeMesh(Mesh):
         bottom_tags = [l_11, l_14, l_15, l_16, l_17, l_18, l_19, l_20]
         top_tags = [l_12, l_28, l_27, l_26, l_25, l_24, l_23, l_22]
         # bottom non-curved side nodes
-        _ = [gmsh.model.geo.mesh.setTransfiniteCurve(l_i, self.snodes, "Progression", 1.)
-             for l_i in [l_11, l_20]]
+        gmsh.model.geo.mesh.setTransfiniteCurve(l_11, self.snodes_inlet, "Progression", 1.)
+        gmsh.model.geo.mesh.setTransfiniteCurve(l_20, self.snodes_outlet, "Progression", 1.)
         # bottom curved side nodes
         _ = [gmsh.model.geo.mesh.setTransfiniteCurve(l_i, self.c_snodes, "Progression", 1.)
              for l_i in bottom_tags[1:-1]]
