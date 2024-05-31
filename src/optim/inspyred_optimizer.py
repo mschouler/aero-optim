@@ -73,6 +73,50 @@ class WolfOptimizer(Optimizer):
         self.penalty: list = config["optim"].get("penalty", ["CL", self.baseline_CL])
         self.cmap: str = config["optim"].get("cmap", "viridis")
 
+    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
+        """
+        **Executes** Wolf simulations, **extracts** results
+        and **returns** the list of candidates QoIs.
+
+        Note:
+            __candidates__ and __args__ are inspyred mandatory arguments</br>
+            see https://pythonhosted.org/inspyred/tutorial.html#the-evaluator
+        """
+        logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
+        gid = self.gen_ctr
+        self.ffd_profiles.append([])
+
+        # execute all candidates
+        for cid, cand in enumerate(candidates):
+            ffd_file, ffd_profile = self.deform(cand, gid, cid)
+            self.ffd_profiles[gid].append(ffd_profile)
+            # meshing with proper sigint management
+            # see https://gitlab.onelab.info/gmsh/gmsh/-/issues/842
+            ORIGINAL_SIGINT_HANDLER = signal.signal(signal.SIGINT, signal.SIG_DFL)
+            mesh_file = self.mesh(ffd_file)
+            signal.signal(signal.SIGINT, ORIGINAL_SIGINT_HANDLER)
+            while self.simulator.monitor_sim_progress() * self.nproc_per_sim >= self.budget:
+                time.sleep(1)
+            self.simulator.execute_sim(meshfile=mesh_file, gid=gid, cid=cid)
+
+        # wait for last candidates to finish
+        while self.simulator.monitor_sim_progress() > 0:
+            time.sleep(1)
+
+        # add penalty to the candidates fitness
+        for cid, _ in enumerate(candidates):
+            self.J.append(
+                self.constraint(
+                    gid, cid,
+                    self.ffd_profiles[gid][cid],
+                    self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]
+                )
+            )
+            self.J[-1] += self.simulator.df_dict[gid][cid][self.QoI].iloc[-1]
+
+        self.gen_ctr += 1
+        return self.J[-self.doe_size:]
+
     def constraint(self, gid: int, cid: int, ffd_profile: np.ndarray, pen_value: float) -> float:
         """
         **Returns** a penalty value based on some specific constraints</br>
@@ -177,50 +221,6 @@ class WolfOptimizer(Optimizer):
         logger.info(f"saving {fig_name} to {self.outdir}")
         plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
-
-    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
-        """
-        **Executes** Wolf simulations, **extracts** results
-        and **returns** the list of candidates QoIs.
-
-        Note:
-            __candidates__ and __args__ are inspyred mandatory arguments</br>
-            see https://pythonhosted.org/inspyred/tutorial.html#the-evaluator
-        """
-        logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
-        gid = self.gen_ctr
-        self.ffd_profiles.append([])
-
-        # execute all candidates
-        for cid, cand in enumerate(candidates):
-            ffd_file, ffd_profile = self.deform(cand, gid, cid)
-            self.ffd_profiles[gid].append(ffd_profile)
-            # meshing with proper sigint management
-            # see https://gitlab.onelab.info/gmsh/gmsh/-/issues/842
-            ORIGINAL_SIGINT_HANDLER = signal.signal(signal.SIGINT, signal.SIG_DFL)
-            mesh_file = self.mesh(ffd_file)
-            signal.signal(signal.SIGINT, ORIGINAL_SIGINT_HANDLER)
-            while self.simulator.monitor_sim_progress() * self.nproc_per_sim >= self.budget:
-                time.sleep(1)
-            self.simulator.execute_sim(meshfile=mesh_file, gid=gid, cid=cid)
-
-        # wait for last candidates to finish
-        while self.simulator.monitor_sim_progress() > 0:
-            time.sleep(1)
-
-        # add penalty to the candidates fitness
-        for cid, _ in enumerate(candidates):
-            self.J.append(
-                self.constraint(
-                    gid, cid,
-                    self.ffd_profiles[gid][cid],
-                    self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]
-                )
-            )
-            self.J[-1] += self.simulator.df_dict[gid][cid][self.QoI].iloc[-1]
-
-        self.gen_ctr += 1
-        return self.J[-self.doe_size:]
 
     def final_observe(self):
         """
