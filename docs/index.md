@@ -1,19 +1,20 @@
 ## Welcome to AERO-Optim
-AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with [`gmsh`](https://gmsh.info/doc/texinfo/gmsh.html) and any CFD solver execution in the frame of an optimization algorithm based on [`inspyred`](https://inspyred.readthedocs.io/en/latest/). It is composed of the following core components:
+AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with [`gmsh`](https://gmsh.info/doc/texinfo/gmsh.html) and any CFD solver execution in the frame of an optimization algorithm based on [`inspyred`](https://inspyred.readthedocs.io/en/latest/) or [`pymoo`](https://pymoo.org/index.html). It is composed of the following core components:
 
 * [FFD](ffd.md): which defines a class to perform 2D FFD of a given geometry,
-* [Mesh](mesh.md): which defines multiples classes to generate automatic meshes,
+* [Mesh](mesh.md): which defines multiple classes to generate automatic meshes,
 * [Simulator](simulator.md): which defines a class to orchestrate CFD simulations including pre- and post-processing steps as well as progress monitoring,
-* [Optimizer](optimizer.md): which defines a class to coordinate the optimization procedure according to [`inspyred`](https://inspyred.readthedocs.io/en/latest/) conventions.
+* [Optimizer](optimizer.md): which defines multiple classes to coordinate optimization procedures with `inspyred` or `pymoo`.
 
 ### Quick Installation
 AERO-Optim comes with few dependencies listed in [`requirements.txt`](https://github.com/mschouler/aero-optim/blob/master/requirements.txt) and recalled below:
 ```sh
 gmsh        # to design and visualize meshes (MESH)
-inspyred    # optimzation toolbox (OPTIM)
+inspyred    # optimization toolbox (OPTIM)
 numpy       # to manipulate geometries as arrays (FFD)
 matplotlib  # to visualize the generated deformed profiles (FFD)
 pandas      # to load simulation results (OPTIM)
+pymoo       # optimization toolbox (OPTIM)
 scipy       # to use quasi monte carlo samplers (FFD)
 ```
 
