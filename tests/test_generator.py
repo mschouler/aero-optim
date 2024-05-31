@@ -1,7 +1,7 @@
 import pytest
 
 from scipy.stats import qmc
-from src.optim.ins_generator import Generator
+from src.optim.generator import Generator
 
 seed: int = 123
 ndesign: int = 4
@@ -24,7 +24,8 @@ def test_get_sampler():
 def test_custom_generator():
     for s_name in sampler_list:
         gen = get_Generator(s_name)
+        assert all([bound[1] > val > bound[0] for elt in gen._pymoo_generator() for val in elt])
         for _ in range(doe_size):
-            assert all([bound[1] > val > bound[0] for val in gen.custom_generator(None, None)])
+            assert all([bound[1] > val > bound[0] for val in gen._ins_generator(None, None)])
         with pytest.raises(IndexError):
-            gen.custom_generator(None, None)
+            gen._ins_generator(None, None)

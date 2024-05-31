@@ -1,7 +1,12 @@
 import json
 import logging
 import os.path
+import shutil
+import signal
 
+from types import FrameType
+
+STUDY_TYPE = ["base", "block", "cascade", "debug"]
 logger = logging.getLogger(__name__)
 
 
@@ -31,9 +36,11 @@ def check_config(
     """
     Ensures the presence of all required entries in config, then return config and study type.
     """
+    # check for config and open it
+    check_file(config)
     with open(config) as jfile:
         config_dict = json.load(jfile)
-    logger.info("general check config..")
+    print("general check config..")
 
     # look for upper level categories
     if "study" not in config_dict:
@@ -52,11 +59,14 @@ def check_config(
         raise Exception(f"ERROR -- no <file>  entry in {config}[study]")
     if "outdir" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <outdir>  entry in {config}[study]")
+    if optim:
+        check_dir(config_dict["study"]["outdir"])
+        shutil.copy(config, config_dict["study"]["outdir"])
 
     # check path and study_type correctness
     if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
-    if (optim or gmsh) and config_dict["study"]["study_type"] not in ["base", "block", "cascade"]:
+    if (optim or gmsh) and config_dict["study"]["study_type"] not in STUDY_TYPE:
         raise Exception(f"ERROR -- wrong <study_type> specification in {config}[study]")
 
     return config_dict, config_dict["study"]["study_type"]
@@ -105,3 +115,30 @@ def get_log_level_from_verbosity(verbosity: int) -> int:
         return logging.ERROR
     else:
         return logging.DEBUG
+
+
+def set_logger(logger: logging.Logger, outdir: str, log_name: str, verb: int = 3) -> logging.Logger:
+    """
+    Returns the set logger.
+    """
+    log_level = get_log_level_from_verbosity(verb)
+    configure_logger(logger, os.path.join(outdir, log_name), log_level)
+    return logger
+
+
+def handle_signal(signo: int, frame: FrameType | None):
+    """
+    Raises exception in case of interruption signal.
+    """
+    signame = signal.Signals(signo).name
+    logger.info(f"clean handling of {signame} signal")
+    raise Exception("Program interruption")
+
+
+def catch_signal():
+    """
+    Makes sure interruption signals are catched.
+    """
+    signals = [signal.SIGINT, signal.SIGPIPE, signal.SIGTERM]
+    for s in signals:
+        signal.signal(s, handle_signal)

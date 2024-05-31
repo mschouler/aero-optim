@@ -1,0 +1,21 @@
+{
+    "study": {
+        "study_type": "debug",
+        "file": "debug.json",
+        "outfile": "debug",
+        "outdir": "output"
+    },
+    "optim": {
+        "strategy": "PSO",
+        "n_design": 4,
+        "doe_size": 5,
+        "max_generations": 100,
+        "bound": [-0.5, 0.5]
+    },
+    "gmsh": {
+    },
+    "simulator": {
+        "ref_input": "",
+        "exec_cmd": ""
+    }
+}

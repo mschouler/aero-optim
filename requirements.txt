@@ -1,6 +1,7 @@
 gmsh        # to design and visualize meshes (MESH)
-inspyred    # optimzation toolbox (OPTIM)
+inspyred    # optimization toolbox (OPTIM)
 numpy       # to manipulate geometries as arrays (FFD)
 matplotlib  # to visualize the generated deformed profiles (FFD)
 pandas      # to load simulation results (OPTIM)
+pymoo       # optimization toolbox (OPTIM)
 scipy       # to use quasi monte carlo samplers (FFD)

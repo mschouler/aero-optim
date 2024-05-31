@@ -6,7 +6,7 @@ import time
 
 
 def get_CD_CL(gid: int, cid: int) -> list[float]:
-    return [0.1 + (gid**cid + cid + gid) / 100., 0.3 + (gid + cid) / 100.]
+    return [0.1 + (gid**cid + cid + gid) / 100. + cid / 200, 0.3 + (gid + cid) / 100.]
 
 
 def main():

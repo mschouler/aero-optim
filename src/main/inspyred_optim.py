@@ -2,49 +2,16 @@ import argparse
 import inspyred
 import logging
 import operator
-import os
-import shutil
-import signal
 import traceback
 
-from random import Random
-from src.optim.ins_optimizer import WolfOptimizer, DEBUGOptimizer
-from src.utils import (check_file, check_config, check_dir,
-                       configure_logger, get_log_level_from_verbosity)
-from types import FrameType
-
-signals = [signal.SIGINT, signal.SIGPIPE, signal.SIGTERM]
-
-logger = logging.getLogger()
-
-
-def handle_signal(signo: int, frame: FrameType | None):
-    """
-    Raises exception in case of interruption signal.
-    """
-    signame = signal.Signals(signo).name
-    logger.info(f"clean handling of {signame} signal")
-    raise Exception("Program interruption")
-
-
-def select_strategy(strategy_name: str, prng: Random) -> inspyred.ec.EvolutionaryComputation:
-    """
-    Returns the evolution algorithm object if the strategy is well defined,
-    an exception otherwise.
-    """
-    if strategy_name == "ES":
-        ea = inspyred.ec.ES(prng)
-    elif strategy_name == "PSO":
-        ea = inspyred.swarm.PSO(prng)
-    else:
-        raise Exception(f"ERROR -- unsupported strategy {strategy_name}")
-    logger.info(f"optimization selected strategy: {strategy_name}")
-    return ea
+from src.optim.inspyred_optimizer import DEBUGOptimizer, WolfOptimizer, select_strategy
+from src.utils import (check_config, set_logger, catch_signal)
 
 
 def main():
     """
-    This program orchestrates a GA optimization loop.
+    This program orchestrates a GA optimization loop with inspyred
+    https://pythonhosted.org/inspyred/
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--config", type=str, help="config: --config=/path/to/config.json")
@@ -53,14 +20,15 @@ def main():
     args = parser.parse_args()
 
     # check config and copy to outdir
-    check_file(args.config)
     config, _ = check_config(args.config, optim=True)
-    check_dir(config["study"]["outdir"])
-    shutil.copy(args.config, config["study"]["outdir"])
 
     # set logger
-    log_level = get_log_level_from_verbosity(args.verbose)
-    configure_logger(logger, os.path.join(config["study"]["outdir"], "aero-optim.log"), log_level)
+    logger = set_logger(
+        logging.getLogger(), config["study"]["outdir"], "aero-optim.log", args.verbose
+    )
+
+    # signal interruption management
+    catch_signal()
 
     # instantiate optimizer and inspyred objects
     if args.DEBUG:
@@ -68,17 +36,13 @@ def main():
     else:
         opt = WolfOptimizer(config)
     ea = select_strategy(opt.strategy, opt.prng)
-    ea.observer = opt.observe
+    ea.observer = opt._observe
     ea.terminator = inspyred.ec.terminators.generation_termination
-
-    # signal interruption management
-    for s in signals:
-        signal.signal(s, handle_signal)
 
     # optimization
     try:
-        final_pop = ea.evolve(generator=opt.generator.custom_generator,
-                              evaluator=opt.evaluate,
+        final_pop = ea.evolve(generator=opt.generator._ins_generator,
+                              evaluator=opt._evaluate,
                               pop_size=opt.doe_size,
                               max_generations=opt.max_generations,
                               bounder=inspyred.ec.Bounder(*opt.bound),
