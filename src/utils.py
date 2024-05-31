@@ -6,6 +6,7 @@ import signal
 
 from types import FrameType
 
+STUDY_TYPE = ["base", "block", "cascade", "debug"]
 logger = logging.getLogger(__name__)
 
 
@@ -65,7 +66,7 @@ def check_config(
     # check path and study_type correctness
     if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
-    if (optim or gmsh) and config_dict["study"]["study_type"] not in ["base", "block", "cascade"]:
+    if (optim or gmsh) and config_dict["study"]["study_type"] not in STUDY_TYPE:
         raise Exception(f"ERROR -- wrong <study_type> specification in {config}[study]")
 
     return config_dict, config_dict["study"]["study_type"]

@@ -251,7 +251,7 @@ class DEBUGOptimizer(Optimizer, Problem):
         """
         Dummy init.
         """
-        Optimizer.__init__(self, config)
+        Optimizer.__init__(self, config, debug=True)
         Problem.__init__(
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=0, xl=self.bound[0], xu=self.bound[1]
         )

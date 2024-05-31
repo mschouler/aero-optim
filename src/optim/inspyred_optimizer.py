@@ -268,7 +268,7 @@ class DEBUGOptimizer(Optimizer):
         """
         Dummy init.
         """
-        super().__init__(config)
+        super().__init__(config, debug=True)
         self.simulator: DEBUGSimulator = DEBUGSimulator(config)
         self.J: list[float] = []
         self.n_plt: int = 5

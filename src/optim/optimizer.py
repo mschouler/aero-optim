@@ -30,13 +30,14 @@ class Optimizer(ABC):
     """
     This class implements an abstract optimizer.
     """
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, debug: bool = False):
         """
         Instantiates the Optimizer object.
 
         **Input**
 
         - config (dict): the config file dictionary.
+        - debug (bool): skip FFD and Mesh objects instantation for debugging purposes.
 
         **Inner**
 
@@ -104,14 +105,15 @@ class Optimizer(ABC):
         self.generator: Generator = Generator(
             self.seed, self.n_design, self.doe_size, self.sampler_name, self.bound
         )
-        self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
-        self.gmsh_mesh: Type[NACABaseMesh] | Type[NACABlockMesh] | Type[CascadeMesh]
-        if self.study_type == "base":
-            self.gmsh_mesh = NACABaseMesh
-        elif self.study_type == "block":
-            self.gmsh_mesh = NACABlockMesh
-        elif self.study_type == "cascade":
-            self.gmsh_mesh = CascadeMesh
+        if not debug:
+            self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
+            self.gmsh_mesh: Type[NACABaseMesh] | Type[NACABlockMesh] | Type[CascadeMesh]
+            if self.study_type == "base":
+                self.gmsh_mesh = NACABaseMesh
+            elif self.study_type == "block":
+                self.gmsh_mesh = NACABlockMesh
+            elif self.study_type == "cascade":
+                self.gmsh_mesh = CascadeMesh
         # population statistics
         self.mean: list[float] = []
         self.median: list[float] = []
