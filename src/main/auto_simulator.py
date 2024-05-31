@@ -4,7 +4,7 @@ import time
 import sys
 
 from src.simulator.simulator import WolfSimulator
-from src.utils import check_file, check_config
+from src.utils import check_config
 
 logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -22,8 +22,7 @@ def main():
     parser.add_argument("-o", "--outdir", type=str, help="simulation output directory", default="")
     args = parser.parse_args()
 
-    check_file(args.config)
-    config, study_type = check_config(args.config, sim=True)
+    config, _ = check_config(args.config, sim=True)
 
     if args.outdir:
         print(f">> output directory superseded with {args.outdir}")

@@ -2,15 +2,10 @@ import argparse
 import inspyred
 import logging
 import operator
-import os
-import shutil
 import traceback
 
 from src.optim.inspyred_optimizer import DEBUGOptimizer, WolfOptimizer, select_strategy
-from src.utils import (check_file, check_config, check_dir, configure_logger,
-                       get_log_level_from_verbosity, catch_signal)
-
-logger = logging.getLogger()
+from src.utils import (check_config, set_logger, catch_signal)
 
 
 def main():
@@ -25,14 +20,15 @@ def main():
     args = parser.parse_args()
 
     # check config and copy to outdir
-    check_file(args.config)
     config, _ = check_config(args.config, optim=True)
-    check_dir(config["study"]["outdir"])
-    shutil.copy(args.config, config["study"]["outdir"])
 
     # set logger
-    log_level = get_log_level_from_verbosity(args.verbose)
-    configure_logger(logger, os.path.join(config["study"]["outdir"], "aero-optim.log"), log_level)
+    logger = set_logger(
+        logging.getLogger(), config["study"]["outdir"], "aero-optim.log", args.verbose
+    )
+
+    # signal interruption management
+    catch_signal()
 
     # instantiate optimizer and inspyred objects
     if args.DEBUG:
@@ -42,9 +38,6 @@ def main():
     ea = select_strategy(opt.strategy, opt.prng)
     ea.observer = opt._observe
     ea.terminator = inspyred.ec.terminators.generation_termination
-
-    # signal interruption management
-    catch_signal()
 
     # optimization
     try:

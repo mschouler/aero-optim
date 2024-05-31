@@ -1,6 +1,7 @@
 import json
 import logging
 import os.path
+import shutil
 import signal
 
 from types import FrameType
@@ -34,9 +35,11 @@ def check_config(
     """
     Ensures the presence of all required entries in config, then return config and study type.
     """
+    # check for config and open it
+    check_file(config)
     with open(config) as jfile:
         config_dict = json.load(jfile)
-    logger.info("general check config..")
+    print("general check config..")
 
     # look for upper level categories
     if "study" not in config_dict:
@@ -55,6 +58,9 @@ def check_config(
         raise Exception(f"ERROR -- no <file>  entry in {config}[study]")
     if "outdir" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <outdir>  entry in {config}[study]")
+    if optim:
+        check_dir(config_dict["study"]["outdir"])
+        shutil.copy(config, config_dict["study"]["outdir"])
 
     # check path and study_type correctness
     if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
@@ -108,6 +114,15 @@ def get_log_level_from_verbosity(verbosity: int) -> int:
         return logging.ERROR
     else:
         return logging.DEBUG
+
+
+def set_logger(logger: logging.Logger, outdir: str, log_name: str, verb: int = 3) -> logging.Logger:
+    """
+    Returns the set logger.
+    """
+    log_level = get_log_level_from_verbosity(verb)
+    configure_logger(logger, os.path.join(outdir, log_name), log_level)
+    return logger
 
 
 def handle_signal(signo: int, frame: FrameType | None):

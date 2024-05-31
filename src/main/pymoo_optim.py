@@ -1,18 +1,11 @@
 import argparse
 import logging
-import os
-import shutil
 import traceback
 
-from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
-
-from src.optim.pymoo_optimizer import DEBUGOptimizer, WolfOptimizer
-from src.utils import (check_file, check_config, check_dir, configure_logger,
-                       get_log_level_from_verbosity, catch_signal)
-
-logger = logging.getLogger()
+from src.optim.pymoo_optimizer import DEBUGOptimizer, WolfOptimizer, select_strategy
+from src.utils import (check_config, set_logger, catch_signal)
 
 
 def main():
@@ -27,14 +20,15 @@ def main():
     args = parser.parse_args()
 
     # check config and copy to outdir
-    check_file(args.config)
     config, _ = check_config(args.config, optim=True)
-    check_dir(config["study"]["outdir"])
-    shutil.copy(args.config, config["study"]["outdir"])
 
     # set logger
-    log_level = get_log_level_from_verbosity(args.verbose)
-    configure_logger(logger, os.path.join(config["study"]["outdir"], "aero-optim.log"), log_level)
+    logger = set_logger(
+        logging.getLogger(), config["study"]["outdir"], "aero-optim.log", args.verbose
+    )
+
+    # signal interruption management
+    catch_signal()
 
     # instantiate optimizer and pymoo objects
     if args.DEBUG:
@@ -42,10 +36,9 @@ def main():
     else:
         opt = WolfOptimizer(config)
 
-    algorithm = PSO(pop_size=opt.doe_size, sampling=opt.generator._pymoo_generator())
-
-    # signal interruption management
-    catch_signal()
+    algorithm = select_strategy(
+        opt.strategy, opt.doe_size, opt.generator._pymoo_generator(), opt.ea_kwargs
+    )
 
     # optimization
     try:
