@@ -67,6 +67,9 @@ class NACABaseMesh(Mesh):
 
     def process_config(self):
         logger.info("processing config..")
+        if "domain" not in self.config["gmsh"]:
+            logger.warning(f"no <domain> entry in {self.config['gmsh']}, empty entry added")
+            self.config["gmsh"]["domain"] = {}
         if "inlet" not in self.config["gmsh"]["domain"]:
             logger.warning(f"no <inlet> entry in {self.config['gmsh']['domain']}")
         if "outlet" not in self.config["gmsh"]["domain"]:
