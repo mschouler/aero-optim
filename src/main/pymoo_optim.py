@@ -5,7 +5,7 @@ import traceback
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 from src.optim.pymoo_optimizer import DEBUGOptimizer, WolfOptimizer, select_strategy
-from src.utils import (check_config, set_logger, catch_signal)
+from src.utils import (catch_signal, check_config, get_evolutionary_computation, set_logger)
 
 
 def main():
@@ -14,8 +14,9 @@ def main():
     https://pymoo.org/
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-c", "--config", type=str, help="config: --config=/path/to/config.json")
+    parser.add_argument("-c", "--config", type=str, help="/path/to/config.json")
     parser.add_argument("-D", "--DEBUG", action="store_true", help="use DEBUG mode")
+    parser.add_argument("-cf", "--custom-file", type=str, help="/path/to/custom.py", default="")
     parser.add_argument("-v", "--verbose", type=int, help="logger verbosity level", default=3)
     args = parser.parse_args()
 
@@ -31,32 +32,39 @@ def main():
     catch_signal()
 
     # instantiate optimizer and pymoo objects
-    if args.DEBUG:
-        opt = DEBUGOptimizer(config)
+    if args.custom_file:
+        CustomClass = get_evolutionary_computation(args.custom_file)
+        custom_ea = CustomClass(config)
     else:
-        opt = WolfOptimizer(config)
+        if args.DEBUG:
+            opt = DEBUGOptimizer(config)
+        else:
+            opt = WolfOptimizer(config)
 
-    algorithm = select_strategy(
-        opt.strategy, opt.doe_size, opt.generator._pymoo_generator(), opt.ea_kwargs
-    )
+        algorithm = select_strategy(
+            opt.strategy, opt.doe_size, opt.generator._pymoo_generator(), opt.ea_kwargs
+        )
 
     # optimization
     try:
-        res = minimize(problem=opt,
-                       algorithm=algorithm,
-                       termination=get_termination("n_gen", opt.max_generations),
-                       seed=opt.seed,
-                       verbose=True)
+        if args.custom_file:
+            custom_ea.custom_evolve()
+        else:
+            res = minimize(problem=opt,
+                           algorithm=algorithm,
+                           termination=get_termination("n_gen", opt.max_generations),
+                           seed=opt.seed,
+                           verbose=True)
 
-        opt.final_observe()
+            opt.final_observe()
 
-        # output results
-        best = res.F
-        index, opt_J = min(enumerate(opt.J), key=lambda x: abs(best - x[1]))
-        gid, cid = (index // opt.doe_size, index % opt.doe_size)
-        logger.info(f"optimal(J): {opt_J} ({best}), "
-                    f"D: {' '.join([str(d) for d in res.X])} "
-                    f"[g{gid}, c{cid}]")
+            # output results
+            best = res.F
+            index, opt_J = min(enumerate(opt.J), key=lambda x: abs(best - x[1]))
+            gid, cid = (index // opt.doe_size, index % opt.doe_size)
+            logger.info(f"optimal(J): {opt_J} ({best}), "
+                        f"D: {' '.join([str(d) for d in res.X])} "
+                        f"[g{gid}, c{cid}]")
 
     except Exception as e:
         logger.error(

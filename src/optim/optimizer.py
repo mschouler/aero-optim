@@ -178,3 +178,22 @@ class Optimizer(ABC):
         """
         Computes all candidates outputs and return the optimizer list of QoIs.
         """
+
+
+class ABCCustomEvolution(ABC):
+    """
+    This class implements an abstract custom evolution.
+    """
+    @abstractmethod
+    def set_ea(self, *args, **kwargs):
+        """
+        Sets the evolutionary computation algorithm.
+        """
+        return
+
+    @abstractmethod
+    def custom_evolve(self, *args, **kwargs):
+        """
+        Defines how to execute the optimization.
+        """
+        return

@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import logging
 import os.path
@@ -142,3 +143,19 @@ def catch_signal():
     signals = [signal.SIGINT, signal.SIGPIPE, signal.SIGTERM]
     for s in signals:
         signal.signal(s, handle_signal)
+
+
+def get_evolutionary_computation(filename: str, module_name: str = "CustomEvolution"):
+    """
+    Returns customized evolution object.
+    """
+    spec_ec = importlib.util.spec_from_file_location(module_name, filename)
+    if spec_ec and spec_ec.loader:
+        ec = importlib.util.module_from_spec(spec_ec)
+        spec_ec.loader.exec_module(ec)
+        MyEC = getattr(ec, module_name)
+    else:
+        logger.error('Unable to import EC')
+        raise Exception("Could not find custom evolution")
+
+    return MyEC
