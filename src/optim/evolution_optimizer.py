@@ -57,7 +57,7 @@ class PymooEvolution(Evolution):
     """
     This class implements a default pymoo based evolution object.
     """
-    def __init__(self, config: dict, debug: bool):
+    def __init__(self, config: dict, debug: bool = False):
         super().__init__(config, debug)
 
     def set_optimizer(self, debug: bool = False):
@@ -108,7 +108,7 @@ class InspyredEvolution(Evolution):
     """
     This class implements a default inspyred based evolution object.
     """
-    def __init__(self, config: dict, debug: bool):
+    def __init__(self, config: dict, debug: bool = False):
         super().__init__(config, debug)
         self.algorithm.observer = self.optimizer._observe
         self.algorithm.terminator = terminators.generation_termination
