@@ -60,7 +60,7 @@ class WolfOptimizer(Optimizer, Problem):
         gid = self.gen_ctr
 
         # execute all candidates
-        self.execute_candidates
+        self.execute_candidates(X, gid)
 
         # add penalty to the candidates fitness
         self.J.extend([
