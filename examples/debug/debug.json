@@ -3,7 +3,8 @@
         "study_type": "debug",
         "file": "debug.json",
         "outfile": "debug",
-        "outdir": "output"
+        "outdir": "output",
+        "custom_file": "pymoo_debug.py"
     },
     "optim": {
         "strategy": "PSO",

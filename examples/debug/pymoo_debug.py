@@ -3,19 +3,19 @@ import logging
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
-from src.optim.optimizer import ABCCustomEvolution
-from src.optim.pymoo_optimizer import DEBUGOptimizer
+from src.optim.evolution_optimizer import Evolution
+from src.optim.pymoo_optimizer import DebugOptimizer
 
 logger = logging.getLogger()
 
 
-class CustomOptimizer(DEBUGOptimizer):
+class CustomOptimizer(DebugOptimizer):
     def __init__(self, config: dict):
         super().__init__(config)
         logger.info("INIT CUSTOM OPTIMIZER")
 
 
-class CustomEvolution(ABCCustomEvolution):
+class CustomEvolution(Evolution):
     def __init__(self, config: dict):
         self.opt = CustomOptimizer(config)
         self.set_ea()

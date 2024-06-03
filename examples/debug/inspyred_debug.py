@@ -2,22 +2,20 @@ import inspyred
 import logging
 import operator
 
-from src.optim.inspyred_optimizer import DEBUGOptimizer
-from src.optim.optimizer import ABCCustomEvolution
+from src.optim.inspyred_optimizer import DebugOptimizer
+from src.optim.evolution_optimizer import InspyredEvolution
 
 logger = logging.getLogger()
 
 
-class CustomOptimizer(DEBUGOptimizer):
+class CustomOptimizer(DebugOptimizer):
     def __init__(self, config: dict):
         super().__init__(config)
         logger.info("INIT CUSTOM OPTIMIZER")
 
 
-class CustomEvolution(ABCCustomEvolution):
+class CustomEvolution(InspyredEvolution):
     def __init__(self, config: dict):
-        self.opt = CustomOptimizer(config)
-        self.set_ea()
         self.set_observe()
         self.set_terminator()
 
