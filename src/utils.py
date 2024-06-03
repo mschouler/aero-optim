@@ -32,7 +32,7 @@ def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[floa
 
 
 def check_config(
-        config: str, custom_file: str,
+        config: str, custom_file: str = "",
         optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str, str]:
     """
     Ensures the presence of all required entries in config,

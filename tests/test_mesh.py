@@ -12,13 +12,13 @@ block_files: list[str] = ["naca_block.mesh", "naca_block.geo_unrolled", "naca_bl
 
 def get_NACABaseMesh(config_path: str) -> NACABaseMesh:
     check_file(config_path)
-    config, _ = check_config(config_path, gmsh=True)
+    config, _, _ = check_config(config_path, gmsh=True)
     return NACABaseMesh(config)
 
 
 def get_NACABlockMesh(config_path: str) -> NACABlockMesh:
     check_file(config_path)
-    config, _ = check_config(config_path, gmsh=True)
+    config, _, _ = check_config(config_path, gmsh=True)
     return NACABlockMesh(config)
 
 
