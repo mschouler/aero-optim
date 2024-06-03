@@ -1,5 +1,6 @@
 import argparse
 import logging
+import time
 import traceback
 
 from src.optim.evolution_optimizer import PymooEvolution, InspyredEvolution
@@ -18,6 +19,8 @@ def main():
     parser.add_argument("-d", "--debug", action="store_true", help="use DEBUG mode")
     parser.add_argument("-v", "--verbose", type=int, help="logger verbosity level", default=3)
     args = parser.parse_args()
+
+    t0 = time.time()
 
     # check config and copy to outdir
     config, custom_file, _ = check_config(args.config, args.custom_file, optim=True)
@@ -46,6 +49,7 @@ def main():
     # optimization
     try:
         evolution.evolve()
+        print(f"successful execution in {time.time() - t0} seconds.")
 
     except Exception as e:
         logger.error(
