@@ -64,7 +64,7 @@ class WolfOptimizer(Optimizer, Problem):
         Problem.__init__(
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=2, xl=self.bound[0], xu=self.bound[1]
         )
-        self.simulator = self.simulator(self.config)
+        self.simulator = self.SimulatorClass(self.config)
         self.J: list[float] = []
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = config["optim"].get("QoI", "CD")
@@ -81,7 +81,8 @@ class WolfOptimizer(Optimizer, Problem):
         **Sets** the simulator object as custom if found, as WolfSimulator otherwise.
         """
         super().set_simulator()
-        self.simulator = WolfSimulator
+        if not self.SimulatorClass:
+            self.SimulatorClass = WolfSimulator
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """
@@ -262,7 +263,7 @@ class DebugOptimizer(Optimizer, Problem):
         Problem.__init__(
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=0, xl=self.bound[0], xu=self.bound[1]
         )
-        self.simulator = self.simulator(self.config)
+        self.simulator = self.SimulatorClass(self.config)
         self.J: list[float] = []
         self.n_plt: int = 5
 
@@ -271,7 +272,8 @@ class DebugOptimizer(Optimizer, Problem):
         **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
         """
         super().set_simulator()
-        self.simulator = DebugSimulator
+        if not self.SimulatorClass:
+            self.SimulatorClass = DebugSimulator
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """

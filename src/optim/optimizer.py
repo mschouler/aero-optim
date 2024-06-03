@@ -154,20 +154,16 @@ class Optimizer(ABC):
         **Instantiates** the mesher object as custom if found,
         as one of the default meshers otherwise.
         """
-        if self.custom_file:
-            try:
-                CustomMesh = get_custom_class(self.custom_file, "CustomMesh")
-                self.gmsh_mesh = CustomMesh
-                return
-            except Exception:
-                logger.warning("No CustomMesh class found")
-        else:
+        self.MeshClass = (
+            get_custom_class(self.custom_file, "CustomMesh") if self.custom_file else None
+        )
+        if not self.MeshClass:
             if self.study_type == "base":
-                self.gmsh_mesh = NACABaseMesh
+                self.MeshClass = NACABaseMesh
             elif self.study_type == "block":
-                self.gmsh_mesh = NACABlockMesh
+                self.MeshClass = NACABlockMesh
             elif self.study_type == "cascade":
-                self.gmsh_mesh = CascadeMesh
+                self.MeshClass = CascadeMesh
             else:
                 raise Exception(f"ERROR -- incorrect study_type <{self.study_type}>")
 
@@ -187,7 +183,7 @@ class Optimizer(ABC):
         """
         mesh_dir = os.path.join(self.outdir, "MESH")
         check_dir(mesh_dir)
-        gmsh_mesh = self.gmsh_mesh(self.config, ffdfile)
+        gmsh_mesh = self.MeshClass(self.config, ffdfile)
         gmsh_mesh.build_mesh()
         return gmsh_mesh.write_mesh(mesh_dir)
 
@@ -201,13 +197,9 @@ class Optimizer(ABC):
         """
         Instantiates the simulator object with CustomSimulator if found.
         """
-        if self.custom_file:
-            try:
-                CustomSimulator = get_custom_class(self.custom_file, "CustomSimulator")
-                self.simulator = CustomSimulator
-                return
-            except Exception:
-                logger.warning("No CustomSimulator class found")
+        self.SimulatorClass = (
+            get_custom_class(self.custom_file, "CustomSimulator") if self.custom_file else None
+        )
 
     @abstractmethod
     def _evaluate(self, *args, **kwargs) -> list[float] | None:

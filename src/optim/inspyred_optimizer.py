@@ -61,7 +61,7 @@ class WolfOptimizer(Optimizer):
             see https://matplotlib.org/stable/users/explain/colors/colormaps.html.
         """
         super().__init__(config)
-        self.simulator = self.simulator(self.config)
+        self.simulator = self.SimulatorClass(self.config)
         self.J: list[float] = []
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = config["optim"].get("QoI", "CD")
@@ -78,7 +78,8 @@ class WolfOptimizer(Optimizer):
         **Sets** the simulator object as custom if found, as WolfSimulator otherwise.
         """
         super().set_simulator()
-        self.simulator = WolfSimulator
+        if not self.SimulatorClass:
+            self.SimulatorClass = WolfSimulator
 
     def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """
@@ -276,7 +277,7 @@ class DebugOptimizer(Optimizer):
         Dummy init.
         """
         super().__init__(config, debug=True)
-        self.simulator = self.simulator(self.config)
+        self.simulator = self.SimulatorClass(self.config)
         self.J: list[float] = []
         self.n_plt: int = 5
 
@@ -285,7 +286,8 @@ class DebugOptimizer(Optimizer):
         **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
         """
         super().set_simulator()
-        self.simulator = DebugSimulator
+        if not self.SimulatorClass:
+            self.SimulatorClass = DebugSimulator
 
     def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """

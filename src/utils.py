@@ -32,10 +32,11 @@ def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[floa
 
 
 def check_config(
-        config: str,
-        optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str]:
+        config: str, custom_file: str,
+        optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str, str]:
     """
-    Ensures the presence of all required entries in config, then return config and study type.
+    Ensures the presence of all required entries in config,
+    then returns config (dict), custom_file (str) and study type (str).
     """
     # check for config and open it
     check_file(config)
@@ -68,7 +69,13 @@ def check_config(
     if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
 
-    return config_dict, config_dict["study"]["study_type"]
+    # supersede custom_file entry
+    if custom_file:
+        config_dict["study"]["custom_file"] = custom_file
+
+    return (
+        config_dict, config_dict["study"].get("custom_file", ""), config_dict["study"]["study_type"]
+    )
 
 
 def check_file(filename: str):
@@ -155,4 +162,5 @@ def get_custom_class(filename: str, module_name: str):
         logger.info(f"successfully recovered {module_name}")
         return MyClass
     else:
-        raise Exception(f"ERROR -- could not find {module_name} in {filename}")
+        logger.warning(f"could not find {module_name} in {filename}")
+        return None

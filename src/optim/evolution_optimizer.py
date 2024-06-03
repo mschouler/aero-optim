@@ -28,7 +28,7 @@ class Evolution(ABC):
     def __init__(self, config: dict, debug: bool):
         self.custom_file: str = config["study"].get("custom_file", "")
         self.set_optimizer(debug=debug)
-        self.optimizer: Type[Optimizer] = self.optimizer_class(config)
+        self.optimizer: Type[Optimizer] = self.OptimizerClass(config)
         self.set_ea()
 
     @abstractmethod
@@ -36,13 +36,9 @@ class Evolution(ABC):
         """
         Sets the optimizer object.
         """
-        if self.custom_file:
-            try:
-                CustomOptimizer = get_custom_class(self.custom_file, "CustomOptimizer")
-                self.optimizer_class = CustomOptimizer
-            except Exception:
-                self.optimizer_class = None
-                logger.warning("No CustomOptimizer class found")
+        self.OptimizerClass = (
+            get_custom_class(self.custom_file, "CustomOptimizer") if self.custom_file else None
+        )
 
     @abstractmethod
     def set_ea(self, *args, **kwargs):
@@ -69,12 +65,12 @@ class PymooEvolution(Evolution):
         **Instantiates** the optimizer attribute as custom if any or from default classes.
         """
         super().set_optimizer()
-        if not self.optimizer_class:
+        if not self.OptimizerClass:
             if debug:
-                self.optimizer_class = PymooDebugOptimizer
+                self.OptimizerClass = PymooDebugOptimizer
             else:
-                self.optimizer_class = PymooWolfOptimizer
-            logger.info(f"optimizer set to {self.optimizer_class}")
+                self.OptimizerClass = PymooWolfOptimizer
+            logger.info(f"optimizer set to {self.OptimizerClass}")
 
     def set_ea(self):
         """
@@ -122,12 +118,12 @@ class InspyredEvolution(Evolution):
         **Instantiates** the optimizer attribute as custom if any or from default classes.
         """
         super().set_optimizer()
-        if not self.optimizer_class:
+        if not self.OptimizerClass:
             if debug:
-                self.optimizer_class = InspyredDebugOptimizer
+                self.OptimizerClass = InspyredDebugOptimizer
             else:
-                self.optimizer_class = InspyredWolfOptimizer
-            logger.info(f"optimizer set to {self.optimizer_class}")
+                self.OptimizerClass = InspyredWolfOptimizer
+            logger.info(f"optimizer set to {self.OptimizerClass}")
 
     def set_ea(self):
         """
