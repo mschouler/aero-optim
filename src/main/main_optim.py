@@ -3,7 +3,7 @@ import logging
 import traceback
 
 from src.optim.evolution_optimizer import PymooEvolution, InspyredEvolution
-from src.utils import (catch_signal, check_config, set_logger)
+from src.utils import (catch_signal, check_config, get_custom_class, set_logger)
 
 
 def main():
@@ -14,12 +14,13 @@ def main():
     parser.add_argument("-c", "--config", type=str, help="/path/to/config.json")
     parser.add_argument("-p", "--pymoo", action="store_true", help="use the pymoo library")
     parser.add_argument("-i", "--inspyred", action="store_true", help="use the inspyred library")
+    parser.add_argument("-f", "--custom-file", type=str, help="/path/to/custom_file.py", default="")
     parser.add_argument("-d", "--debug", action="store_true", help="use DEBUG mode")
     parser.add_argument("-v", "--verbose", type=int, help="logger verbosity level", default=3)
     args = parser.parse_args()
 
     # check config and copy to outdir
-    config, _ = check_config(args.config, optim=True)
+    config, custom_file, _ = check_config(args.config, args.custom_file, optim=True)
 
     # set logger
     logger = set_logger(
@@ -30,14 +31,17 @@ def main():
     catch_signal()
 
     # instantiate optimizer and pymoo objects
-    if args.pymoo:
-        evolution = PymooEvolution(config, debug=args.debug)
-        logger.info("pymoo based evolution")
-    elif args.inspyred:
-        evolution = InspyredEvolution(config, debug=args.debug)
-        logger.info("inspyred based evolution")
-    else:
-        raise Exception("ERROR -- some optimizer must be specified")
+    EvolutionClass = get_custom_class(custom_file, "CustomEvolution") if custom_file else None
+    if not EvolutionClass:
+        if args.pymoo:
+            EvolutionClass = PymooEvolution
+            logger.info("pymoo based evolution")
+        elif args.inspyred:
+            EvolutionClass = InspyredEvolution
+            logger.info("inspyred based evolution")
+        else:
+            raise Exception("ERROR -- some optimizer must be specified")
+    evolution = EvolutionClass(config, debug=args.debug)
 
     # optimization
     try:
