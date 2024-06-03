@@ -4,14 +4,14 @@ import os
 
 from abc import ABC, abstractmethod
 from random import Random
-from typing import Any, Type
+from typing import Any
 
 from src.ffd.ffd import FFD_2D
 from src.optim.generator import Generator
 from src.mesh.naca_base_mesh import NACABaseMesh
 from src.mesh.naca_block_mesh import NACABlockMesh
 from src.mesh.cascade_mesh import CascadeMesh
-from src.utils import check_dir
+from src.utils import check_dir, get_custom_class
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +88,7 @@ class Optimizer(ABC):
         self.outdir: str = config["study"]["outdir"]
         self.study_type: str = config["study"]["study_type"]
         # optional entries
+        self.custom_file: str = config["study"].get("custom_file", "")
         self.strategy: str = config["optim"].get("strategy", "ES")
         self.maximize: bool = config["optim"].get("maximize", False)
         self.budget: int = config["optim"].get("budget", 4)
@@ -107,13 +108,8 @@ class Optimizer(ABC):
         )
         if not debug:
             self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
-            self.gmsh_mesh: Type[NACABaseMesh] | Type[NACABlockMesh] | Type[CascadeMesh]
-            if self.study_type == "base":
-                self.gmsh_mesh = NACABaseMesh
-            elif self.study_type == "block":
-                self.gmsh_mesh = NACABlockMesh
-            elif self.study_type == "cascade":
-                self.gmsh_mesh = CascadeMesh
+            self.set_gmsh_mesh()
+        self.set_simulator()
         # population statistics
         self.mean: list[float] = []
         self.median: list[float] = []
@@ -153,6 +149,28 @@ class Optimizer(ABC):
             )
             self.config["gmsh"]["view"]["GUI"] = False
 
+    def set_gmsh_mesh(self):
+        """
+        **Instantiates** the mesher object as custom if found,
+        as one of the default meshers otherwise.
+        """
+        if self.custom_file:
+            try:
+                CustomMesh = get_custom_class(self.custom_file, "CustomMesh")
+                self.gmsh_mesh = CustomMesh
+                return
+            except Exception:
+                logger.warning("No CustomMesh class found")
+        else:
+            if self.study_type == "base":
+                self.gmsh_mesh = NACABaseMesh
+            elif self.study_type == "block":
+                self.gmsh_mesh = NACABlockMesh
+            elif self.study_type == "cascade":
+                self.gmsh_mesh = CascadeMesh
+            else:
+                raise Exception(f"ERROR -- incorrect study_type <{self.study_type}>")
+
     def deform(self, Delta: np.ndarray, gid: int, cid: int) -> tuple[str, np.ndarray]:
         """
         **Applies** FFD on a given candidate and returns its resulting file.
@@ -173,27 +191,26 @@ class Optimizer(ABC):
         gmsh_mesh.build_mesh()
         return gmsh_mesh.write_mesh(mesh_dir)
 
+    def _observe(self, *args, **kwargs):
+        """
+        Plot evolution after each evaluation.
+        """
+
+    @abstractmethod
+    def set_simulator(self):
+        """
+        Instantiates the simulator object with CustomSimulator if found.
+        """
+        if self.custom_file:
+            try:
+                CustomSimulator = get_custom_class(self.custom_file, "CustomSimulator")
+                self.simulator = CustomSimulator
+                return
+            except Exception:
+                logger.warning("No CustomSimulator class found")
+
     @abstractmethod
     def _evaluate(self, *args, **kwargs) -> list[float] | None:
         """
         Computes all candidates outputs and return the optimizer list of QoIs.
         """
-
-
-class ABCCustomEvolution(ABC):
-    """
-    This class implements an abstract custom evolution.
-    """
-    @abstractmethod
-    def set_ea(self, *args, **kwargs):
-        """
-        Sets the evolutionary computation algorithm.
-        """
-        return
-
-    @abstractmethod
-    def custom_evolve(self, *args, **kwargs):
-        """
-        Defines how to execute the optimization.
-        """
-        return

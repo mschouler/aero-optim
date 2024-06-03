@@ -10,7 +10,7 @@ from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.core.problem import Problem
 from src.optim.optimizer import Optimizer, shoe_lace
-from src.simulator.simulator import DEBUGSimulator, WolfSimulator
+from src.simulator.simulator import DebugSimulator, WolfSimulator
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class WolfOptimizer(Optimizer, Problem):
         Problem.__init__(
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=2, xl=self.bound[0], xu=self.bound[1]
         )
-        self.simulator: WolfSimulator = WolfSimulator(self.config)
+        self.simulator = self.simulator(self.config)
         self.J: list[float] = []
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = config["optim"].get("QoI", "CD")
@@ -75,6 +75,13 @@ class WolfOptimizer(Optimizer, Problem):
         self.area_margin: float = config["optim"].get("area_margin", 40.) / 100.
         self.penalty: list = config["optim"].get("penalty", ["CL", self.baseline_CL])
         self.cmap: str = config["optim"].get("cmap", "viridis")
+
+    def set_simulator(self):
+        """
+        **Sets** the simulator object as custom if found, as WolfSimulator otherwise.
+        """
+        super().set_simulator()
+        self.simulator = WolfSimulator
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """
@@ -246,7 +253,7 @@ class WolfOptimizer(Optimizer, Problem):
         plt.close()
 
 
-class DEBUGOptimizer(Optimizer, Problem):
+class DebugOptimizer(Optimizer, Problem):
     def __init__(self, config: dict):
         """
         Dummy init.
@@ -255,9 +262,16 @@ class DEBUGOptimizer(Optimizer, Problem):
         Problem.__init__(
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=0, xl=self.bound[0], xu=self.bound[1]
         )
-        self.simulator: DEBUGSimulator = DEBUGSimulator(config)
+        self.simulator = self.simulator(self.config)
         self.J: list[float] = []
         self.n_plt: int = 5
+
+    def set_simulator(self):
+        """
+        **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
+        """
+        super().set_simulator()
+        self.simulator = DebugSimulator
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """

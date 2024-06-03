@@ -232,7 +232,7 @@ class WolfSimulator(Simulator):
         _ = [subpro.terminate() for _, subpro in self.sim_pro]
 
 
-class DEBUGSimulator(Simulator):
+class DebugSimulator(Simulator):
     """
     This class implements a basic simulator for debugging purposes.
     """
@@ -243,7 +243,7 @@ class DEBUGSimulator(Simulator):
         """
         Dummy process_config.
         """
-        logger.debug("not implemented")
+        logger.debug("process_config not implemented")
 
     def execute_sim(self, candidate: list[float], gid: int = 0, cid: int = 0):
         """
@@ -281,4 +281,4 @@ class DEBUGSimulator(Simulator):
         """
         Dummy kill_all.
         """
-        logger.debug("not implemented")
+        logger.debug("kill_all not implemented")

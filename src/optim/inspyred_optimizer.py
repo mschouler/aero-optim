@@ -10,7 +10,7 @@ import time
 from inspyred.ec import Individual
 from random import Random
 from src.optim.optimizer import Optimizer, shoe_lace
-from src.simulator.simulator import WolfSimulator, DEBUGSimulator
+from src.simulator.simulator import WolfSimulator, DebugSimulator
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class WolfOptimizer(Optimizer):
 
         **Inner**
 
-        - simulator (WolfSimulator): WolfSimulator object to perform Wolf simulations.
+        - simulator (Simulator): Simulator object to perform simulations.
         - J (list[float]): the list of all generated candidates fitnesses.
         - ffd_profiles (list[list[np.ndarray]]): all deformed geometries {gid: {cid: ffd_profile}}.
         - QoI (str): the quantity of intereset to minimize/maximize.
@@ -61,7 +61,7 @@ class WolfOptimizer(Optimizer):
             see https://matplotlib.org/stable/users/explain/colors/colormaps.html.
         """
         super().__init__(config)
-        self.simulator: WolfSimulator = WolfSimulator(self.config)
+        self.simulator = self.simulator(self.config)
         self.J: list[float] = []
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = config["optim"].get("QoI", "CD")
@@ -72,6 +72,13 @@ class WolfOptimizer(Optimizer):
         self.area_margin: float = config["optim"].get("area_margin", 40.) / 100.
         self.penalty: list = config["optim"].get("penalty", ["CL", self.baseline_CL])
         self.cmap: str = config["optim"].get("cmap", "viridis")
+
+    def set_simulator(self):
+        """
+        **Sets** the simulator object as custom if found, as WolfSimulator otherwise.
+        """
+        super().set_simulator()
+        self.simulator = WolfSimulator
 
     def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """
@@ -263,15 +270,22 @@ class WolfOptimizer(Optimizer):
         plt.close()
 
 
-class DEBUGOptimizer(Optimizer):
+class DebugOptimizer(Optimizer):
     def __init__(self, config: dict):
         """
         Dummy init.
         """
         super().__init__(config, debug=True)
-        self.simulator: DEBUGSimulator = DEBUGSimulator(config)
+        self.simulator = self.simulator(self.config)
         self.J: list[float] = []
         self.n_plt: int = 5
+
+    def set_simulator(self):
+        """
+        **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
+        """
+        super().set_simulator()
+        self.simulator = DebugSimulator
 
     def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """

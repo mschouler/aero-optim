@@ -67,8 +67,6 @@ def check_config(
     # check path and study_type correctness
     if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
-    if (optim or gmsh) and config_dict["study"]["study_type"] not in STUDY_TYPE:
-        raise Exception(f"ERROR -- wrong <study_type> specification in {config}[study]")
 
     return config_dict, config_dict["study"]["study_type"]
 
@@ -145,17 +143,16 @@ def catch_signal():
         signal.signal(s, handle_signal)
 
 
-def get_evolutionary_computation(filename: str, module_name: str = "CustomEvolution"):
+def get_custom_class(filename: str, module_name: str):
     """
-    Returns customized evolution object.
+    Returns a customized object (evolution, optimizer, simulator or mesh).
     """
-    spec_ec = importlib.util.spec_from_file_location(module_name, filename)
-    if spec_ec and spec_ec.loader:
-        ec = importlib.util.module_from_spec(spec_ec)
-        spec_ec.loader.exec_module(ec)
-        MyEC = getattr(ec, module_name)
+    spec_class = importlib.util.spec_from_file_location(module_name, filename)
+    if spec_class and spec_class.loader:
+        custom_class = importlib.util.module_from_spec(spec_class)
+        spec_class.loader.exec_module(custom_class)
+        MyClass = getattr(custom_class, module_name)
+        logger.info(f"successfully recovered {module_name}")
+        return MyClass
     else:
-        logger.error('Unable to import EC')
-        raise Exception("Could not find custom evolution")
-
-    return MyEC
+        raise Exception(f"ERROR -- could not find {module_name} in {filename}")
