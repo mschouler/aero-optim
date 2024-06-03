@@ -62,8 +62,10 @@ class Optimizer(ABC):
             ```
 
         - study_type (str): use-case/meshing routine.
-        - strategy (str): the optimization algorithm amongst inspyred's [ES, GA, SA, PSO]</br>
-            see https://pythonhosted.org/inspyred/examples.html#standard-algorithms
+        - strategy (str): the optimization algorithm amongst inspyred's [ES, PSO]
+            and pymoo's [GA, PSO]</br>
+            see https://pythonhosted.org/inspyred/examples.html#standard-algorithms</br>
+            and https://pymoo.org/algorithms/list.html#nb-algorithms-list
 
         - maximize (bool): whether to maximize or minimize the objective QoIs.
         - budget (int): maximum number of concurrent proc in use.
@@ -101,7 +103,7 @@ class Optimizer(ABC):
         self.study_type: str = config["study"]["study_type"]
         # optional entries
         self.custom_file: str = config["study"].get("custom_file", "")
-        self.strategy: str = config["optim"].get("strategy", "ES")
+        self.strategy: str = config["optim"].get("strategy", "PSO")
         self.maximize: bool = config["optim"].get("maximize", False)
         self.budget: int = config["optim"].get("budget", 4)
         self.nproc_per_sim: int = config["optim"].get("nproc_per_sim", 1)
