@@ -154,13 +154,14 @@ def get_custom_class(filename: str, module_name: str):
     """
     Returns a customized object (evolution, optimizer, simulator or mesh).
     """
-    spec_class = importlib.util.spec_from_file_location(module_name, filename)
-    if spec_class and spec_class.loader:
-        custom_class = importlib.util.module_from_spec(spec_class)
-        spec_class.loader.exec_module(custom_class)
-        MyClass = getattr(custom_class, module_name)
-        logger.info(f"successfully recovered {module_name}")
-        return MyClass
-    else:
+    try:
+        spec_class = importlib.util.spec_from_file_location(module_name, filename)
+        if spec_class and spec_class.loader:
+            custom_class = importlib.util.module_from_spec(spec_class)
+            spec_class.loader.exec_module(custom_class)
+            MyClass = getattr(custom_class, module_name)
+            logger.info(f"successfully recovered {module_name}")
+            return MyClass
+    except Exception:
         logger.warning(f"could not find {module_name} in {filename}")
         return None
