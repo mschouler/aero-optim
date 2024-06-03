@@ -36,6 +36,8 @@ def main():
         gmsh_mesh = NACABlockMesh(config, args.file)
     elif study_type == "cascade":
         gmsh_mesh = CascadeMesh(config, args.file)
+    else:
+        raise Exception(f"ERROR -- incorrect study_type <{study_type}>")
 
     if gmsh_mesh:
         gmsh_mesh.build_mesh()
