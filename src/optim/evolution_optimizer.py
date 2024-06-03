@@ -59,7 +59,6 @@ class PymooEvolution(Evolution):
     """
     def __init__(self, config: dict, debug: bool = False):
         super().__init__(config, debug)
-        self.optimizer.max_generations += 1 if self.optimizer.max_generations == 0 else 0
 
     def set_optimizer(self, debug: bool = False):
         """
