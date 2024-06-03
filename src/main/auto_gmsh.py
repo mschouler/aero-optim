@@ -2,7 +2,7 @@ import argparse
 import logging
 import sys
 
-from src.utils import check_config
+from src.utils import check_config, get_custom_class
 from src.mesh.cascade_mesh import CascadeMesh
 from src.mesh.naca_base_mesh import NACABaseMesh
 from src.mesh.naca_block_mesh import NACABlockMesh
@@ -27,17 +27,19 @@ def main():
                         help="input dat file: --file=/path/to/file.dat", default="")
     args = parser.parse_args()
 
-    config, study_type = check_config(args.config, gmsh=True)
+    config, custom_file, study_type = check_config(args.config, gmsh=True)
 
-    gmsh_mesh = None
-    if study_type == "base":
-        gmsh_mesh = NACABaseMesh(config, args.file)
-    elif study_type == "block":
-        gmsh_mesh = NACABlockMesh(config, args.file)
-    elif study_type == "cascade":
-        gmsh_mesh = CascadeMesh(config, args.file)
-    else:
-        raise Exception(f"ERROR -- incorrect study_type <{study_type}>")
+    MeshClass = get_custom_class(custom_file, "CustomMesh") if custom_file else None
+    if not MeshClass:
+        if study_type == "base":
+            MeshClass = NACABaseMesh
+        elif study_type == "block":
+            MeshClass = NACABlockMesh
+        elif study_type == "cascade":
+            MeshClass = CascadeMesh
+        else:
+            raise Exception(f"ERROR -- incorrect study_type <{study_type}>")
+    gmsh_mesh = MeshClass(config, args.file)
 
     if gmsh_mesh:
         gmsh_mesh.build_mesh()
