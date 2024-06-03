@@ -260,8 +260,9 @@ class Optimizer(ABC):
 
     def _observe(self, *args, **kwargs):
         """
-        Plot evolution after each evaluation.
+        **Plots** generation data after each evaluation.
         """
+        logger.info("_observe not implemented")
 
     def plot_generation(
             self,

@@ -135,7 +135,7 @@ class WolfOptimizer(Optimizer):
         obtained with the successive generations</br>
         see https://pythonhosted.org/inspyred/reference.html#inspyred.ec.analysis.generation_plot
         """
-        fig_name = f"pymoo_optim_g{self.gen_ctr - 1}_c{self.doe_size}.png"
+        fig_name = f"inspyred_optim_g{self.gen_ctr - 1}_c{self.doe_size}.png"
         self.plot_progress(self.gen_ctr - 1, fig_name, baseline_value=self.baseline_CD)
 
 
