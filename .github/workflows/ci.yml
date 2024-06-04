@@ -87,8 +87,8 @@ jobs:
         with:
           name: coverage-report
       - run: |
-          echo "\`\`\`sh" >> docs/index.md
-          cat coverage.txt >> docs/index.md
-          echo "\`\`\`" >> docs/index.md
+          echo "\`\`\`sh" >> docs/coverage.md
+          cat coverage.txt >> docs/coverage.md
+          echo "\`\`\`" >> docs/coverage.md
           pip install .[doc]
           mkdocs gh-deploy --force

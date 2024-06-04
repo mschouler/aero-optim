@@ -124,5 +124,3 @@ optim -c naca_base.json --inspyred
 
 !!! Tip
     In the configuration file, the `budget` entry corresponds to the number of simulation executed concurrently. It should hence be adapted to the amount of resources available to the user.
-
-### Coverage Report

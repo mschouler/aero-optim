@@ -16,6 +16,7 @@ nav:
     - 'Mesh Module': dev_mesh.md
     - 'Simulator Module': dev_simulator.md
     - 'Optimizer Module': dev_optimizer.md
+    - 'Coverage Report' : coverage.md
   - Optimization Examples:
     - None
 theme: 
