@@ -129,9 +129,6 @@ class DebugOptimizer(Optimizer, Problem):
         Problem.__init__(
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=0, xl=self.bound[0], xu=self.bound[1]
         )
-        self.simulator = self.SimulatorClass(self.config)
-        self.J: list[float] = []
-        self.n_plt: int = 5
 
     def set_simulator(self):
         """

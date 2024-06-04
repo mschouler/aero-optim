@@ -145,9 +145,6 @@ class DebugOptimizer(Optimizer):
         Dummy init.
         """
         super().__init__(config, debug=True)
-        self.simulator = self.SimulatorClass(self.config)
-        self.J: list[float] = []
-        self.n_plt: int = 5
 
     def set_simulator(self):
         """
