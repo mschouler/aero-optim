@@ -31,6 +31,6 @@ def test_execute_sim(wolf: WolfSimulator):
 def test_monitor_sim_progress(wolf: WolfSimulator):
     """this also tests post_process"""
     assert wolf.monitor_sim_progress() == 1
-    time.sleep(1)
+    time.sleep(2)
     assert wolf.monitor_sim_progress() == 0
     assert wolf.df_dict[0][0].columns.values.tolist() == ["ResTot", "CD", "CL", "ResCD", "ResCL"]
