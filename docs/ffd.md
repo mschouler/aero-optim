@@ -21,7 +21,7 @@ Free-Form Deformation is implemented in `FFD_2D`, a straightforward class instan
 - `ncontrol (int)` which indicates the number of design points on each side of the lattice.
 
 !!! Warning
-    The input file is expected to have a specific formatting i.e. a 2 line header followed by coordinates given as tabulated entries (one point per row) with single space separators (see [`input/naca12.dat`](https://github.com/mschouler/aero-optim/blob/master/input/naca12.dat) for an example).
+    The input file is expected to have a specific formatting i.e. a 2 line header followed by coordinates given as tabulated entries (one point per row) with single space separators (see [`data/naca12.dat`](https://github.com/mschouler/aero-optim/blob/master/examples/NACA12/data/naca12.dat) for an example).
 
 Once instantiated, the `apply_ffd(Delta)` method can be used to perform the deformation corresponding to the array `Delta`.
 

@@ -64,7 +64,7 @@ This script generates a simple mesh parameterized according to its associated co
 cd examples/NACA12/naca_base
 mesh --config=naca_base.json  # left figure
 cd ../naca_block
-mesh --config=input/naca_block.json # right figure
+mesh --config=naca_block.json # right figure
 ```
 will generate the figures below:
 <p float="left">
@@ -94,7 +94,7 @@ INFO:src.simulator.simulator:last five values:
 ```
 
 !!! Warning
-    In order for the command to pass, don't forget to fix the `exec_cmd` executable path in `input/naca_base.json`.
+    In order for the command to pass, don't forget to fix the `exec_cmd` executable path in `naca_base.json`.
 
 A zoomed view of the solution mach field plotted with [`vizir4`](https://pyamg.saclay.inria.fr/vizir4.html) and the following command is given below:
 ```sh
