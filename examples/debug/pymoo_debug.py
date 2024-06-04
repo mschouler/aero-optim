@@ -3,7 +3,7 @@ import logging
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
-from src.optim.evolutor import PymooEvolution
+from src.optim.evolution import PymooEvolution
 from src.optim.pymoo_optimizer import DebugOptimizer
 
 logger = logging.getLogger()
