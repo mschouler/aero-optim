@@ -1,6 +1,6 @@
 {
     "study": {
-        "study_type": "",
+        "study_type": "base",
         "outdir": "output"
     },
     "simulator": {

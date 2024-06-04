@@ -1,6 +1,6 @@
 {
     "study": {
-        "study_type": "",
+        "study_type": "base",
         "file": "examples/NACA12/data/naca12.dat",
         "outdir": "output"
     },
