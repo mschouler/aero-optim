@@ -33,7 +33,7 @@ An FFD with 2 control points (i.e. 4 in total) and the deformation vector `Delta
 Considering the figure notations, one notices that the deformation vector `Delta` corresponds to the list of deformations to be applied to the lower control points followed by those applied to the upper control points. In this case, `Delta` is: $$(D_{10}=0.,\, D_{20}=0.,\, D_{11}=1.,\, D_{21}=1.)$$ in lattice unit. The corner points are left unchanged so that the lattice corners remain fixed.
 
 ### Quick Experiments
-The `auto_ffd.py` scripts enables basic testing and visualization. It comes with a few options:
+The `auto_ffd.py` scripts is called with the `ffd` command. It enables basic testing and visualization. It comes with a few options:
 ```py
 ffd --help
 usage: ffd [-h] [-f FILE] [-o OUTDIR] [-nc NCONTROL] [-np NPROFILE] [-r] [-s SAMPLER] [-d [DELTA ...]]
@@ -54,7 +54,7 @@ options:
                         Delta: 'D10 D20 .. D2nc' (default: None)
 ```
 
-Hence, the command below will perform 3 control points FFDs for 4 random deformations sampled with an LHS sampler:
+For instance, the command below will perform 3 control points FFDs for 4 random deformations sampled with an LHS sampler:
 ```py
 # from aero-optim to naca_base
 cd examples/NACA12/naca_base
