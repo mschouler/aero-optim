@@ -3,7 +3,7 @@ import logging
 import time
 import traceback
 
-from src.optim.evolution_optimizer import PymooEvolution, InspyredEvolution
+from src.optim.evolutor import PymooEvolution, InspyredEvolution
 from src.utils import (catch_signal, check_config, get_custom_class, set_logger)
 
 

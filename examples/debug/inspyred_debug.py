@@ -3,7 +3,7 @@ import logging
 import operator
 
 from src.optim.inspyred_optimizer import DebugOptimizer
-from src.optim.evolution_optimizer import InspyredEvolution
+from src.optim.evolutor import InspyredEvolution
 
 logger = logging.getLogger()
 
