@@ -20,6 +20,38 @@ The `WolfSimulator` class illustrates how `Simulator` can be inherited to perfor
 
 Finally, a mechanism of fault management is introduced with a `kill_all` method. The idea here is simply to provide a function to kill all active simulations in case something goes wrong in the main program. In the context of an optimization for instance, this feature is particularly important if the user wants to interrupt the main program without having to kill all simulations by hand.
 
+### Debug Simulator
+The `DebugSimulator` class was introduced to facilitate prototyping and debugging. Instead of a real simulation execution, it directly evaluates the [Ackley function](https://pymoo.org/problems/single/ackley.html?highlight=ackley) for a given candidate.
+
+### Quick experiment
+The `auto_simulator.py` scripts is called with the `simulator` command. It enables basic testing and execution for a given configuration file:
+```
+simulator --help
+usage: simulator [-h] [-c CONFIG] [-f FILE] [-o OUTDIR]
+
+options:
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        config: --config=/path/to/config.json (default: None)
+  -f FILE, --file FILE  input mesh file: --file=/path/to/file.mesh (default: )
+  -o OUTDIR, --outdir OUTDIR
+                        simulation output directory (default: )
+```
+
+For instance the commands below will generate a deformed profile, its associated mesh and perform a simulation with it:
+```sh
+# from aero-optim to naca_base
+cd examples/NACA12/naca_base
+ffd -f ../data/naca12.dat -nc 2 -d "0. 0. 1. 1."
+mesh --config=naca_base.json --file=output/naca12_g0_c0.dat
+simulator --config=naca_base.json --file=output/naca_base.mesh
+```
+
+A zoomed view of the solution mach field plotted with [`vizir4`](https://pyamg.saclay.inria.fr/vizir4.html) is illustrated below:
+<p float="left">
+  <img src="../Figures/naca_base_mach_ffd.png" width="100%" />
+</p>
+
 ### Advanced Simulator
 Considering the variety of solvers, execution environment, etc., the `Simulator` class is theoretically adaptable to any use case. In general, it is good practice to keep track of any [Python subprocess](https://docs.python.org/3/library/subprocess.html) spawned by the application. However, depending on the user's situation, more sophisticated monitoring routines may need to be implemented.
 
