@@ -80,7 +80,7 @@ cd examples/NACA12/naca_base
 mesh -c naca_base.json
 simulator -c naca_base.json -f output/naca_base.mesh
 ```
-would run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
+will run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
 ```sh
 INFO:src.simulator.simulator:g0, c0 converged in 530 it.
 INFO:src.simulator.simulator:last five values:
