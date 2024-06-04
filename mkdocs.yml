@@ -10,6 +10,7 @@ nav:
     - 'Mesh Module': mesh.md
     - 'Simulator Module': simulator.md
     - 'Optimizer Module': optimizer.md
+    - 'Customized Optimization': customization.md
   - Developer Guide:
     - 'FFD Module': dev_ffd.md
     - 'Mesh Module': dev_mesh.md
