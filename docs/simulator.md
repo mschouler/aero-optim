@@ -23,9 +23,9 @@ Finally, a mechanism of fault management is introduced with a `kill_all` method.
 ### Debug Simulator
 The `DebugSimulator` class was introduced to facilitate prototyping and debugging. Instead of a real simulation execution, it directly evaluates the [Ackley function](https://pymoo.org/problems/single/ackley.html?highlight=ackley) for a given candidate.
 
-### Quick experiment
+### Quick Experiment
 The `auto_simulator.py` scripts is called with the `simulator` command. It enables basic testing and execution for a given configuration file:
-```
+```sh
 simulator --help
 usage: simulator [-h] [-c CONFIG] [-f FILE] [-o OUTDIR]
 

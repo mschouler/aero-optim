@@ -86,7 +86,7 @@ options:
 ```
 
 For instance, setting `doe_size` and `max_generations` to 20 in `naca_base.json` and running the command below:
-```py
+```sh
 # from aero-optim to naca_base
 cd examples/NACA12/naca_base
 optim -c naca_base.json --inspyred
