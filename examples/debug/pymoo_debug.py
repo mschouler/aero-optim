@@ -3,10 +3,18 @@ import logging
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
+
 from src.optim.evolution import PymooEvolution
 from src.optim.pymoo_optimizer import DebugOptimizer
+from src.simulator.simulator import DebugSimulator
 
 logger = logging.getLogger()
+
+
+class CustomSimulator(DebugSimulator):
+    def __init__(self, config: dict):
+        super().__init__(config)
+        logger.info("INIT CUSTOM SIMULATOR")
 
 
 class CustomOptimizer(DebugOptimizer):
@@ -25,6 +33,7 @@ class CustomEvolution(PymooEvolution):
         )
 
     def evolve(self):
+        logger.info("EXECUTE CUSTOM EVOLVE")
         res = minimize(problem=self.optimizer,
                        algorithm=self.ea,
                        termination=get_termination("n_gen", self.optimizer.max_generations),

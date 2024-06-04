@@ -4,8 +4,15 @@ import operator
 
 from src.optim.inspyred_optimizer import DebugOptimizer
 from src.optim.evolution import InspyredEvolution
+from src.simulator.simulator import DebugSimulator
 
 logger = logging.getLogger()
+
+
+class CustomSimulator(DebugSimulator):
+    def __init__(self, config: dict):
+        super().__init__(config)
+        logger.info("INIT CUSTOM SIMULATOR")
 
 
 class CustomOptimizer(DebugOptimizer):
@@ -32,7 +39,8 @@ class CustomEvolution(InspyredEvolution):
         logger.info("SET CUSTOM TERMINATOR")
         self.algorithm.terminator = inspyred.ec.terminators.generation_termination
 
-    def custom_evolve(self):
+    def evolve(self):
+        logger.info("EXECUTE CUSTOM EVOLVE")
         final_pop = self.algorithm.evolve(generator=self.optimizer.generator._ins_generator,
                                           evaluator=self.optimizer._evaluate,
                                           pop_size=self.optimizer.doe_size,
