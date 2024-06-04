@@ -1,8 +1,8 @@
-## Optimizer Source Code
+## Optimizer and Evolution Source Code
 <hr style="border:1px solid grey">
 
 ### Evolution classes
-::: optim.evolution_optimizer.Evolution
+::: optim.evolution.Evolution
     options:
       filters: []
       heading_level: 3
@@ -11,7 +11,7 @@
 <hr style="border:1px light grey">
 
 #### <span style="color:grey">inspyred Evolution</span>
-::: optim.evolution_optimizer.InspyredEvolution
+::: optim.evolution.InspyredEvolution
     options:
       filters: []
       heading_level: 3
@@ -20,7 +20,7 @@
 <hr style="border:1px light grey">
 
 #### <span style="color:grey">pymoo Evolution</span>
-::: optim.evolution_optimizer.PymooEvolution
+::: optim.evolution.PymooEvolution
     options:
       filters: []
       heading_level: 3

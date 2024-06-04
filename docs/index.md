@@ -4,7 +4,7 @@ AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeFor
 * [FFD](ffd.md): which defines a class to perform 2D FFD of a given geometry,
 * [Mesh](mesh.md): which defines multiple classes to generate automatic meshes,
 * [Simulator](simulator.md): which defines a class to orchestrate CFD simulations including pre- and post-processing steps as well as progress monitoring,
-* [Optimizer](optimizer.md): which defines multiple classes to coordinate optimization procedures with `inspyred` or `pymoo`.
+* [Optimizer](optimizer.md) and [Evolution](optimizer.md): which define multiple classes to coordinate the optimization procedures with `inspyred` or `pymoo`
 
 ### Quick Installation
 AERO-Optim comes with few dependencies listed in [`requirements.txt`](https://github.com/mschouler/aero-optim/blob/master/requirements.txt) and recalled below:
@@ -96,7 +96,7 @@ INFO:src.simulator.simulator:last five values:
 !!! Warning
     In order for the command to pass, don't forget to fix the `exec_cmd` executable path in `input/naca_base.json`.
 
-A zoomed view of the mach field obtained with [`vizir4`](https://pyamg.saclay.inria.fr/vizir4.html) and the following command is given below:
+A zoomed view of the solution mach field plotted with [`vizir4`](https://pyamg.saclay.inria.fr/vizir4.html) and the following command is given below:
 ```sh
 # from naca_base
 /path/to/vizir -in output/WOLF/wolf_g0_c0/naca_base.mesh -sol output/WOLF/wolf_g0_c0/mach.solb
@@ -108,7 +108,7 @@ A zoomed view of the mach field obtained with [`vizir4`](https://pyamg.saclay.in
 !!! Note
     As of 2024, [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) is not open-source and may not be available to the user. Customization guidelines on how to adapt any part of the framework such as the `Simulator` are given in the [Customization](customization.md) tab.
 
-#### First Optimization: [`main_optim.py`]()
+#### First Optimization: [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/main_optim.py)
 This script orchestrates an optimization execution given the configuration parameters. For instance, `naca_base.json` and the command below executes a single iteration of the [Particle Swarm Optimization](https://pymoo.org/algorithms/soo/pso.html?highlight=particle%20swarm) algorithm of `inspyred` with 5 candidates and 8 variables of design sampled in [-0.5, 0.5] (in lattice units):
 ```py
 # from aero-optim to naca_base
