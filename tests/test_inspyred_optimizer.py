@@ -16,7 +16,7 @@ executable_path: str = os.path.join(os.getcwd(), "tests", "extras", "dummy_wolf.
 @pytest.fixture(scope='session')
 def opt() -> WolfOptimizer:
     check_file(sim_config_path)
-    config, _ = check_config(sim_config_path)
+    config, _, _ = check_config(sim_config_path)
     opt = WolfOptimizer(config)
     idx = opt.simulator.exec_cmd.index("@path")
     opt.simulator.exec_cmd[idx] = executable_path

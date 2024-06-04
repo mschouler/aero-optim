@@ -1,7 +1,26 @@
-## Optimizer Source Code
+## Optimizer and Evolution Source Code
 <hr style="border:1px solid grey">
 
-::: optim.optimizer.Optimizer
+### Evolution classes
+::: optim.evolution.Evolution
+    options:
+      filters: []
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+#### <span style="color:grey">inspyred Evolution</span>
+::: optim.evolution.InspyredEvolution
+    options:
+      filters: []
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+#### <span style="color:grey">pymoo Evolution</span>
+::: optim.evolution.PymooEvolution
     options:
       filters: []
       heading_level: 3
@@ -9,7 +28,16 @@
       show_root_toc_entry: true
 <hr style="border:1px solid grey">
 
-### <span style="color:grey">inspyred Optimizers</span>
+### Optimizer classes
+::: optim.optimizer.Optimizer
+    options:
+      filters: []
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+#### <span style="color:grey">inspyred Optimizers</span>
 ::: optim.inspyred_optimizer.WolfOptimizer
     options:
       filters: []
@@ -18,7 +46,7 @@
       show_root_toc_entry: true
 <hr style="border:1px light grey">
 
-::: optim.inspyred_optimizer.DEBUGOptimizer
+::: optim.inspyred_optimizer.DebugOptimizer
     options:
       filters: []
       heading_level: 4
@@ -26,7 +54,7 @@
       show_root_toc_entry: true
 <hr style="border:1px solid grey">
 
-### <span style="color:grey">pymoo Optimizers</span>
+#### <span style="color:grey">pymoo Optimizers</span>
 ::: optim.pymoo_optimizer.WolfOptimizer
     options:
       filters: []
@@ -35,7 +63,7 @@
       show_root_toc_entry: true
 <hr style="border:1px light grey">
 
-::: optim.pymoo_optimizer.DEBUGOptimizer
+::: optim.pymoo_optimizer.DebugOptimizer
     options:
       filters: []
       heading_level: 4
@@ -43,6 +71,7 @@
       show_root_toc_entry: true
 <hr style="border:1px solid grey">
 
+### Generator class
 ::: optim.generator.Generator
     options:
       filters: []

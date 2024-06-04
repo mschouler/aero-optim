@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import logging
 import os.path
@@ -31,10 +32,11 @@ def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[floa
 
 
 def check_config(
-        config: str,
-        optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str]:
+        config: str, custom_file: str = "",
+        optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str, str]:
     """
-    Ensures the presence of all required entries in config, then return config and study type.
+    Ensures the presence of all required entries in config,
+    then returns config (dict), custom_file (str) and study type (str).
     """
     # check for config and open it
     check_file(config)
@@ -66,10 +68,14 @@ def check_config(
     # check path and study_type correctness
     if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
-    if (optim or gmsh) and config_dict["study"]["study_type"] not in STUDY_TYPE:
-        raise Exception(f"ERROR -- wrong <study_type> specification in {config}[study]")
 
-    return config_dict, config_dict["study"]["study_type"]
+    # supersede custom_file entry
+    if custom_file:
+        config_dict["study"]["custom_file"] = custom_file
+
+    return (
+        config_dict, config_dict["study"].get("custom_file", ""), config_dict["study"]["study_type"]
+    )
 
 
 def check_file(filename: str):
@@ -142,3 +148,20 @@ def catch_signal():
     signals = [signal.SIGINT, signal.SIGPIPE, signal.SIGTERM]
     for s in signals:
         signal.signal(s, handle_signal)
+
+
+def get_custom_class(filename: str, module_name: str):
+    """
+    Returns a customized object (evolution, optimizer, simulator or mesh).
+    """
+    try:
+        spec_class = importlib.util.spec_from_file_location(module_name, filename)
+        if spec_class and spec_class.loader:
+            custom_class = importlib.util.module_from_spec(spec_class)
+            spec_class.loader.exec_module(custom_class)
+            MyClass = getattr(custom_class, module_name)
+            logger.info(f"successfully recovered {module_name}")
+            return MyClass
+    except Exception:
+        logger.warning(f"could not find {module_name} in {filename}")
+        return None

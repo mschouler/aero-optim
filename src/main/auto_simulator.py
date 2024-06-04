@@ -4,7 +4,7 @@ import time
 import sys
 
 from src.simulator.simulator import WolfSimulator
-from src.utils import check_config
+from src.utils import check_config, get_custom_class
 
 logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -22,7 +22,7 @@ def main():
     parser.add_argument("-o", "--outdir", type=str, help="simulation output directory", default="")
     args = parser.parse_args()
 
-    config, _ = check_config(args.config, sim=True)
+    config, custom_file, _ = check_config(args.config, sim=True)
 
     if args.outdir:
         print(f">> output directory superseded with {args.outdir}")
@@ -30,7 +30,10 @@ def main():
 
     t0 = time.time()
 
-    simulator = WolfSimulator(config)
+    SimulatorClass = get_custom_class(custom_file, "CustomSimulator") if custom_file else None
+    if not SimulatorClass:
+        SimulatorClass = WolfSimulator
+    simulator = SimulatorClass(config)
     simulator.execute_sim(meshfile=args.file)
 
     while True:

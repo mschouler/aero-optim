@@ -18,7 +18,7 @@ executable_path: str = os.path.join(os.getcwd(), "tests", "extras", "dummy_wolf.
 @pytest.fixture(scope='session')
 def opt() -> WolfOptimizer:
     check_file(sim_config_path)
-    config, _ = check_config(sim_config_path)
+    config, _, _ = check_config(sim_config_path)
     # as opposed to inspyred, pymoo considers the initial generation as the first one
     # test consistency is enforced by incrementing max_generations
     config["optim"]["max_generations"] = config["optim"]["max_generations"] + 1
