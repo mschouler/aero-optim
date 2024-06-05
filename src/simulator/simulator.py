@@ -153,6 +153,18 @@ class WolfSimulator(Simulator):
         **Pre-processes** and **executes** a Wolf simulation.
         """
         # Pre-process
+        sim_outdir, exec_cmd = self.pre_process(meshfile, gid, cid)
+        # Execution
+        self.execute(sim_outdir, exec_cmd, gid, cid)
+        # add gid entry to the results dictionary
+        if gid not in self.df_dict:
+            self.df_dict[gid] = {}
+
+    def pre_process(self, meshfile: str, gid: int, cid: int) -> tuple[str, list[str]]:
+        """
+        **Pre-processes** the simulation execution
+        and **returns** the execution command and directory.
+        """
         # get the simulation meshfile
         full_meshfile = meshfile if meshfile else self.config["simulator"]["file"]
         path_to_meshfile: str = "/".join(full_meshfile.split("/")[:-1])
@@ -173,7 +185,12 @@ class WolfSimulator(Simulator):
         exec_cmd = self.exec_cmd.copy()
         idx = self.exec_cmd.index("@.mesh")
         exec_cmd[idx] = os.path.join(meshfile)
-        # Execution
+        return sim_outdir, exec_cmd
+
+    def execute(self, sim_outdir: str, exec_cmd: list[str], gid: int, cid: int):
+        """
+        **Submits** the simulation subprocess and **updates** sim_pro.
+        """
         # move to the output directory, execute wolf and move back to the main directory
         os.chdir(sim_outdir)
         with open(f"{self.solver_name}_g{gid}_c{cid}.out", "wb") as out:
@@ -188,9 +205,6 @@ class WolfSimulator(Simulator):
         os.chdir(self.cwd)
         # append simulation to the list of active processes
         self.sim_pro.append(({"gid": gid, "cid": cid}, proc))
-        # add gid entry to the results dictionary
-        if gid not in self.df_dict:
-            self.df_dict[gid] = {}
 
     def monitor_sim_progress(self) -> int:
         """
