@@ -294,6 +294,8 @@ class DebugSimulator(Simulator):
         Dummy execute_sim.
         """
         logger.debug(f"problem dim: {len(candidate)}")
+        if gid not in self.df_dict:
+            self.df_dict[gid] = {}
         sim_res = self.compute_sol(candidate)
         self.post_process(sim_res, gid, cid)
 

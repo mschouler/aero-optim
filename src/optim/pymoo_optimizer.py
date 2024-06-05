@@ -146,9 +146,7 @@ class DebugOptimizer(Optimizer, Problem):
         **Executes** dummy simulations, **extracts** results
         and **returns** the list of candidates QoIs.
         """
-        logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
         gid = self.gen_ctr
-        self.simulator.df_dict[gid] = {}
         logger.debug(f"g{gid} evaluation..")
 
         # execute all candidates
