@@ -25,6 +25,7 @@ class Simulator(ABC):
         **Inner**
 
         - cwd (str): the working directory.
+        - solver_name (str): the solver name.
         - outdir (str): the output directory where the simulation results folder will be stored.
         - exec_cmd (list[str]): solver execution command.
         - ref_input (str): a simulation input file template.
@@ -36,6 +37,7 @@ class Simulator(ABC):
         self.cwd: str = os.getcwd()
         self.config = config
         self.process_config()
+        self.set_solver_name()
         # study params
         self.outdir: str = config["study"]["outdir"]
         # simulator params
@@ -69,6 +71,28 @@ class Simulator(ABC):
         with open(fname, 'w') as ftw:
             ftw.write("\n".join(ref_output))
             logger.info(f"input file saved to {fname}")
+
+    def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
+        """
+        **Returns** the path to the folder containing the simulation results.
+        """
+        return os.path.join(
+            self.outdir, f"{self.solver_name.capitalize()}",
+            f"{self.solver_name}_g{gid}_c{cid}"
+        )
+
+    def kill_all(self, *args, **kwargs):
+        """
+        **Kills** all active simulations.
+        """
+        logger.debug("kill_all not implemented")
+
+    @abstractmethod
+    def set_solver_name(self):
+        """
+        Sets the solver_name attribute.
+        """
+        self.solver_name = "solver"
 
     @abstractmethod
     def process_config(self):
@@ -124,17 +148,29 @@ class WolfSimulator(Simulator):
         if "post_process" not in self.config["simulator"]:
             logger.warning(f"no <post_process> entry in {self.config['simulator']}")
 
-    def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
+    def set_solver_name(self):
         """
-        **Returns** the path to the folder containing the simulation results.
+        **Sets** the solver name to wolf.
         """
-        return os.path.join(self.outdir, "WOLF", f"wolf_g{gid}_c{cid}")
+        self.solver_name = "wolf"
 
     def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0):
         """
         **Pre-processes** and **executes** a Wolf simulation.
         """
         # Pre-process
+        sim_outdir, exec_cmd = self.pre_process(meshfile, gid, cid)
+        # Execution
+        self.execute(sim_outdir, exec_cmd, gid, cid)
+        # add gid entry to the results dictionary
+        if gid not in self.df_dict:
+            self.df_dict[gid] = {}
+
+    def pre_process(self, meshfile: str, gid: int, cid: int) -> tuple[str, list[str]]:
+        """
+        **Pre-processes** the simulation execution
+        and **returns** the execution command and directory.
+        """
         # get the simulation meshfile
         full_meshfile = meshfile if meshfile else self.config["simulator"]["file"]
         path_to_meshfile: str = "/".join(full_meshfile.split("/")[:-1])
@@ -155,12 +191,17 @@ class WolfSimulator(Simulator):
         exec_cmd = self.exec_cmd.copy()
         idx = self.exec_cmd.index("@.mesh")
         exec_cmd[idx] = os.path.join(meshfile)
-        # Execution
+        return sim_outdir, exec_cmd
+
+    def execute(self, sim_outdir: str, exec_cmd: list[str], gid: int, cid: int):
+        """
+        **Submits** the simulation subprocess and **updates** sim_pro.
+        """
         # move to the output directory, execute wolf and move back to the main directory
         os.chdir(sim_outdir)
-        with open(f"wolf_g{gid}_c{cid}.out", "wb") as out:
-            with open(f"wolf_g{gid}_c{cid}.err", "wb") as err:
-                logger.info(f"execute simulation g{gid}, c{cid} with Wolf")
+        with open(f"{self.solver_name}_g{gid}_c{cid}.out", "wb") as out:
+            with open(f"{self.solver_name}_g{gid}_c{cid}.err", "wb") as err:
+                logger.info(f"execute simulation g{gid}, c{cid} with {self.solver_name}")
                 proc = subprocess.Popen(exec_cmd,
                                         env=os.environ,
                                         stdin=subprocess.DEVNULL,
@@ -170,9 +211,6 @@ class WolfSimulator(Simulator):
         os.chdir(self.cwd)
         # append simulation to the list of active processes
         self.sim_pro.append(({"gid": gid, "cid": cid}, proc))
-        # add gid entry to the results dictionary
-        if gid not in self.df_dict:
-            self.df_dict[gid] = {}
 
     def monitor_sim_progress(self) -> int:
         """
@@ -245,6 +283,12 @@ class DebugSimulator(Simulator):
         """
         logger.debug("process_config not implemented")
 
+    def set_solver_name(self):
+        """
+        Dummy set_solver_name.
+        """
+        self.solver_name = "debug"
+
     def execute_sim(self, candidate: list[float], gid: int = 0, cid: int = 0):
         """
         Dummy execute_sim.
@@ -274,11 +318,5 @@ class DebugSimulator(Simulator):
         logger.info(
             f"g{gid}, c{cid} converged in {len(df)} it."
         )
-        logger.info(f"last five values:\n{df.tail().to_string(index=False)}")
+        logger.info(f"last values:\n{df.tail().to_string(index=False)}")
         self.df_dict[gid][cid] = df
-
-    def kill_all(self):
-        """
-        Dummy kill_all.
-        """
-        logger.debug("kill_all not implemented")
