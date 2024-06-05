@@ -25,6 +25,7 @@ class Simulator(ABC):
         **Inner**
 
         - cwd (str): the working directory.
+        - solver_name (str): the solver name.
         - outdir (str): the output directory where the simulation results folder will be stored.
         - exec_cmd (list[str]): solver execution command.
         - ref_input (str): a simulation input file template.
@@ -36,6 +37,7 @@ class Simulator(ABC):
         self.cwd: str = os.getcwd()
         self.config = config
         self.process_config()
+        self.set_solver_name()
         # study params
         self.outdir: str = config["study"]["outdir"]
         # simulator params
@@ -69,6 +71,22 @@ class Simulator(ABC):
         with open(fname, 'w') as ftw:
             ftw.write("\n".join(ref_output))
             logger.info(f"input file saved to {fname}")
+
+    def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
+        """
+        **Returns** the path to the folder containing the simulation results.
+        """
+        return os.path.join(
+            self.outdir, f"{self.solver_name.capitalize()}",
+            f"{self.solver_name}_g{gid}_c{cid}"
+        )
+
+    @abstractmethod
+    def set_solver_name(self):
+        """
+        Sets the solver_name attribute.
+        """
+        self.solver_name = "solver"
 
     @abstractmethod
     def process_config(self):
@@ -124,11 +142,11 @@ class WolfSimulator(Simulator):
         if "post_process" not in self.config["simulator"]:
             logger.warning(f"no <post_process> entry in {self.config['simulator']}")
 
-    def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
+    def set_solver_name(self):
         """
-        **Returns** the path to the folder containing the simulation results.
+        **Sets** the solver name to wolf.
         """
-        return os.path.join(self.outdir, "WOLF", f"wolf_g{gid}_c{cid}")
+        self.solver_name = "wolf"
 
     def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0):
         """
@@ -158,9 +176,9 @@ class WolfSimulator(Simulator):
         # Execution
         # move to the output directory, execute wolf and move back to the main directory
         os.chdir(sim_outdir)
-        with open(f"wolf_g{gid}_c{cid}.out", "wb") as out:
-            with open(f"wolf_g{gid}_c{cid}.err", "wb") as err:
-                logger.info(f"execute simulation g{gid}, c{cid} with Wolf")
+        with open(f"{self.solver_name}_g{gid}_c{cid}.out", "wb") as out:
+            with open(f"{self.solver_name}_g{gid}_c{cid}.err", "wb") as err:
+                logger.info(f"execute simulation g{gid}, c{cid} with {self.solver_name}")
                 proc = subprocess.Popen(exec_cmd,
                                         env=os.environ,
                                         stdin=subprocess.DEVNULL,
