@@ -283,6 +283,12 @@ class DebugSimulator(Simulator):
         """
         logger.debug("process_config not implemented")
 
+    def set_solver_name(self):
+        """
+        Dummy set_solver_name.
+        """
+        self.solver_name = "debug"
+
     def execute_sim(self, candidate: list[float], gid: int = 0, cid: int = 0):
         """
         Dummy execute_sim.
