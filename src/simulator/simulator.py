@@ -81,6 +81,12 @@ class Simulator(ABC):
             f"{self.solver_name}_g{gid}_c{cid}"
         )
 
+    def kill_all(self, *args, **kwargs):
+        """
+        **Kills** all active simulations.
+        """
+        logger.debug("kill_all not implemented")
+
     @abstractmethod
     def set_solver_name(self):
         """
@@ -308,9 +314,3 @@ class DebugSimulator(Simulator):
         )
         logger.info(f"last values:\n{df.tail().to_string(index=False)}")
         self.df_dict[gid][cid] = df
-
-    def kill_all(self):
-        """
-        Dummy kill_all.
-        """
-        logger.debug("kill_all not implemented")
