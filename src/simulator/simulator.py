@@ -306,7 +306,7 @@ class DebugSimulator(Simulator):
         logger.info(
             f"g{gid}, c{cid} converged in {len(df)} it."
         )
-        logger.info(f"last five values:\n{df.tail().to_string(index=False)}")
+        logger.info(f"last values:\n{df.tail().to_string(index=False)}")
         self.df_dict[gid][cid] = df
 
     def kill_all(self):
