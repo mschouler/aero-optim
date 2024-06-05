@@ -77,7 +77,7 @@ class Simulator(ABC):
         **Returns** the path to the folder containing the simulation results.
         """
         return os.path.join(
-            self.outdir, f"{self.solver_name.capitalize()}",
+            self.outdir, f"{self.solver_name.upper()}",
             f"{self.solver_name}_g{gid}_c{cid}"
         )
 
