@@ -5,8 +5,8 @@ import numpy as np
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.core.problem import Problem
-from src.optim.optimizer import Optimizer, shoe_lace
-from src.simulator.simulator import DebugSimulator, WolfSimulator
+from src.optim.optimizer import DebugOptimizer, Optimizer, shoe_lace
+from src.simulator.simulator import WolfSimulator
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -120,26 +120,15 @@ class WolfOptimizer(Optimizer, Problem):
         self.plot_progress(self.gen_ctr, fig_name, baseline_value=self.baseline_CD)
 
 
-class DebugOptimizer(Optimizer, Problem):
+class PymooDebugOptimizer(DebugOptimizer, Problem):
     def __init__(self, config: dict):
         """
         Dummy init.
         """
-        Optimizer.__init__(self, config, debug=True)
+        DebugOptimizer.__init__(self, config)
         Problem.__init__(
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=0, xl=self.bound[0], xu=self.bound[1]
         )
-
-    def set_simulator(self):
-        """
-        **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
-        """
-        super().set_simulator()
-        if not self.SimulatorClass:
-            self.SimulatorClass = DebugSimulator
-
-    def set_inner(self):
-        return
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """
@@ -147,14 +136,9 @@ class DebugOptimizer(Optimizer, Problem):
         and **returns** the list of candidates QoIs.
         """
         gid = self.gen_ctr
-        logger.debug(f"g{gid} evaluation..")
 
         # execute all candidates
-        for cid, cand in enumerate(X):
-            logger.debug(f"g{gid}, c{cid} cand {cand}")
-            self.simulator.execute_sim(cand, gid, cid)
-            logger.debug(f"g{gid}, c{cid} cand {cand}, "
-                         f"fitness {self.simulator.df_dict[gid][cid]['result'].iloc[-1]}")
+        self.execute_candidates(X, gid)
 
         for cid, _ in enumerate(X):
             self.J.append(self.simulator.df_dict[gid][cid]["result"].iloc[-1])
@@ -165,7 +149,7 @@ class DebugOptimizer(Optimizer, Problem):
 
     def _observe(self, pop_fitness: np.ndarray):
         """
-        Dummy observe function.
+        Dummy _observe function.
         """
         # extract best profiles
         gid = self.gen_ctr - 1
@@ -178,7 +162,7 @@ class DebugOptimizer(Optimizer, Problem):
 
     def final_observe(self):
         """
-        Dummy final oberve function.
+        Dummy final_observe function.
         """
         logger.info(f"plotting populations statistics after {self.gen_ctr} generations..")
         fig_name = f"pymoo_optim_g{self.gen_ctr}_c{self.doe_size}.png"

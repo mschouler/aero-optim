@@ -12,10 +12,11 @@ from random import Random
 from typing import Any
 
 from src.ffd.ffd import FFD_2D
-from src.optim.generator import Generator
 from src.mesh.naca_base_mesh import NACABaseMesh
 from src.mesh.naca_block_mesh import NACABlockMesh
 from src.mesh.cascade_mesh import CascadeMesh
+from src.optim.generator import Generator
+from src.simulator.simulator import DebugSimulator
 from src.utils import check_dir, get_custom_class
 
 logger = logging.getLogger(__name__)
@@ -381,3 +382,33 @@ class Optimizer(ABC):
         """
         Computes all candidates outputs and return the optimizer list of QoIs.
         """
+
+
+class DebugOptimizer(Optimizer, ABC):
+    def __init__(self, config: dict):
+        """
+        Dummy init.
+        """
+        super().__init__(config, debug=True)
+
+    def set_simulator(self):
+        """
+        **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
+        """
+        super().set_simulator()
+        if not self.SimulatorClass:
+            self.SimulatorClass = DebugSimulator
+
+    def set_inner(self):
+        return
+
+    def execute_candidates(self, candidates: list[Individual] | np.ndarray, gid: int):
+        """
+        **Executes** all candidates and **waits** for them to finish.
+        """
+        logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
+        for cid, cand in enumerate(candidates):
+            logger.debug(f"g{gid}, c{cid} cand {cand}")
+            self.simulator.execute_sim(cand, gid, cid)
+            logger.debug(f"g{gid}, c{cid} cand {cand}, "
+                         f"fitness {self.simulator.df_dict[gid][cid]['result'].iloc[-1]}")
