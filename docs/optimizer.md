@@ -40,9 +40,9 @@ Regardless of the optimization library, the `Optimizer` class acts as an `evalua
     All optimizer parameters are described in their respective class definition (see [`Optimizer`](dev_optimizer.md#src.optimizer.Optimizer), [`WolfOptimizer (inspyred)`](dev_optimizer.md#src.inspyred_optimizer.WolfOptimizer), [`WolfOptimizer (pymoo)`](dev_optimizer.md#src.pymoo_optimizer.WolfOptimizer)).
 
 ### Wolf Optimizer
-The `WolfOptimizer` class illustrates how `Optimizer` can be inherited to perform a `Wolf`-based optimization.
+The `WolfOptimizer` class illustrates how `Optimizer` can be inherited to perform a `Wolf`-based optimization. **It is the default optimizer used when running `optim`**.
 
-Regardless of the optimization library, tt first instantiates a `WolfSimulator` attribute that is then used in the `_evaluate` method where for all candidates, the following steps are performed:
+Regardless of the optimization library, it first instantiates a `WolfSimulator` attribute that is then used in the `_evaluate` method where for all candidates, the following steps are performed:
 
 1) geometry deformation,
 
@@ -60,7 +60,7 @@ In the end, all simulations QoIs are returned either as a list of floats (with `
 The overall optimization progress is illustrated as the evolution of the generations statistics plotted and saved with the `final_observe` method.
 
 ### Debug Optimizer
-The `DebugOptimizer` class was introduced to facilitate prototyping and debugging. It is based on the `DebugSimulator` and follows a simplified structure of a classic optimizer without constraints, no geometry deformation nor meshing but where candidates are simply evaluation of the [Ackley function](https://pymoo.org/problems/single/ackley.html?highlight=ackley).
+The `DebugOptimizer` class was introduced to facilitate prototyping and debugging. It is based on the `DebugSimulator` and follows a simplified structure of a classic optimizer without constraints, no geometry deformation nor meshing but where candidates are simply evaluation of the [Ackley function](https://pymoo.org/problems/single/ackley.html?highlight=ackley). **This optimizer is used when running `optim` with the `--debug` option**.
 
 In addition, the `_observe` method does not generate  any figure but only updates the optimization statistics which are finally plotted and saved with `final_observe`. 
 
