@@ -44,11 +44,11 @@ class WolfOptimizer(Optimizer, Problem):
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=2, xl=self.bound[0], xu=self.bound[1]
         )
 
-    def set_simulator(self):
+    def set_simulator_class(self):
         """
-        **Sets** the simulator object as custom if found, as WolfSimulator otherwise.
+        **Sets** the simulator class as custom if found, as WolfSimulator otherwise.
         """
-        super().set_simulator()
+        super().set_simulator_class()
         if not self.SimulatorClass:
             self.SimulatorClass = WolfSimulator
 

@@ -124,8 +124,8 @@ class Optimizer(ABC):
         )
         if not debug:
             self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
-            self.set_gmsh_mesh()
-        self.set_simulator()
+            self.set_gmsh_mesh_class()
+        self.set_simulator_class()
         self.simulator = self.SimulatorClass(self.config)
         # population statistics
         self.mean: list[float] = []
@@ -174,9 +174,9 @@ class Optimizer(ABC):
             )
             self.config["gmsh"]["view"]["GUI"] = False
 
-    def set_gmsh_mesh(self):
+    def set_gmsh_mesh_class(self):
         """
-        **Instantiates** the mesher object as custom if found,
+        **Instantiates** the mesher class as custom if found,
         as one of the default meshers otherwise.
         """
         self.MeshClass = (
@@ -384,9 +384,9 @@ class Optimizer(ABC):
         np.savetxt(os.path.join(self.outdir, "fitnesses.txt"), self.J)
 
     @abstractmethod
-    def set_simulator(self):
+    def set_simulator_class(self):
         """
-        Instantiates the simulator object with CustomSimulator if found.
+        Instantiates the simulator class with CustomSimulator if found.
         """
         self.SimulatorClass = (
             get_custom_class(self.custom_file, "CustomSimulator") if self.custom_file else None
@@ -406,11 +406,11 @@ class DebugOptimizer(Optimizer, ABC):
         """
         super().__init__(config, debug=True)
 
-    def set_simulator(self):
+    def set_simulator_class(self):
         """
-        **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
+        **Sets** the simulator class as custom if found, as DebugSimulator otherwise.
         """
-        super().set_simulator()
+        super().set_simulator_class()
         if not self.SimulatorClass:
             self.SimulatorClass = DebugSimulator
 

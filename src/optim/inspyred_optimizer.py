@@ -41,11 +41,11 @@ class WolfOptimizer(Optimizer):
         """
         super().__init__(config)
 
-    def set_simulator(self):
+    def set_simulator_class(self):
         """
-        **Sets** the simulator object as custom if found, as WolfSimulator otherwise.
+        **Sets** the simulator class as custom if found, as WolfSimulator otherwise.
         """
-        super().set_simulator()
+        super().set_simulator_class()
         if not self.SimulatorClass:
             self.SimulatorClass = WolfSimulator
 
