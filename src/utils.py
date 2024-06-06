@@ -42,7 +42,7 @@ def check_config(
     check_file(config)
     with open(config) as jfile:
         config_dict = json.load(jfile)
-    print("general check config..")
+    print("AERO-Optim: general check config..")
 
     # look for upper level categories
     if "study" not in config_dict:
