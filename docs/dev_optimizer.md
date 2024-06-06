@@ -37,6 +37,14 @@
       show_root_toc_entry: true
 <hr style="border:1px light grey">
 
+::: optim.optimizer.DebugOptimizer
+    options:
+      filters: []
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
 #### <span style="color:grey">inspyred Optimizers</span>
 ::: optim.inspyred_optimizer.WolfOptimizer
     options:
@@ -46,7 +54,7 @@
       show_root_toc_entry: true
 <hr style="border:1px light grey">
 
-::: optim.inspyred_optimizer.DebugOptimizer
+::: optim.inspyred_optimizer.InspyredDebugOptimizer
     options:
       filters: []
       heading_level: 4
@@ -63,7 +71,7 @@
       show_root_toc_entry: true
 <hr style="border:1px light grey">
 
-::: optim.pymoo_optimizer.DebugOptimizer
+::: optim.pymoo_optimizer.PymooDebugOptimizer
     options:
       filters: []
       heading_level: 4

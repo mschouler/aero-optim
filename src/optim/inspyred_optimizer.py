@@ -5,8 +5,8 @@ import numpy as np
 
 from inspyred.ec import Individual
 from random import Random
-from src.optim.optimizer import Optimizer, shoe_lace
-from src.simulator.simulator import WolfSimulator, DebugSimulator
+from src.optim.optimizer import DebugOptimizer, Optimizer, shoe_lace
+from src.simulator.simulator import WolfSimulator
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -139,38 +139,16 @@ class WolfOptimizer(Optimizer):
         self.plot_progress(self.gen_ctr - 1, fig_name, baseline_value=self.baseline_CD)
 
 
-class DebugOptimizer(Optimizer):
-    def __init__(self, config: dict):
-        """
-        Dummy init.
-        """
-        super().__init__(config, debug=True)
-
-    def set_simulator(self):
-        """
-        **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
-        """
-        super().set_simulator()
-        if not self.SimulatorClass:
-            self.SimulatorClass = DebugSimulator
-
-    def set_inner(self):
-        return
-
+class InspyredDebugOptimizer(DebugOptimizer):
     def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """
         **Executes** dummy simulations, **extracts** results
         and **returns** the list of candidates QoIs.
         """
         gid = self.gen_ctr
-        logger.debug(f"g{gid} evaluation..")
 
         # execute all candidates
-        for cid, cand in enumerate(candidates):
-            logger.debug(f"g{gid}, c{cid} cand {cand}")
-            self.simulator.execute_sim(cand, gid, cid)
-            logger.debug(f"g{gid}, c{cid} cand {cand}, "
-                         f"fitness {self.simulator.df_dict[gid][cid]['result'].iloc[-1]}")
+        self.execute_candidates(candidates, gid)
 
         for cid, _ in enumerate(candidates):
             self.J.append(self.simulator.df_dict[gid][cid]["result"].iloc[-1])
@@ -186,7 +164,7 @@ class DebugOptimizer(Optimizer):
             args: dict
     ):
         """
-        Dummy observe function.
+        Dummy _observe function.
         """
         # extract best profiles
         gid = num_generations
@@ -201,7 +179,7 @@ class DebugOptimizer(Optimizer):
 
     def final_observe(self):
         """
-        Dummy final oberve function.
+        Dummy final_observe function.
         """
         fig_name = f"inspyred_optim_g{self.gen_ctr - 1}_c{self.doe_size}.png"
         self.plot_progress(self.gen_ctr - 1, fig_name)

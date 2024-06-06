@@ -2,7 +2,7 @@ import inspyred
 import logging
 import operator
 
-from src.optim.inspyred_optimizer import DebugOptimizer
+from src.optim.inspyred_optimizer import InspyredDebugOptimizer
 from src.optim.evolution import InspyredEvolution
 from src.simulator.simulator import DebugSimulator
 
@@ -15,7 +15,7 @@ class CustomSimulator(DebugSimulator):
         logger.info("INIT CUSTOM SIMULATOR")
 
 
-class CustomOptimizer(DebugOptimizer):
+class CustomOptimizer(InspyredDebugOptimizer):
     def __init__(self, config: dict):
         super().__init__(config)
         logger.info("INIT CUSTOM OPTIMIZER")

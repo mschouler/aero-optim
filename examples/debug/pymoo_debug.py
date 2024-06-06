@@ -5,7 +5,7 @@ from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 
 from src.optim.evolution import PymooEvolution
-from src.optim.pymoo_optimizer import DebugOptimizer
+from src.optim.pymoo_optimizer import PymooDebugOptimizer
 from src.simulator.simulator import DebugSimulator
 
 logger = logging.getLogger()
@@ -17,7 +17,7 @@ class CustomSimulator(DebugSimulator):
         logger.info("INIT CUSTOM SIMULATOR")
 
 
-class CustomOptimizer(DebugOptimizer):
+class CustomOptimizer(PymooDebugOptimizer):
     def __init__(self, config: dict):
         super().__init__(config)
         logger.info("INIT CUSTOM OPTIMIZER")
