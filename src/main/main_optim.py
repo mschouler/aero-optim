@@ -21,6 +21,7 @@ def main():
     args = parser.parse_args()
 
     t0 = time.time()
+    print("AERO-Optim: starts execution..")
 
     # check config and copy to outdir
     config, custom_file, _ = check_config(args.config, args.custom_file, optim=True)
@@ -49,7 +50,9 @@ def main():
     # optimization
     try:
         evolution.evolve()
-        print(f"successful execution in {time.time() - t0} seconds.")
+        print("AERO-Optim: saves results..")
+        evolution.optimizer.save_results()
+        print(f"AERO-Optim: successful execution in {time.time() - t0} seconds.")
 
     except Exception as e:
         logger.error(

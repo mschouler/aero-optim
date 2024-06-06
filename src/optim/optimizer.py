@@ -87,6 +87,7 @@ class Optimizer(ABC):
         - max (list[float]): list of populations max fitness.
         - min (list[float]): list of populations min fitness.
         - J (list[float]): the list of all generated candidates fitnesses.
+        - inputs (list[list[np.ndarray]]): all input candidates.
         - ffd_profiles (list[list[np.ndarray]]): all deformed geometries {gid: {cid: ffd_profile}}.
         - QoI (str): the quantity of intereset to minimize/maximize.
         - n_plt (int): the number of best candidates results to display after each evaluation.
@@ -133,6 +134,7 @@ class Optimizer(ABC):
         self.min: list[float] = []
         # set other inner optimization variables
         self.J: list[float] = []
+        self.inputs: list[list[np.ndarray]] = []
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = self.config["optim"].get("QoI", "CD")
         self.n_plt: int = self.config["optim"].get("n_plt", 5)
@@ -234,7 +236,9 @@ class Optimizer(ABC):
         """
         logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
         self.ffd_profiles.append([])
+        self.inputs.append([])
         for cid, cand in enumerate(candidates):
+            self.inputs[gid].append(np.array(cand))
             ffd_file, ffd_profile = self.deform(cand, gid, cid)
             self.ffd_profiles[gid].append(ffd_profile)
             # meshing with proper sigint management
@@ -368,6 +372,17 @@ class Optimizer(ABC):
         plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
 
+    def save_results(self):
+        """
+        **Saves** candidates and fitnesses to file.
+        """
+        logger.info(f"optimization results saved to {self.outdir}")
+        np.savetxt(
+            os.path.join(self.outdir, "candidates.txt"),
+            np.reshape(self.inputs, (-1, self.n_design))
+        )
+        np.savetxt(os.path.join(self.outdir, "fitnesses.txt"), self.J)
+
     @abstractmethod
     def set_simulator(self):
         """
@@ -407,7 +422,9 @@ class DebugOptimizer(Optimizer, ABC):
         **Executes** all candidates and **waits** for them to finish.
         """
         logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
+        self.inputs.append([])
         for cid, cand in enumerate(candidates):
+            self.inputs[gid].append(np.array(cand))
             logger.debug(f"g{gid}, c{cid} cand {cand}")
             self.simulator.execute_sim(cand, gid, cid)
             logger.debug(f"g{gid}, c{cid} cand {cand}, "
