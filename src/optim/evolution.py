@@ -6,13 +6,13 @@ from typing import Type
 
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
-from src.optim.pymoo_optimizer import DebugOptimizer as PymooDebugOptimizer
-from src.optim.pymoo_optimizer import WolfOptimizer as PymooWolfOptimizer
+from src.optim.pymoo_optimizer import PymooDebugOptimizer
+from src.optim.pymoo_optimizer import PymooWolfOptimizer
 from src.optim.pymoo_optimizer import select_strategy as pymoo_select_strategy
 
 from inspyred.ec import Bounder, terminators
-from src.optim.inspyred_optimizer import DebugOptimizer as InspyredDebugOptimizer
-from src.optim.inspyred_optimizer import WolfOptimizer as InspyredWolfOptimizer
+from src.optim.inspyred_optimizer import InspyredDebugOptimizer
+from src.optim.inspyred_optimizer import InspyredWolfOptimizer
 from src.optim.inspyred_optimizer import select_strategy as inspyred_select_strategy
 
 from src.optim.optimizer import Optimizer

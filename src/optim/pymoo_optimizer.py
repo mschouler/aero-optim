@@ -5,8 +5,7 @@ import numpy as np
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.core.problem import Problem
-from src.optim.optimizer import DebugOptimizer, Optimizer, shoe_lace
-from src.simulator.simulator import WolfSimulator
+from src.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -27,7 +26,7 @@ def select_strategy(strategy_name: str, doe_size: int, X0: np.ndarray, options: 
     return ea
 
 
-class WolfOptimizer(Optimizer, Problem):
+class PymooWolfOptimizer(WolfOptimizer, Problem):
     """
     This class implements a Wolf based Optimizer.
     """
@@ -39,18 +38,10 @@ class WolfOptimizer(Optimizer, Problem):
 
         - config (dict): the config file dictionary.
         """
-        Optimizer.__init__(self, config)
+        WolfOptimizer.__init__(self, config)
         Problem.__init__(
             self, n_var=self.n_design, n_obj=1, n_ieq_constr=2, xl=self.bound[0], xu=self.bound[1]
         )
-
-    def set_simulator_class(self):
-        """
-        **Sets** the simulator class as custom if found, as WolfSimulator otherwise.
-        """
-        super().set_simulator_class()
-        if not self.SimulatorClass:
-            self.SimulatorClass = WolfSimulator
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """
@@ -69,10 +60,10 @@ class WolfOptimizer(Optimizer, Problem):
 
         self.gen_ctr += 1
         out["F"] = np.array(self.J[-self.doe_size:])
-        out["G"] = self.apply_inequality_constraints(gid)
+        out["G"] = self.apply_constraints(gid)
         self._observe(out["F"])
 
-    def apply_inequality_constraints(self, gid: int) -> np.ndarray:
+    def apply_constraints(self, gid: int) -> np.ndarray:
         """
         **Returns** a constraint array ensuring negative inequality</br>
         see https://pymoo.org/constraints/index.html
