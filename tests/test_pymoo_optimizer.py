@@ -6,7 +6,7 @@ from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 
-from src.optim.pymoo_optimizer import WolfOptimizer
+from src.optim.pymoo_optimizer import PymooWolfOptimizer
 from src.utils import check_file, check_config
 
 sim_config_path: str = "tests/extras/test_optimizer_config.json"
@@ -16,13 +16,13 @@ executable_path: str = os.path.join(os.getcwd(), "tests", "extras", "dummy_wolf.
 
 
 @pytest.fixture(scope='session')
-def opt() -> WolfOptimizer:
+def opt() -> PymooWolfOptimizer:
     check_file(sim_config_path)
     config, _, _ = check_config(sim_config_path)
     # as opposed to inspyred, pymoo considers the initial generation as the first one
     # test consistency is enforced by incrementing max_generations
     config["optim"]["max_generations"] = config["optim"]["max_generations"] + 1
-    opt = WolfOptimizer(config)
+    opt = PymooWolfOptimizer(config)
     idx = opt.simulator.exec_cmd.index("@path")
     opt.simulator.exec_cmd[idx] = executable_path
     return opt
@@ -43,7 +43,7 @@ def dummy_observe(pop_fitness: np.ndarray):
     return
 
 
-def test_ins_optimizer(opt: WolfOptimizer):
+def test_ins_optimizer(opt: PymooWolfOptimizer):
     # simplify deform and mesh methods
     setattr(opt, "deform", dummy_deform)
     setattr(opt, "mesh", dummy_mesh)
