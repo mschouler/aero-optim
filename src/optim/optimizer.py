@@ -456,9 +456,9 @@ class WolfOptimizer(Optimizer, ABC):
 
     def save_results(self):
         super().save_results()
-        logger.info(f"results dictionary saved to {self.outdir}")
-        with open(os.path.join(self.outdir, "df_dict.pickle"), "wb") as handle:
+        with open(os.path.join(self.outdir, "df_dict.pkl"), "wb") as handle:
             pickle.dump(self.simulator.df_dict, handle)
+        logger.info(f"results dictionary saved to {self.outdir}")
 
     @abstractmethod
     def apply_constraints(self, *args, **kwargs):
