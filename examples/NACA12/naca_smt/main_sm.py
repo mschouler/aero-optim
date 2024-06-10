@@ -72,8 +72,6 @@ def main():
         with open(os.path.join(outdir, "model.pkl"), "wb") as handle:
             pickle.dump(custom_sm, handle)
         print(f"SM: model saved to {outdir}")
-        import sys
-        sys.exit(0)
 
     # 2. SM based optimization
     print("SM: surrogate model based optimization..")
