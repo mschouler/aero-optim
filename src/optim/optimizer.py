@@ -244,7 +244,7 @@ class Optimizer(ABC):
 
         # wait for last candidates to finish
         while self.simulator.monitor_sim_progress() > 0:
-            time.sleep(1)
+            time.sleep(0.1)
 
     def compute_statistics(self, gen_fitness: np.ndarray):
         """
