@@ -46,7 +46,7 @@
 <hr style="border:1px light grey">
 
 #### <span style="color:grey">inspyred Optimizers</span>
-::: optim.inspyred_optimizer.WolfOptimizer
+::: optim.inspyred_optimizer.InspyredWolfOptimizer
     options:
       filters: []
       heading_level: 4
@@ -63,7 +63,7 @@
 <hr style="border:1px solid grey">
 
 #### <span style="color:grey">pymoo Optimizers</span>
-::: optim.pymoo_optimizer.WolfOptimizer
+::: optim.pymoo_optimizer.PymooWolfOptimizer
     options:
       filters: []
       heading_level: 4
