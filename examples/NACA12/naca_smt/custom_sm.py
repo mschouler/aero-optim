@@ -3,8 +3,6 @@ import logging
 import numpy as np
 import pandas as pd
 
-from typing import Any
-
 from src.optim.pymoo_optimizer import PymooWolfOptimizer
 from src.simulator.simulator import Simulator
 from src.utils import check_file
@@ -43,7 +41,7 @@ class CustomOptimizer(PymooWolfOptimizer):
     def set_gmsh_mesh_class(self):
         self.MeshClass = None
 
-    def execute_candidates(self, candidates: list[Any] | np.ndarray, gid: int):
+    def execute_candidates(self, candidates, gid):
         logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
         self.ffd_profiles.append([])
         self.inputs.append([])
