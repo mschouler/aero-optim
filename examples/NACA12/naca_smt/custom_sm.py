@@ -28,7 +28,7 @@ class CustomSimulator(Simulator):
         with open(model_file, "rb") as handle:
             self.model = pickle.load(handle)
 
-    def execute_sim(self, candidates: np.ndarray, gid: int = 0):
+    def execute_sim(self, candidates: list[float] | np.ndarray, gid: int = 0):
         logger.info(f"execute simulations g{gid} with {self.solver_name}")
         cd, cl = self.model.predict(np.array(candidates))
         self.df_dict[gid] = {
