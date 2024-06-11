@@ -58,6 +58,7 @@ class CustomEvolution(InspyredEvolution):
             min(enumerate(self.optimizer.J), key=operator.itemgetter(1))
         )
         gid, cid = (index // self.optimizer.doe_size, index % self.optimizer.doe_size)
-        logger.info(f"optimal(J): {opt_J}, "
-                    f"D: {' '.join([str(d) for d in best.candidate[:self.optimizer.n_design]])} "
-                    f"[g{gid}, c{cid}]")
+        logger.info(f"optimal J: {opt_J} (J_ins: {best.fitness}),\n"
+                    f"D: {' '.join([str(d) for d in self.optimizer.inputs[gid][cid]])}\n"
+                    f"D_ins: {' '.join([str(d) for d in best.candidate[:self.optimizer.n_design]])}"
+                    f"\n[g{gid}, c{cid}]")
