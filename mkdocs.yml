@@ -18,7 +18,7 @@ nav:
     - 'Optimizer Module': dev_optimizer.md
     - 'Coverage Report' : coverage.md
   - Optimization Examples:
-    - None
+    - 'Surrogate based Optimization' : example_smo.md
 theme: 
   name: readthedocs
   logo: Figures/logo.png
