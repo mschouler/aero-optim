@@ -2,9 +2,9 @@ import inspyred
 import logging
 import operator
 
-from src.optim.inspyred_optimizer import InspyredDebugOptimizer
-from src.optim.evolution import InspyredEvolution
-from src.simulator.simulator import DebugSimulator
+from aero_optim.optim.inspyred_optimizer import InspyredDebugOptimizer
+from aero_optim.optim.evolution import InspyredEvolution
+from aero_optim.simulator.simulator import DebugSimulator
 
 logger = logging.getLogger()
 

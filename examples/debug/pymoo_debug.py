@@ -4,9 +4,9 @@ from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 
-from src.optim.evolution import PymooEvolution
-from src.optim.pymoo_optimizer import PymooDebugOptimizer
-from src.simulator.simulator import DebugSimulator
+from aero_optim.optim.evolution import PymooEvolution
+from aero_optim.optim.pymoo_optimizer import PymooDebugOptimizer
+from aero_optim.simulator.simulator import DebugSimulator
 
 logger = logging.getLogger()
 

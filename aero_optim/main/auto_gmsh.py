@@ -2,10 +2,10 @@ import argparse
 import logging
 import sys
 
-from src.utils import check_config, get_custom_class
-from src.mesh.cascade_mesh import CascadeMesh
-from src.mesh.naca_base_mesh import NACABaseMesh
-from src.mesh.naca_block_mesh import NACABlockMesh
+from aero_optim.utils import check_config, get_custom_class
+from aero_optim.mesh.cascade_mesh import CascadeMesh
+from aero_optim.mesh.naca_base_mesh import NACABaseMesh
+from aero_optim.mesh.naca_block_mesh import NACABlockMesh
 
 logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

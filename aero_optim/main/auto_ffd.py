@@ -7,8 +7,8 @@ import os
 import sys
 
 from scipy.stats import qmc
-from src.ffd.ffd import FFD_2D
-from src.utils import check_file
+from aero_optim.ffd.ffd import FFD_2D
+from aero_optim.utils import check_file
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger()

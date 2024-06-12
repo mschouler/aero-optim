@@ -1,8 +1,8 @@
 import os
 
-from src.mesh.naca_base_mesh import NACABaseMesh
-from src.mesh.naca_block_mesh import NACABlockMesh
-from src.utils import check_config, check_file
+from aero_optim.mesh.naca_base_mesh import NACABaseMesh
+from aero_optim.mesh.naca_block_mesh import NACABlockMesh
+from aero_optim.utils import check_config, check_file
 
 base_config_path: str = "tests/extras/test_base_config.json"
 base_files: list[str] = ["naca_base.mesh", "naca_base.geo_unrolled", "naca_base.log"]

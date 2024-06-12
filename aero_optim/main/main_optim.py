@@ -3,8 +3,8 @@ import logging
 import time
 import traceback
 
-from src.optim.evolution import PymooEvolution, InspyredEvolution
-from src.utils import (catch_signal, check_config, get_custom_class, set_logger)
+from aero_optim.optim.evolution import PymooEvolution, InspyredEvolution
+from aero_optim.utils import (catch_signal, check_config, get_custom_class, set_logger)
 
 
 def main():
