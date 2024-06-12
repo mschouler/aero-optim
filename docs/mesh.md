@@ -114,14 +114,15 @@ The compressor cascade mesh obtained with the cascade routine is illustrated nex
 The `auto_gmsh.py` scripts is called with the `mesh` command. It enables basic testing and visualization for a given configuration file:
 ```sh
 mesh --help
-usage: mesh [-h] [-c CONFIG] [-f FILE]
+usage: mesh [-h] [-c CONFIG] [-f FILE] [-o OUTDIR]
 
 options:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
                         config: --config=/path/to/config.json (default: None)
   -f FILE, --file FILE  input dat file: --file=/path/to/file.dat (default: )
-
+  -o OUTDIR, --outdir OUTDIR
+                        simulation output directory (default: )
 ```
 
 For instance setting `"structured"` to `true` in `naca_block_mesh.json` will produce a fully structured mesh:
