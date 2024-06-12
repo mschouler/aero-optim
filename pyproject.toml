@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["src"]
+include = ["aero_optim"]
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]
@@ -32,7 +32,7 @@ Repository = "https://github.com/mschouler/aero-optim.git"
 "Bug Tracker" = "https://github.com/mschouler/aero-optim/issues"
 
 [project.scripts]
-ffd = "src.main.auto_ffd:main"
-mesh = "src.main.auto_gmsh:main"
-simulator = "src.main.auto_simulator:main"
-optim = "src.main.main_optim:main"
+ffd = "aero_optim.main.auto_ffd:main"
+mesh = "aero_optim.main.auto_gmsh:main"
+simulator = "aero_optim.main.auto_simulator:main"
+optim = "aero_optim.main.main_optim:main"
