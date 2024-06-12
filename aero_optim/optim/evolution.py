@@ -6,17 +6,17 @@ from typing import Type
 
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
-from src.optim.pymoo_optimizer import PymooDebugOptimizer
-from src.optim.pymoo_optimizer import PymooWolfOptimizer
-from src.optim.pymoo_optimizer import select_strategy as pymoo_select_strategy
+from aero_optim.optim.pymoo_optimizer import PymooDebugOptimizer
+from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
+from aero_optim.optim.pymoo_optimizer import select_strategy as pymoo_select_strategy
 
 from inspyred.ec import Bounder, terminators
-from src.optim.inspyred_optimizer import InspyredDebugOptimizer
-from src.optim.inspyred_optimizer import InspyredWolfOptimizer
-from src.optim.inspyred_optimizer import select_strategy as inspyred_select_strategy
+from aero_optim.optim.inspyred_optimizer import InspyredDebugOptimizer
+from aero_optim.optim.inspyred_optimizer import InspyredWolfOptimizer
+from aero_optim.optim.inspyred_optimizer import select_strategy as inspyred_select_strategy
 
-from src.optim.optimizer import Optimizer
-from src.utils import get_custom_class
+from aero_optim.optim.optimizer import Optimizer
+from aero_optim.utils import get_custom_class
 
 logger = logging.getLogger(__name__)
 

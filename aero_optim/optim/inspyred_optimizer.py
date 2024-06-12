@@ -5,7 +5,7 @@ import numpy as np
 
 from inspyred.ec import Individual
 from random import Random
-from src.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
+from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)

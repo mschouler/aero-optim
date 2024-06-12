@@ -12,13 +12,13 @@ from inspyred.ec import Individual
 from random import Random
 from typing import Any
 
-from src.ffd.ffd import FFD_2D
-from src.mesh.naca_base_mesh import NACABaseMesh
-from src.mesh.naca_block_mesh import NACABlockMesh
-from src.mesh.cascade_mesh import CascadeMesh
-from src.optim.generator import Generator
-from src.simulator.simulator import DebugSimulator, WolfSimulator
-from src.utils import check_dir, get_custom_class
+from aero_optim.ffd.ffd import FFD_2D
+from aero_optim.mesh.naca_base_mesh import NACABaseMesh
+from aero_optim.mesh.naca_block_mesh import NACABlockMesh
+from aero_optim.mesh.cascade_mesh import CascadeMesh
+from aero_optim.optim.generator import Generator
+from aero_optim.simulator.simulator import DebugSimulator, WolfSimulator
+from aero_optim.utils import check_dir, get_custom_class
 
 logger = logging.getLogger(__name__)
 

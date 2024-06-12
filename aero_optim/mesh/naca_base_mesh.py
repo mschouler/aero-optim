@@ -1,7 +1,7 @@
 import gmsh
 import logging
 
-from src.mesh.mesh import Mesh
+from aero_optim.mesh.mesh import Mesh
 
 logger = logging.getLogger(__name__)
 

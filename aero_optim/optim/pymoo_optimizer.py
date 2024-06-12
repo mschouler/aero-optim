@@ -5,7 +5,7 @@ import numpy as np
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.core.problem import Problem
-from src.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
+from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
