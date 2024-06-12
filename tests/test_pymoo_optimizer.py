@@ -6,8 +6,8 @@ from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 
-from src.optim.pymoo_optimizer import PymooWolfOptimizer
-from src.utils import check_file, check_config
+from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
+from aero_optim.utils import check_file, check_config
 
 sim_config_path: str = "tests/extras/test_optimizer_config.json"
 mesh_file: str = "empty_file.mesh"

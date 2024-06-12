@@ -6,7 +6,7 @@ import subprocess
 import time
 
 from smt.surrogate_models import KRG
-from src.utils import check_config
+from aero_optim.utils import check_config
 
 
 class CustomSM:

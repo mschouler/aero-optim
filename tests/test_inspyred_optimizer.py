@@ -4,8 +4,8 @@ import operator
 import os
 import pytest
 
-from src.optim.inspyred_optimizer import InspyredWolfOptimizer
-from src.utils import check_file, check_config
+from aero_optim.optim.inspyred_optimizer import InspyredWolfOptimizer
+from aero_optim.utils import check_file, check_config
 
 sim_config_path: str = "tests/extras/test_optimizer_config.json"
 mesh_file: str = "empty_file.mesh"

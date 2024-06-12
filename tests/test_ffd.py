@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from src.ffd.ffd import FFD_2D
+from aero_optim.ffd.ffd import FFD_2D
 
 input: str = "examples/NACA12/data/naca12.dat"
 Delta: np.ndarray = np.array([1., 1., 1., 1.])

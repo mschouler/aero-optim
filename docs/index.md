@@ -29,10 +29,10 @@ pip install -e .
 ```
 
 !!! Warning
-  The virtual environment must be sourced every time a new terminal is launched!
+    The virtual environment must be sourced every time a new terminal is launched!
 
 !!! Note
-  So far, the framework was only installed and tested on MacOS and Linux platforms.
+    So far, the framework was only installed and tested on MacOS and Linux platforms.
 
 ### First Execution
 The framework was designed to automate aerodynamic optimization which, in this case, consists in:
@@ -45,9 +45,9 @@ The framework was designed to automate aerodynamic optimization which, in this c
 
 as many times as required to obtain a geometry maximizing/minimizing certain quantities of interest (QoIs).
 
-Although the chaining of these steps is performed under the supervision of [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/main_optim.py), the three subscripts presented below were introduced to facilitate each step's individual evaluation:
+Although the chaining of these steps is performed under the supervision of [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/main_optim.py), the three subscripts presented below were introduced to facilitate each step's individual evaluation:
 
-#### First FFD: [`auto_ffd.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/auto_ffd.py)
+#### First FFD: [`auto_ffd.py`](https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/auto_ffd.py)
 This script performs one or multiple FFD of the geometry passed as its input argument. For instance:
 ```sh
 # from aero-optim to naca_base
@@ -60,7 +60,7 @@ will yield the figure below:
 </p>
 where the deformation vector is $$[D_{10}, D_{20}, D_{11}, D_{21}] = [0., 0., 1., 1.]$$ in lattice unit (see [FFD](ffd.md)).
 
-#### First Mesh: [`auto_gmsh.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/auto_gmsh.py)
+#### First Mesh: [`auto_gmsh.py`](https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/auto_gmsh.py)
 This script generates a simple mesh parameterized according to its associated configuration file. For instance:
 ```sh
 # from aero-optim to naca_base
@@ -75,7 +75,7 @@ will generate the figures below:
   <img src="./Figures/naca_block_mesh.png" width="49%" /> 
 </p>
 
-#### First Simulation: [`auto_simulator.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/auto_simulator.py)
+#### First Simulation: [`auto_simulator.py`](https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/auto_simulator.py)
 This script performs a single simulation according to its associated configuration file and mesh. For instance:
 ```sh
 # from aero-optim to naca_base
@@ -111,7 +111,7 @@ A zoomed view of the solution mach field plotted with [`vizir4`](https://pyamg.s
 !!! Note
     As of 2024, [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) is not open-source and may not be available to the user. Customization guidelines on how to adapt any part of the framework such as the `Simulator` are given in the [Customization](customization.md) tab.
 
-#### First Optimization: [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/master/src/main/main_optim.py)
+#### First Optimization: [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/main_optim.py)
 This script orchestrates an optimization execution given the configuration parameters. For instance, `naca_base.json` and the command below executes a single iteration of the [Particle Swarm Optimization](https://pymoo.org/algorithms/soo/pso.html?highlight=particle%20swarm) algorithm of `inspyred` with 5 candidates and 8 variables of design sampled in [-0.5, 0.5] (in lattice units):
 ```py
 # from aero-optim to naca_base

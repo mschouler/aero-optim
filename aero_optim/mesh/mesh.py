@@ -4,7 +4,7 @@ import math
 import os
 
 from abc import ABC, abstractmethod
-from src.utils import from_dat, check_dir
+from aero_optim.utils import from_dat, check_dir
 
 logger = logging.getLogger(__name__)
 

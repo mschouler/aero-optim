@@ -13,7 +13,7 @@ Then, any subclass inheriting from `Simulator` can be built by overriding two ab
 2. `execute_sim`: which defines how a simulation should be executed.
 
 !!! Note
-    All simulator parameters are described in their respective class definition (see [`Simulator`](dev_simulator.md#src.simulator.Simulator), [`WolfSimulator`](dev_simulator.md#src.simulator.WolfSimulator)).
+    All simulator parameters are described in their respective class definition (see [`Simulator`](dev_simulator.md#aero_optim.simulator.Simulator), [`WolfSimulator`](dev_simulator.md#aero_optim.simulator.WolfSimulator)).
 
 ### Wolf Simulator
 The `WolfSimulator` class illustrates how `Simulator` can be inherited to perform `Wolf` simulations. In addition to the mandatory methods, several others are introduced in order to facilitate the simulation progress monitoring (see `sim_pro` and `monitor_sim_progress`) and the results post-processing (see `post_process`).

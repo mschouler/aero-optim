@@ -3,8 +3,8 @@ import logging
 import time
 import sys
 
-from src.simulator.simulator import WolfSimulator
-from src.utils import check_config, get_custom_class
+from aero_optim.simulator.simulator import WolfSimulator
+from aero_optim.utils import check_config, get_custom_class
 
 logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

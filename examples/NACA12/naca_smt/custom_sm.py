@@ -3,9 +3,9 @@ import logging
 import numpy as np
 import pandas as pd
 
-from src.optim.pymoo_optimizer import PymooWolfOptimizer
-from src.simulator.simulator import Simulator
-from src.utils import check_file
+from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
+from aero_optim.simulator.simulator import Simulator
+from aero_optim.utils import check_file
 
 logger = logging.getLogger()
 

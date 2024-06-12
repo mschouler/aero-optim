@@ -1,7 +1,7 @@
 import pytest
 
 from scipy.stats import qmc
-from src.optim.generator import Generator
+from aero_optim.optim.generator import Generator
 
 seed: int = 123
 ndesign: int = 4
