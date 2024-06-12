@@ -37,7 +37,7 @@ Regardless of the optimization library, the `Optimizer` class acts as an `evalua
     The `Generator` class is based on [`scipy.qmc`](https://docs.scipy.org/doc/scipy/reference/stats.qmc.html) samplers. It supports three different sampling techniques: ["lhs"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHypercube.html#scipy.stats.qmc.LatinHypercube), ["halton"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.Halton.html#scipy.stats.qmc.Halton) and ["sobol"](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.Sobol.html#scipy.stats.qmc.Sobol). The sampling technique is selected with the `sampler_name` entry of the `"optim"` dictionary in the configuration file.
 
 !!! Note
-    All optimizer parameters are described in their respective class definition (see [`Optimizer`](dev_optimizer.md#src.optimizer.Optimizer), [`WolfOptimizer (inspyred)`](dev_optimizer.md#src.inspyred_optimizer.WolfOptimizer), [`WolfOptimizer (pymoo)`](dev_optimizer.md#src.pymoo_optimizer.WolfOptimizer)).
+    All optimizer parameters are described in their respective class definition (see [`Optimizer`](dev_optimizer.md#aero_optim.optimizer.Optimizer), [`WolfOptimizer (inspyred)`](dev_optimizer.md#aero_optim.inspyred_optimizer.WolfOptimizer), [`WolfOptimizer (pymoo)`](dev_optimizer.md#aero_optim.pymoo_optimizer.WolfOptimizer)).
 
 ### Wolf Optimizer
 The `WolfOptimizer` class illustrates how `Optimizer` can be inherited to perform a `Wolf`-based optimization. **It is the default optimizer used when running `optim`**.
