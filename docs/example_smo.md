@@ -120,3 +120,22 @@ class CustomOptimizer(PymooWolfOptimizer):
     Because the standard `pickle` library is not capable of unpickling an object whose class definition is unaccessible, [`dill`](https://github.com/uqfoundation/dill) is used instead.
 
 ### Quick Experiments
+In order to run this examples, the `smt` library must first be added to the virtual environment:
+```sh
+pip install smt
+```
+Then, the `main_sm.py` script in the `NACA12/naca_smt` example folder can be used to perform all three steps at once:
+```py
+# from aero-optim to naca_smt
+cd examples/NACA12/naca_smt
+python3 -c naca_doe.json -csm naca_smt.json
+```
+
+It will produce an `output_doe` folder with the results of the initial DOE generation and `output_smt` with the results of the surrogate based optimization.
+
+At that point, the optimal profile properties obtained with the surrogate can be compared to its corresponding CFD simulation:
+ ```sh
+ffd -f ../data/naca12.dat -nc 4 -d "<displacement of the optimal profile>" -o output_optim
+mesh -c naca_doe.json -f output_optim/naca12_g0_c0.dat -o output_optim
+simulator -c naca_doe.json -f output_optim/naca_base.mesh -o optim_profile
+```
