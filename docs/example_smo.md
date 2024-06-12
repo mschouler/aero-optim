@@ -55,7 +55,7 @@ with open(os.path.join(outdir, "model.pkl"), "wb") as handle:
     pickle.dump(custom_sm, handle)
 ```
 
-Finally, a full optimization using this surrogate model specified is performed with the `naca_smt.json` configuration file and two additional parameters:
+Finally, a full optimization using this surrogate model is performed with the `naca_smt.json` configuration file and two additional parameters:
 
 - `"custom_file": "custom_sm.py"` in the `"study"` entry,
 - `"model_file": "output_doe/model.pkl"` in the `"simulator"` entry.
@@ -134,8 +134,11 @@ python3 -c naca_doe.json -csm naca_smt.json
 It will produce an `output_doe` folder with the results of the initial DOE generation and `output_smt` with the results of the surrogate based optimization.
 
 At that point, the optimal profile properties obtained with the surrogate can be compared to its corresponding CFD simulation:
- ```sh
+```sh
+# deformed profile generation
 ffd -f ../data/naca12.dat -nc 4 -d "<displacement of the optimal profile>" -o output_optim
+# deformed profile meshing
 mesh -c naca_doe.json -f output_optim/naca12_g0_c0.dat -o output_optim
+# simulation execution
 simulator -c naca_doe.json -f output_optim/naca_base.mesh -o optim_profile
 ```
