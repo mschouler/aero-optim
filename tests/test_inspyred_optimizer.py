@@ -4,7 +4,7 @@ import operator
 import os
 import pytest
 
-from src.optim.inspyred_optimizer import WolfOptimizer
+from src.optim.inspyred_optimizer import InspyredWolfOptimizer
 from src.utils import check_file, check_config
 
 sim_config_path: str = "tests/extras/test_optimizer_config.json"
@@ -14,10 +14,10 @@ executable_path: str = os.path.join(os.getcwd(), "tests", "extras", "dummy_wolf.
 
 
 @pytest.fixture(scope='session')
-def opt() -> WolfOptimizer:
+def opt() -> InspyredWolfOptimizer:
     check_file(sim_config_path)
     config, _, _ = check_config(sim_config_path)
-    opt = WolfOptimizer(config)
+    opt = InspyredWolfOptimizer(config)
     idx = opt.simulator.exec_cmd.index("@path")
     opt.simulator.exec_cmd[idx] = executable_path
     return opt
@@ -33,7 +33,7 @@ def dummy_mesh(ffdfile: str) -> str:
     return mesh_file_path
 
 
-def test_ins_optimizer(opt: WolfOptimizer):
+def test_ins_optimizer(opt: InspyredWolfOptimizer):
     # simplify deform and mesh methods
     setattr(opt, "deform", dummy_deform)
     setattr(opt, "mesh", dummy_mesh)

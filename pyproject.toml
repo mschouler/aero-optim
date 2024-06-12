@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "aero-optim"
 version = "0.0.1"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [
   {name = "Marc Schouler", email = "marc.schouler@sorbonne-universite.fr"},
 ]

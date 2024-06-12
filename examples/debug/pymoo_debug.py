@@ -45,6 +45,7 @@ class CustomEvolution(PymooEvolution):
         best = res.F
         index, opt_J = min(enumerate(self.optimizer.J), key=lambda x: abs(best - x[1]))
         gid, cid = (index // self.optimizer.doe_size, index % self.optimizer.doe_size)
-        logger.info(f"optimal(J): {opt_J} ({best}), "
-                    f"D: {' '.join([str(d) for d in res.X])} "
+        logger.info(f"optimal J: {opt_J} (J_pymoo: {best}),\n"
+                    f"D: {' '.join([str(d) for d in self.optimizer.inputs[gid][cid]])}\n"
+                    f"D_pymoo: {' '.join([str(d) for d in res.X])}\n"
                     f"[g{gid}, c{cid}]")

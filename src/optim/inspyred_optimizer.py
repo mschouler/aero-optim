@@ -5,8 +5,7 @@ import numpy as np
 
 from inspyred.ec import Individual
 from random import Random
-from src.optim.optimizer import DebugOptimizer, Optimizer, shoe_lace
-from src.simulator.simulator import WolfSimulator
+from src.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -27,28 +26,10 @@ def select_strategy(strategy_name: str, prng: Random) -> inspyred.ec.Evolutionar
     return ea
 
 
-class WolfOptimizer(Optimizer):
+class InspyredWolfOptimizer(WolfOptimizer):
     """
     This class implements a Wolf based Optimizer.
     """
-    def __init__(self, config: dict):
-        """
-        Instantiates the WolfOptimizer object.
-
-        **Input**
-
-        - config (dict): the config file dictionary.
-        """
-        super().__init__(config)
-
-    def set_simulator(self):
-        """
-        **Sets** the simulator object as custom if found, as WolfSimulator otherwise.
-        """
-        super().set_simulator()
-        if not self.SimulatorClass:
-            self.SimulatorClass = WolfSimulator
-
     def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
         """
         **Executes** Wolf simulations, **extracts** results

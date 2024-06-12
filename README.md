@@ -3,7 +3,7 @@
 ![Continuous Integration](https://github.com/mschouler/aero-optim/actions/workflows/ci.yml/badge.svg?event=push)
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-pr/mschouler/aero-optim?style=flat&label=Pull%20Requests)
 
-AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with [`gmsh`](https://gmsh.info/doc/texinfo/gmsh.html) and any CFD solver execution in the frame of an optimization algorithm based on [`inspyred`](https://inspyred.readthedocs.io/en/latest/) or [`pymoo`](https://pymoo.org/index.html). It is composed of the following core components:
+**AERO-Optim** is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with [`gmsh`](https://gmsh.info/doc/texinfo/gmsh.html) and any CFD solver execution in the frame of an optimization algorithm based on [`inspyred`](https://inspyred.readthedocs.io/en/latest/) or [`pymoo`](https://pymoo.org/index.html). It is composed of the following core components:
 
 * [`ffd.py`](src/ffd/ffd.py): which defines a class to perform 2D FFD of a given geometry,
 * [`*mesh.py`](src/mesh/): which define multiples classes to generate automatic meshes,
@@ -13,7 +13,7 @@ AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeFor
 The full documentation is available [**HERE**](https://mschouler.github.io/aero-optim/).
 
 ### Installation
-AERO-Optim comes with few dependencies listed in [`requirements.txt`](./requirements.txt) and recalled below:
+**AERO-Optim** requires Python 3.10 or newer and comes with a few dependencies listed in [`requirements.txt`](./requirements.txt) and recalled below:
 ```sh
 gmsh        # to design and visualize meshes (MESH)
 inspyred    # optimzation toolbox (OPTIM)

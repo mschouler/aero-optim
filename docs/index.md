@@ -1,5 +1,5 @@
 ## Welcome to AERO-Optim
-AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with [`gmsh`](https://gmsh.info/doc/texinfo/gmsh.html) and any CFD solver execution in the frame of an optimization algorithm based on [`inspyred`](https://inspyred.readthedocs.io/en/latest/) or [`pymoo`](https://pymoo.org/index.html). It is composed of the following core components:
+**AERO-Optim** is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with [`gmsh`](https://gmsh.info/doc/texinfo/gmsh.html) and any CFD solver execution in the frame of an optimization algorithm based on [`inspyred`](https://inspyred.readthedocs.io/en/latest/) or [`pymoo`](https://pymoo.org/index.html). It is composed of the following core components:
 
 * [FFD](ffd.md): which defines a class to perform 2D FFD of a given geometry,
 * [Mesh](mesh.md): which defines multiple classes to generate automatic meshes,
@@ -7,7 +7,7 @@ AERO-Optim is a simple aerodynamic shape optimization framework coupling FreeFor
 * [Optimizer](optimizer.md) and [Evolution](optimizer.md): which define multiple classes to coordinate the optimization procedures with `inspyred` or `pymoo`
 
 ### Quick Installation
-AERO-Optim comes with few dependencies listed in [`requirements.txt`](https://github.com/mschouler/aero-optim/blob/master/requirements.txt) and recalled below:
+**AERO-Optim** requires Python 3.10 or newer and comes with a few dependencies listed in [`requirements.txt`](https://github.com/mschouler/aero-optim/blob/master/requirements.txt) and recalled below:
 ```sh
 gmsh        # to design and visualize meshes (MESH)
 inspyred    # optimization toolbox (OPTIM)
@@ -29,7 +29,10 @@ pip install -e .
 ```
 
 !!! Warning
-    So far, the framework was only installed and tested on MacOS and Linux platforms.
+  The virtual environment must be sourced every time a new terminal is launched!
+
+!!! Note
+  So far, the framework was only installed and tested on MacOS and Linux platforms.
 
 ### First Execution
 The framework was designed to automate aerodynamic optimization which, in this case, consists in:

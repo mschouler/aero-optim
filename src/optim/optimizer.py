@@ -3,6 +3,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
 import signal
 import time
 
@@ -16,7 +17,7 @@ from src.mesh.naca_base_mesh import NACABaseMesh
 from src.mesh.naca_block_mesh import NACABlockMesh
 from src.mesh.cascade_mesh import CascadeMesh
 from src.optim.generator import Generator
-from src.simulator.simulator import DebugSimulator
+from src.simulator.simulator import DebugSimulator, WolfSimulator
 from src.utils import check_dir, get_custom_class
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,7 @@ class Optimizer(ABC):
         - max (list[float]): list of populations max fitness.
         - min (list[float]): list of populations min fitness.
         - J (list[float]): the list of all generated candidates fitnesses.
+        - inputs (list[list[np.ndarray]]): all input candidates.
         - ffd_profiles (list[list[np.ndarray]]): all deformed geometries {gid: {cid: ffd_profile}}.
         - QoI (str): the quantity of intereset to minimize/maximize.
         - n_plt (int): the number of best candidates results to display after each evaluation.
@@ -123,8 +125,8 @@ class Optimizer(ABC):
         )
         if not debug:
             self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
-            self.set_gmsh_mesh()
-        self.set_simulator()
+            self.set_gmsh_mesh_class()
+        self.set_simulator_class()
         self.simulator = self.SimulatorClass(self.config)
         # population statistics
         self.mean: list[float] = []
@@ -133,6 +135,7 @@ class Optimizer(ABC):
         self.min: list[float] = []
         # set other inner optimization variables
         self.J: list[float] = []
+        self.inputs: list[list[np.ndarray]] = []
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = self.config["optim"].get("QoI", "CD")
         self.n_plt: int = self.config["optim"].get("n_plt", 5)
@@ -172,9 +175,9 @@ class Optimizer(ABC):
             )
             self.config["gmsh"]["view"]["GUI"] = False
 
-    def set_gmsh_mesh(self):
+    def set_gmsh_mesh_class(self):
         """
-        **Instantiates** the mesher object as custom if found,
+        **Instantiates** the mesher class as custom if found,
         as one of the default meshers otherwise.
         """
         self.MeshClass = (
@@ -193,20 +196,8 @@ class Optimizer(ABC):
     def set_inner(self):
         """
         **Sets** some use-case specific inner variables:
-
-        - baseline_CD (float): the drag coefficient of the baseline geometry.
-        - baseline_CL (float): the lift coefficient of the baseline geometry.
-        - baseline_area (float): the baseline area that is used as a structural constraint.
-        - area_margin (float): area tolerance margin given as a percentage wrt baseline_area</br>
-            i.e. a candidate with an area greater/smaller than +/- area_margin % of the
-            baseline_area will be penalized.
-        - penalty (list): a [key, value] constraint not to be worsen by the optimization.
         """
-        self.baseline_CD: float = self.config["optim"].get("baseline_CD", 0.15)
-        self.baseline_CL: float = self.config["optim"].get("baseline_CL", 0.36)
-        self.baseline_area: float = shoe_lace(self.ffd.pts)
-        self.area_margin: float = self.config["optim"].get("area_margin", 40.) / 100.
-        self.penalty: list = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
+        logger.info("set_inner not implemented")
 
     def deform(self, Delta: np.ndarray, gid: int, cid: int) -> tuple[str, np.ndarray]:
         """
@@ -231,10 +222,15 @@ class Optimizer(ABC):
     def execute_candidates(self, candidates: list[Individual] | np.ndarray, gid: int):
         """
         **Executes** all candidates and **waits** for them to finish.
+
+        Note:
+            this method is meant to be called in _evaluate.
         """
         logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
         self.ffd_profiles.append([])
+        self.inputs.append([])
         for cid, cand in enumerate(candidates):
+            self.inputs[gid].append(np.array(cand))
             ffd_file, ffd_profile = self.deform(cand, gid, cid)
             self.ffd_profiles[gid].append(ffd_profile)
             # meshing with proper sigint management
@@ -248,11 +244,14 @@ class Optimizer(ABC):
 
         # wait for last candidates to finish
         while self.simulator.monitor_sim_progress() > 0:
-            time.sleep(1)
+            time.sleep(0.1)
 
     def compute_statistics(self, gen_fitness: np.ndarray):
         """
         **Computes** generation statistics.
+
+        Note:
+            this method is meant to be called in `_observe`.
         """
         self.mean.append(np.mean(gen_fitness))
         self.median.append(np.median(gen_fitness))
@@ -273,7 +272,132 @@ class Optimizer(ABC):
             fig_name: str
     ):
         """
-        **Plots** and **saves** the results of the last evaluated generation.
+        **Plots** the results of the last evaluated generation.
+        **Saves** the graph in the output directory.
+
+        Note:
+            this method is meant to be called in `_observe`.
+        """
+        logger.info("plot_generation not implemented")
+
+    def plot_progress(self, gen_nbr: int, fig_name: str, baseline_value: float | None = None):
+        """
+        **Plots** and **saves** the overall progress of the optimization.
+
+        Note:
+            this method is meant to be called in `final_observe`.
+        """
+        logger.info(f"plotting populations statistics after {gen_nbr} generations..")
+
+        # plot construction
+        _, ax = plt.subplots(figsize=(8, 8))
+        psize = self.doe_size
+        if baseline_value:
+            ax.axhline(y=baseline_value, color='k', ls="--", label="baseline")
+
+        # plotting data
+        best = self.max if self.maximize else self.min
+        worst = self.min if self.maximize else self.max
+        data = [self.mean, self.median, best, worst]
+        colors = ["grey", "blue", "green", "red"]
+        labels = ["mean", "median", "best", "worst"]
+        for val, col, lab in zip(data, colors, labels):
+            ax.plot(range(self.gen_ctr), val, color=col, label=lab)
+        plt.fill_between(range(self.gen_ctr), data[2], data[3], color='#e6f2e6')
+        plt.grid(True)
+        ymin = min([min(d) for d in data])
+        ymax = max([max(d) for d in data])
+        yrange = ymax - ymin
+        plt.ylim((ymin - 0.1 * yrange, ymax + 0.1 * yrange))
+
+        # legend and title
+        ax.set_title(f"Optimization evolution ({gen_nbr} g. x {psize} c.)")
+        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax.set_xlabel('generation #')
+        ax.set_ylabel('penalized fitness')
+
+        # save figure as png
+        logger.info(f"saving {fig_name} to {self.outdir}")
+        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
+        plt.close()
+
+    def save_results(self):
+        """
+        **Saves** candidates and fitnesses to file.
+        """
+        logger.info(f"optimization results saved to {self.outdir}")
+        np.savetxt(
+            os.path.join(self.outdir, "candidates.txt"),
+            np.reshape(self.inputs, (-1, self.n_design))
+        )
+        np.savetxt(os.path.join(self.outdir, "fitnesses.txt"), self.J)
+
+    @abstractmethod
+    def set_simulator_class(self):
+        """
+        Instantiates the simulator class with CustomSimulator if found.
+        """
+        self.SimulatorClass = (
+            get_custom_class(self.custom_file, "CustomSimulator") if self.custom_file else None
+        )
+
+    @abstractmethod
+    def _evaluate(self, *args, **kwargs) -> list[float] | None:
+        """
+        Computes all candidates outputs and return the optimizer list of QoIs.
+        """
+
+
+class WolfOptimizer(Optimizer, ABC):
+    """
+    This class implements a Wolf based Optimizer.
+    """
+    def __init__(self, config: dict):
+        """
+        Instantiates the WolfOptimizer object.
+
+        **Input**
+
+        - config (dict): the config file dictionary.
+        """
+        super().__init__(config)
+
+    def set_simulator_class(self):
+        """
+        **Sets** the simulator class as custom if found, as WolfSimulator otherwise.
+        """
+        super().set_simulator_class()
+        if not self.SimulatorClass:
+            self.SimulatorClass = WolfSimulator
+
+    def set_inner(self):
+        """
+        **Sets** some use-case specific inner variables:
+
+        - baseline_CD (float): the drag coefficient of the baseline geometry.
+        - baseline_CL (float): the lift coefficient of the baseline geometry.
+        - baseline_area (float): the baseline area that is used as a structural constraint.
+        - area_margin (float): area tolerance margin given as a percentage wrt baseline_area</br>
+            i.e. a candidate with an area greater/smaller than +/- area_margin % of the
+            baseline_area will be penalized.
+        - penalty (list): a [key, value] constraint not to be worsen by the optimization.
+        """
+        self.baseline_CD: float = self.config["optim"].get("baseline_CD", 0.15)
+        self.baseline_CL: float = self.config["optim"].get("baseline_CL", 0.36)
+        self.baseline_area: float = shoe_lace(self.ffd.pts)
+        self.area_margin: float = self.config["optim"].get("area_margin", 40.) / 100.
+        self.penalty: list = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
+
+    def plot_generation(
+            self,
+            gid: int,
+            sorted_idx: np.ndarray,
+            gen_fitness: np.ndarray,
+            fig_name: str
+    ):
+        """
+        **Plots** the results of the last evaluated generation.
+        **Saves** the graph in the output directory.
         """
         baseline: np.ndarray = self.ffd.pts
         profiles: list[np.ndarray] = self.ffd_profiles[gid]
@@ -330,57 +454,23 @@ class Optimizer(ABC):
         plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
 
-    def plot_progress(self, gen_nbr: int, fig_name: str, baseline_value: float | None = None):
-        """
-        **Plots** and **saves** the overall progress of the optimization.
-        """
-        logger.info(f"plotting populations statistics after {gen_nbr} generations..")
-
-        # plot construction
-        _, ax = plt.subplots(figsize=(8, 8))
-        psize = self.doe_size
-        if baseline_value:
-            ax.axhline(y=baseline_value, color='k', ls="--", label="baseline")
-
-        # plotting data
-        best = self.max if self.maximize else self.min
-        worst = self.min if self.maximize else self.max
-        data = [self.mean, self.median, best, worst]
-        colors = ["grey", "blue", "green", "red"]
-        labels = ["mean", "median", "best", "worst"]
-        for val, col, lab in zip(data, colors, labels):
-            ax.plot(range(self.gen_ctr), val, color=col, label=lab)
-        plt.fill_between(range(self.gen_ctr), data[2], data[3], color='#e6f2e6')
-        plt.grid(True)
-        ymin = min([min(d) for d in data])
-        ymax = max([max(d) for d in data])
-        yrange = ymax - ymin
-        plt.ylim((ymin - 0.1 * yrange, ymax + 0.1 * yrange))
-
-        # legend and title
-        ax.set_title(f"Optimization evolution ({gen_nbr} g. x {psize} c.)")
-        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax.set_xlabel('generation #')
-        ax.set_ylabel('penalized fitness')
-
-        # save figure as png
-        logger.info(f"saving {fig_name} to {self.outdir}")
-        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
-        plt.close()
+    def save_results(self):
+        super().save_results()
+        with open(os.path.join(self.outdir, "df_dict.pkl"), "wb") as handle:
+            pickle.dump(self.simulator.df_dict, handle)
+        logger.info(f"results dictionary saved to {self.outdir}")
 
     @abstractmethod
-    def set_simulator(self):
+    def apply_constraints(self, *args, **kwargs):
         """
-        Instantiates the simulator object with CustomSimulator if found.
+        Looks for constraints violations.
         """
-        self.SimulatorClass = (
-            get_custom_class(self.custom_file, "CustomSimulator") if self.custom_file else None
-        )
 
     @abstractmethod
-    def _evaluate(self, *args, **kwargs) -> list[float] | None:
+    def final_observe(self):
         """
-        Computes all candidates outputs and return the optimizer list of QoIs.
+        Plots convergence progress by plotting the fitness values
+        obtained with the successive generations.
         """
 
 
@@ -391,11 +481,11 @@ class DebugOptimizer(Optimizer, ABC):
         """
         super().__init__(config, debug=True)
 
-    def set_simulator(self):
+    def set_simulator_class(self):
         """
-        **Sets** the simulator object as custom if found, as DebugSimulator otherwise.
+        **Sets** the simulator class as custom if found, as DebugSimulator otherwise.
         """
-        super().set_simulator()
+        super().set_simulator_class()
         if not self.SimulatorClass:
             self.SimulatorClass = DebugSimulator
 
@@ -407,7 +497,9 @@ class DebugOptimizer(Optimizer, ABC):
         **Executes** all candidates and **waits** for them to finish.
         """
         logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
+        self.inputs.append([])
         for cid, cand in enumerate(candidates):
+            self.inputs[gid].append(np.array(cand))
             logger.debug(f"g{gid}, c{cid} cand {cand}")
             self.simulator.execute_sim(cand, gid, cid)
             logger.debug(f"g{gid}, c{cid} cand {cand}, "
