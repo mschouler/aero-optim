@@ -29,10 +29,10 @@ pip install -e .
 ```
 
 !!! Warning
-  The virtual environment must be sourced every time a new terminal is launched!
+    The virtual environment must be sourced every time a new terminal is launched!
 
 !!! Note
-  So far, the framework was only installed and tested on MacOS and Linux platforms.
+    So far, the framework was only installed and tested on MacOS and Linux platforms.
 
 ### First Execution
 The framework was designed to automate aerodynamic optimization which, in this case, consists in:
