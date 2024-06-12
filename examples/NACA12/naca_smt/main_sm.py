@@ -38,10 +38,7 @@ def main():
         # 1a. initial doe generation
         print("SM: initial DOE computation..")
         exec_cmd = ["optim", "-c", f"{args.config}", "-v", f"{args.verbose}", "--pymoo"]
-        subprocess.run(exec_cmd,
-                       env=os.environ,
-                       stdin=subprocess.DEVNULL,
-                       check=True)
+        subprocess.run(exec_cmd, env=os.environ, stdin=subprocess.DEVNULL, check=True)
         print(f"SM: initial DOE computation finished after {time.time() - t0} seconds")
         # 1.b loads results
         config, _, _ = check_config(args.config)
@@ -76,10 +73,7 @@ def main():
     # 2. SM based optimization
     print("SM: surrogate model based optimization..")
     exec_cmd = ["optim", "-c", f"{args.config_sm}", "-v", f"{args.verbose}", "--pymoo"]
-    subprocess.run(exec_cmd,
-                   env=os.environ,
-                   stdin=subprocess.DEVNULL,
-                   check=True)
+    subprocess.run(exec_cmd, env=os.environ, stdin=subprocess.DEVNULL, check=True)
     print(f"SM: surrogate model based optimization finished after {time.time() - t0} seconds")
 
 
