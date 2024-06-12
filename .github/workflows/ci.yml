@@ -20,7 +20,7 @@ jobs:
           pip install flake8
       - name: Lint with flake8
         run: |
-          flake8 src
+          flake8 aero_optim
           flake8 tests
 
   mypy:
@@ -36,7 +36,7 @@ jobs:
           pip install mypy
       - name: Lint with mypy
         run: |
-          mypy src
+          mypy aero_optim
           mypy tests
 
   pytest:
@@ -55,7 +55,7 @@ jobs:
       - name: Unit tests
         run: |
           set -o pipefail
-          python -m pytest --cov=src tests/ 2>&1 | tee coverage.txt
+          python -m pytest --cov=aero_optim tests/ 2>&1 | tee coverage.txt
       - name: Archive coverage results
         uses: actions/upload-artifact@v4
         with:
