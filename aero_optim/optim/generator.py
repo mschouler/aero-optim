@@ -77,10 +77,10 @@ class Generator:
             see https://pythonhosted.org/inspyred/tutorial.html#the-generator
         """
         element = self.initial_doe.pop(0)
-        return qmc.scale([element], *self.bound).tolist()[0]
+        return qmc.scale([element], *self.bound).tolist()[0] if self.sampler else element
 
     def _pymoo_generator(self) -> np.ndarray:
         """
         **Returns** all samples from the initial generation.
         """
-        return qmc.scale(self.initial_doe, *self.bound)
+        return qmc.scale(self.initial_doe, *self.bound) if self.sampler else self.initial_doe
