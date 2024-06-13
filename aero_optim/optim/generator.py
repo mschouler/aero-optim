@@ -39,8 +39,8 @@ class Generator:
         self.seed: int = seed
         self.ndesign: int = ndesign
         self.doe_size: int = doe_size
-        self.sampler: Optional[qmc.QMCEngine] = (
-            "custom" if custom_doe else self.get_sampler(sampler_name)
+        self.sampler: Optional[qmc.QMCEngine] = self.get_sampler(
+            "custom" if custom_doe else sampler_name
         )
         self.bound: tuple[Any, ...] = bound
         self.initial_doe: list[list[float]] = self.sample_doe(custom_doe)
