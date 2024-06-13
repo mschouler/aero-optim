@@ -72,7 +72,8 @@ class Optimizer(ABC):
         - maximize (bool): whether to maximize or minimize the objective QoIs.
         - budget (int): maximum number of concurrent proc in use.
         - nproc_per_sim (int): number of proc per simulation.
-        - bound tuple[float]: design variables boundaries.
+        - bound (tuple[float]): design variables boundaries.
+        - custom_doe (str): path to a custom doe.
         - sampler_name (str): name of the sampling algorithm used to generate samples.
           the initial generation.
         - seed (int): seed number of the random processes involved in the optimization.
@@ -111,6 +112,7 @@ class Optimizer(ABC):
         self.budget: int = config["optim"].get("budget", 4)
         self.nproc_per_sim: int = config["optim"].get("nproc_per_sim", 1)
         self.bound: tuple[Any, ...] = tuple(config["optim"].get("bound", [-1, 1]))
+        self.custom_doe: str = config["optim"].get("custom_doe", "")
         self.sampler_name: str = config["optim"].get("sampler_name", "lhs")
         self.ea_kwargs: dict = config["optim"].get("ea_kwargs", {})
         # reproducibility variables
@@ -121,7 +123,7 @@ class Optimizer(ABC):
         self.gen_ctr: int = 0
         # optimization objects
         self.generator: Generator = Generator(
-            self.seed, self.n_design, self.doe_size, self.sampler_name, self.bound
+            self.seed, self.n_design, self.doe_size, self.sampler_name, self.bound, self.custom_doe
         )
         if not debug:
             self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
