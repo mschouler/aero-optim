@@ -83,4 +83,6 @@ class Generator:
         """
         **Returns** all samples from the initial generation.
         """
-        return qmc.scale(self.initial_doe, *self.bound) if self.sampler else self.initial_doe
+        return (
+            qmc.scale(self.initial_doe, *self.bound) if self.sampler else np.array(self.initial_doe)
+        )
