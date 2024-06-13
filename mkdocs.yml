@@ -19,6 +19,7 @@ nav:
   - Optimization Examples:
     - 'Customized Optimization': example_custom.md
     - 'Surrogate based Optimization' : example_smo.md
+    - 'Multi-Fidelity Surrogate based Optimization': example_mf_smo.md
 theme: 
   name: readthedocs
   logo: Figures/logo.png
