@@ -97,7 +97,9 @@ class InspyredWolfOptimizer(WolfOptimizer):
 
         # extract generation best profiles
         fitness: np.ndarray = np.array(self.J[-self.doe_size:])
-        sorted_idx = np.argsort(fitness, kind="stable")[:self.n_plt]
+        sorted_idx = (
+            np.argsort(fitness)[-self.n_plt:] if self.maximize else np.argsort(fitness)[:self.n_plt]
+        )
 
         # compute population statistics
         self.compute_statistics(np.array([ind.fitness for ind in population]))
