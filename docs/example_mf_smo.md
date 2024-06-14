@@ -96,10 +96,10 @@ In order to run this examples, the `smt` library must first be added to the virt
 pip install smt
 ```
 Then, the `main_mf_sm.py` script in the `NACA12/naca_mf_smt` example folder can be used to perform all three steps at once:
-```py
+```sh
 # from aero-optim to naca_mf_smt
 cd examples/NACA12/naca_mf_smt
-python3 main_mf_sm.py -clf naca_lf_doe.json -chf naca__hf_doe.json -cmfsm naca_smt.json
+python3 main_mf_sm.py -clf naca_lf_doe.json -chf naca_hf_doe.json -cmfsm naca_smt.json
 ```
 
 It will produce an `output_lf_doe` folder with the results of the low-fidelity DOE generation, an `output_hf_doe` folder with the high-fidelity results and `output_smt` with the results of the multi-fidelity surrogate based optimization.
