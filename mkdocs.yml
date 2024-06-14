@@ -43,3 +43,5 @@ plugins:
       handlers:
         python:
           paths: [aero_optim]
+          options:
+            show_signature_annotations: true
