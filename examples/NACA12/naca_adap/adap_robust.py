@@ -87,7 +87,6 @@ def main() -> int:
         print("** INITIAL SOLUTION COMPUTATION WITH 1000 ITERATIONS **")
         print("** ------------------------------------------------- **")
         wolf_cmd = [WOLF, "-in", f"{input}", "-out", f"{input}", "-nproc", f"{args.nproc}"]
-        sed_in_file(f"{input}.wolf", "InitialSol", "UniformSol")
         with open("wolf.job", "wb") as out:
             subprocess.run(wolf_cmd + ["-ite", "1000"], stdout=out, stderr=out, check=True)
         sed_in_file(f"{input}.wolf", "UniformSol", "InitialSol")

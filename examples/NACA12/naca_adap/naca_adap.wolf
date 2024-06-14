@@ -72,7 +72,7 @@ FlipFlopUnderRelaxation
 #  Resolution parameters
 #  -------------------
 
-InitialSol
+UniformSol
 
 PhysicalTime
 10000.
