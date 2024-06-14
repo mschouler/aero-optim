@@ -109,7 +109,7 @@ A zoomed view of the solution mach field plotted with [`vizir4`](https://pyamg.s
 </p>
 
 !!! Note
-    As of 2024, [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) is not open-source and may not be available to the user. Customization guidelines on how to adapt any part of the framework such as the `Simulator` are given in the [Customization](customization.md) tab.
+    As of 2024, [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) is not open-source and may not be available to the user. Customization guidelines on how to adapt any part of the framework such as the `Simulator` are given in the [Customization](example_custom.md) tab.
 
 #### First Optimization: [`main_optim.py`](https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/main_optim.py)
 This script orchestrates an optimization execution given the configuration parameters. For instance, `naca_base.json` and the command below executes a single iteration of the [Particle Swarm Optimization](https://pymoo.org/algorithms/soo/pso.html?highlight=particle%20swarm) algorithm of `inspyred` with 5 candidates and 8 variables of design sampled in [-0.5, 0.5] (in lattice units):
