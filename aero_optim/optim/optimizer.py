@@ -54,7 +54,8 @@ class Optimizer(ABC):
         - dat_file (str): path to input_geometry.dat (baseline geometry).
         - outdir (str): highest level optimization output directory.
 
-            Note: the result folder tree is structured as follows:
+        Note:
+            the result folder tree is structured as follows:
             ```
             outdir
             |__ FFD (contains <geom>_gXX_cYY.dat)
