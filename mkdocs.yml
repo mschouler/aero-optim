@@ -10,7 +10,6 @@ nav:
     - 'Mesh Module': mesh.md
     - 'Simulator Module': simulator.md
     - 'Optimizer Module': optimizer.md
-    - 'Customized Optimization': customization.md
   - Developer Guide:
     - 'FFD Module': dev_ffd.md
     - 'Mesh Module': dev_mesh.md
@@ -18,7 +17,9 @@ nav:
     - 'Optimizer Module': dev_optimizer.md
     - 'Coverage Report' : coverage.md
   - Optimization Examples:
+    - 'Customized Optimization': example_custom.md
     - 'Surrogate based Optimization' : example_smo.md
+    - 'Multi-Fidelity Surrogate based Optimization': example_mf_smo.md
 theme: 
   name: readthedocs
   logo: Figures/logo.png
@@ -42,3 +43,5 @@ plugins:
       handlers:
         python:
           paths: [aero_optim]
+          options:
+            show_signature_annotations: true

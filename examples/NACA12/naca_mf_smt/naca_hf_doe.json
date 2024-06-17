@@ -3,13 +3,14 @@
         "study_type": "base",
         "file": "../data/naca12.dat",
         "outfile": "naca_base",
-        "outdir": "output_doe"
+        "outdir": "output_hf_doe"
     },
     "optim": {
         "n_design": 8,
-        "doe_size": 80,
+        "doe_size": 5,
         "max_generations": 1,
         "bound": [-0.5, 0.5],
+        "custom_doe": "output_hf_doe/custom_doe.txt",
         "budget": 80,
         "QoI": "CD",
         "penalty": ["CL", 0.36]
@@ -35,12 +36,13 @@
         }
     },
     "simulator": {
-        "ref_input": "../naca_base/naca_base.wolf",
+        "ref_input": "../naca_adap/naca_adap.wolf",
+        "files_to_cp": ["../naca_adap/naca_adap.metrix"],
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "/home/mschouler/bin/wolf -in @.mesh"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/NACA12/naca_adap/adap_robust.py -in @.mesh -cmp 4000 -cmax 5000"
     }
 }

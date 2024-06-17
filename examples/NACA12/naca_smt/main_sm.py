@@ -50,7 +50,7 @@ def main():
             df_dict = pickle.load(handle)
         for gid in range(len(df_dict)):
             for cid in range(len(df_dict[gid])):
-                Y. append([df_dict[gid][cid]["CD"].iloc[-1], df_dict[gid][cid]["CL"].iloc[-1]])
+                Y.append([df_dict[gid][cid]["CD"].iloc[-1], df_dict[gid][cid]["CL"].iloc[-1]])
         Y = np.array(Y)
         del df_dict
         # 1.c trains and saves surrogates

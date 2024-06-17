@@ -3,7 +3,7 @@
         "study_type": "base",
         "file": "../data/naca12.dat",
         "outfile": "naca_base",
-        "outdir": "output_doe"
+        "outdir": "output_lf_doe"
     },
     "optim": {
         "n_design": 8,

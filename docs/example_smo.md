@@ -128,7 +128,7 @@ Then, the `main_sm.py` script in the `NACA12/naca_smt` example folder can be use
 ```py
 # from aero-optim to naca_smt
 cd examples/NACA12/naca_smt
-python3 -c naca_doe.json -csm naca_smt.json
+python3 main_sm.py -c naca_doe.json -csm naca_smt.json
 ```
 
 It will produce an `output_doe` folder with the results of the initial DOE generation and `output_smt` with the results of the surrogate based optimization.
