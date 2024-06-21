@@ -123,7 +123,8 @@ class WolfSimulator(Simulator):
 
         - exec_cmd (list[str]): solver execution command.
 
-            Note: with wolf, the exec_cmd is expected to contain a @.mesh argument that is
+        Note:
+            with wolf, the exec_cmd is expected to contain a @.mesh argument that is
             automatically replaced with the simulation input mesh file name.
 
         - sim_pro (list[tuple[dict, subprocess.Popen[str]]]): list to track simulations
