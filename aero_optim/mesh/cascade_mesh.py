@@ -31,6 +31,24 @@ class CascadeMesh(Mesh):
         - c_snodes (int): the number of nodes to mesh the inner sides.
         - le (int): the number of nodes to mesh the blade leading edge portion.
         - te (int): the number of nodes to mesh the blade trailing edge lower portion.
+        - nodes_sp2 (int): the number of nodes to mesh the 1st section of the blade suction side.
+        - nodes_sp3 (int): the number of nodes to mesh the 2nd section of the blade suction side.
+        - nodes_sp4 (int): the number of nodes to mesh the 3rd section of the blade suction side.
+        - nodes_sp7 (int): the number of nodes to mesh the 1st section of the blade pressure side.
+        - nodes_sp8 (int): the number of nodes to mesh the 2nd section of the blade pressure side.
+
+        Note:
+            the blade geometry is split into 9 splines (clockwise from the tip):
+
+            * 2 splines (1 and 9) for the leading edge parameterized with **le**
+              i.e. each spline has **le**/2 nodes,
+            * 2 splines (5 and 6) for the trailing edge parameterized with **te**
+              i.e. each spline has **te**/2 nodes,
+            * 3 splines for the suction side (2, 3, 4) of lengths 0.027, 0.038 and 0.061 m,
+              and parameterized with **nodes_sp2**, **nodes_sp3** and **nodes_sp4**,
+            * 2 splines for the pressure side (7, 8) of lengths 0.0526 and 0.0167 m,
+              and parameterized with **nodes_sp7**, **nodes_sp8**
+
         """
         super().__init__(config, datfile)
         self.doutlet: float = self.config["gmsh"]["domain"].get("outlet", 6.3e-2)
@@ -42,6 +60,11 @@ class CascadeMesh(Mesh):
         self.c_snodes: int = self.config["gmsh"]["mesh"].get("curved_side_nodes", 7)
         self.le: int = self.config["gmsh"]["mesh"].get("le", 16)
         self.te: int = self.config["gmsh"]["mesh"].get("te", 16)
+        self.nodes_sp2: int = self.config["gmsh"]["mesh"].get("nodes_sp2", 42)
+        self.nodes_sp3: int = self.config["gmsh"]["mesh"].get("nodes_sp3", 42)
+        self.nodes_sp4: int = self.config["gmsh"]["mesh"].get("nodes_sp4", 14)
+        self.nodes_sp7: int = self.config["gmsh"]["mesh"].get("nodes_sp7", 57)
+        self.nodes_sp8: int = self.config["gmsh"]["mesh"].get("nodes_sp8", 32)
 
     def process_config(self):
         logger.info("processing config..")
@@ -120,13 +143,13 @@ class CascadeMesh(Mesh):
         spl_8 = gmsh.model.geo.addSpline(pt_wall[245 - 1:287])
         spl_9 = gmsh.model.geo.addSpline(pt_wall[287 - 1:322] + [pt_wall[0]])
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_1, self.le // 2, "Progression", 1.02)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_2, 42, "Progression", 1.03)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_3, 42, "Progression", 1)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_4, 14, "Progression", 0.94)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_2, self.nodes_sp2, "Progression", 1.03)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_3, self.nodes_sp3, "Progression", 1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_4, self.nodes_sp4, "Progression", 0.94)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_5, self.te // 2, "Progression", 0.97)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_6, self.te // 2, "Progression", 1.025)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_7, 57, "Progression", 1.015)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spl_8, 32, "Progression", 0.955)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_7, self.nodes_sp7, "Progression", 1.015)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spl_8, self.nodes_sp8, "Progression", 0.955)
         gmsh.model.geo.mesh.setTransfiniteCurve(spl_9, self.le // 2, "Progression", 0.9)
         spl_list = [spl_1, spl_2, spl_3, spl_4, spl_5, spl_6, spl_7, spl_8, spl_9]
         blade_loop = gmsh.model.geo.addCurveLoop(spl_list)
