@@ -65,7 +65,7 @@ def main() -> int:
     parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
     parser.add_argument("-cmp", type=int, help="targetted complexity")
     parser.add_argument("-cmax", type=int, help="maximal complexity")
-    parser.add_argument("-gro", type=float, help="complexity growth factor", default=1.25)
+    parser.add_argument("-gro", type=float, help="complexity growth factor", default=1.5)
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
     parser.add_argument("-nite", type=int, help="number of adaptation iterations", default=5)
     parser.add_argument("-smax", type=int, help="max. number of adaptation perturbation", default=3)
@@ -73,6 +73,7 @@ def main() -> int:
 
     args = parser.parse_args()
     t0 = time.time()
+    print(f"simulation performed with: {args}")
 
     # assert required input files exist
     input = args.input.split(".")[0]
@@ -110,7 +111,7 @@ def main() -> int:
     cmp = args.cmp
     ite, sub_ite = 1, 0
     aero_cv = False
-    while ite <= args.nite and not aero_cv:
+    while ite <= args.nite:
 
         print(f"** ITERATION {ite} - COMPLEXITY {cmp} **")
         print(f"** ----------{'-' * len(str(ite))}--------------{'-' * len(str(cmp))} **")
@@ -157,9 +158,10 @@ def main() -> int:
             print(f">> new Cd = {new_Cd} ({delta} %)")
             print(f">> aerodynamic convergence {'reached' if aero_cv else 'not reached'}")
             old_Cd = new_Cd
+
+            cmp *= gro if ite % args.smax == 0 else 1.
             ite += 1
             sub_ite = 1
-            cmp *= gro
         else:
             print(f">> WOLF has not converged (residual {res})")
             sub_ite += 1
