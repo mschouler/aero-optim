@@ -240,16 +240,16 @@ class CascadeMesh(Mesh):
 
         # define physical groups for boundary conditions
         self.surf_tag = [surf_1, surf_2]
-        gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=100)
-        gmsh.model.geo.addPhysicalGroup(1, [l_10], tag=10)
+        gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=100, name="field")
+        gmsh.model.geo.addPhysicalGroup(1, [l_10], tag=10, name="inlet")
         logger.info(f"BC: Inlet tags are {[l_10]}")
-        gmsh.model.geo.addPhysicalGroup(1, [l_21], tag=20)
+        gmsh.model.geo.addPhysicalGroup(1, [l_21], tag=20, name="outlet")
         logger.info(f"BC: Outlet tags are {[l_21]}")
-        gmsh.model.geo.addPhysicalGroup(1, spl_list, tag=30)
+        gmsh.model.geo.addPhysicalGroup(1, spl_list, tag=30, name="wall")
         logger.info(f"BC: Wall tags are {spl_list}")
-        gmsh.model.geo.addPhysicalGroup(1, top_tags, tag=40)
+        gmsh.model.geo.addPhysicalGroup(1, top_tags, tag=40, name="uwall")
         logger.info(f"BC: Top tags are {top_tags}")
-        gmsh.model.geo.addPhysicalGroup(1, bottom_tags, tag=50)
+        gmsh.model.geo.addPhysicalGroup(1, bottom_tags, tag=50, name="lwall")
         logger.info(f"BC: Bottom tags are {bottom_tags}")
 
         # non-corner points defined as flow-field and inner block line nodes
