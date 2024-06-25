@@ -14,7 +14,7 @@ Gamma
 
 ReferenceState
 PhysicalState
-  0.5068 87.9370 82.0026 0. 14408 2.7222e-5
+  0.5068 87.9370 82.0026 0. 14408 2.8288e-5
   # rho, u, v, w, p, mu
 
 PerfectGasSpecificConstant
