@@ -91,6 +91,7 @@ class Mesh(ABC):
         - outfile (str): the core name of all outputed files e.g. outfile.log, outfile.mesh, etc.
         - scale (float): geometry scaling factor.
         - header (int): the number of header lines in dat_file.
+        - mesh_format (str): the mesh format (mesh or cgns).
         - bl (bool): whether to mesh the boundary layer (True) or not (False).
         - bl_thickness (float): the BL meshing cumulated thickness.
         - bl_ratio (float): the BL meshing growth ratio.
@@ -112,7 +113,8 @@ class Mesh(ABC):
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
         self.scale: int = config["study"].get("scale", 1)
         self.header: int = config["study"].get("header", 2)
-        # mesh params (boundary layer)
+        # mesh params (format & boundary layer)
+        self.mesh_format: str = config["gmsh"]["mesh"].get("mesh_format", "mesh").lower()
         self.bl: bool = config["gmsh"]["mesh"].get("bl", False)
         self.bl_thickness: float = config["gmsh"]["mesh"].get("bl_thickness", 1e-3)
         self.bl_ratio: float = config["gmsh"]["mesh"].get("bl_ratio", 1.1)
@@ -195,10 +197,10 @@ class Mesh(ABC):
         logger.info(f"writing {self.outfile}.geo_unrolled to {mesh_dir}")
         gmsh.write(os.path.join(mesh_dir, self.outfile + ".geo_unrolled"))
         # .mesh
-        logger.info(f"writing {self.outfile}.mesh to {mesh_dir}")
-        gmsh.write(os.path.join(mesh_dir, self.outfile + ".mesh"))
+        logger.info(f"writing {self.outfile}.{self.mesh_format} to {mesh_dir}")
+        gmsh.write(os.path.join(mesh_dir, self.outfile + f".{self.mesh_format}"))
         # medit formatting
-        if format:
+        if self.mesh_format == "mesh" and format:
             logger.info(f"medit formatting of {self.outfile}.mesh")
             mesh_format(os.path.join(mesh_dir, self.outfile + ".mesh"), self.non_corner_tag)
         # .log
@@ -212,7 +214,7 @@ class Mesh(ABC):
         # close gmsh
         gmsh.logger.stop()
         gmsh.finalize()
-        return os.path.join(mesh_dir, self.outfile + ".mesh")
+        return os.path.join(mesh_dir, self.outfile + f".{self.mesh_format}")
 
     @abstractmethod
     def process_config(self):
