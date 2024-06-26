@@ -12,13 +12,12 @@ SpalartAllmarasTurbulenceModel
 Gamma
   1.400
 
+AeroNonDimensionedResolution
+
 ReferenceState
 PhysicalState
-  0.5068 87.9370 82.0026 0. 14408 2.7222e-5
+  0.1840 145.9051 136.0587 0. 14408 1.7039e-5
   # rho, u, v, w, p, mu
-
-PerfectGasSpecificConstant
-104.2110
 
 #  -------------------
 #  Spatial resolution
@@ -100,7 +99,7 @@ SaveFrequency
 SaveLight
 
 AeroReferenceLength
-0.067363
+0.07
 AeroReferenceCenter
 0.030892  0.013067
 

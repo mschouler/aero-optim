@@ -91,12 +91,15 @@ The `"mesh"` entry contains various meshing parameters such as the number of nod
 - `r_wake (int)`: the wake growth ratio.
 
 ### Cascade
-This meshing routine corresponds to an internal flow simulation. For this reason, the `build_bl()` method contains several specificities such as the definition of periodic elements on the upper and lower sides of the domain.
+This meshing routine corresponds to an internal flow simulation. For this reason, the `build_bl()` method contains several specificities such as the definition of periodic elements on the upper and lower sides of the domain. The computational domain is illustrated in the figure below where the line/spline numbers are indicated between brackets and the corresponding meshing parameter between parenthesis.
+<p float="left">
+  <img src="../Figures/cascade_domain.png" width="100%" />
+</p>
 
 In addition, multiple gmsh "size fields" are defined to mesh the boundary layer and locally refine the mesh in the blade's wake.
 
 !!! Note
-    This meshing routine was adapted from an existing gmsh file. For this reason, many parameters are hard coded inside the class definition (e.g. the spline defining the blade and their number of nodes).
+    This meshing routine was adapted from an existing gmsh file. For this reason, some parameters are hard coded inside the class definition (e.g. the spline defining the blade and their progression values).
 
 ### Illustration
 Examples of unstructured meshes obtained with the naca routines are given below:
