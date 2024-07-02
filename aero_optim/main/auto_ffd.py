@@ -59,8 +59,8 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray,
     # legend and display
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    plt.show()
     plt.savefig(os.path.join(outdir, "ffd.png"))
+    plt.show()
 
 
 def get_sampler(sampler: str, ncontrol: int, seed: int = 123):
