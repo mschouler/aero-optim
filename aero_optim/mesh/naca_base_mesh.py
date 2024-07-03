@@ -178,4 +178,4 @@ class NACABaseMesh(Mesh):
         gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=600)
 
         # flow-field nodes defined as non_corner points
-        self.non_corner_tag = self.surf_tag
+        self.non_corner_tags = self.surf_tag
