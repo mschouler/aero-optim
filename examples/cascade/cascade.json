@@ -7,15 +7,13 @@
     "gmsh": {
         "mesh": {
             "bl": false,
-            "bl_thickness": 4e-3,
-            "bl_ratio": 1.15,
-            "bl_size": 5e-5,
-            "bl_sizefar": 5e-4,
             "nodes_inlet": 20,
             "nodes_outlet": 20,
             "side_nodes_inlet": 20,
             "side_nodes_outlet": 50,
             "curved_side_nodes": 10,
+            "le": 64,
+            "te": 64,
             "structured": false
         },
         "view": {

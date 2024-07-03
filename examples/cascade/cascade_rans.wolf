@@ -130,10 +130,10 @@ BCOutletPressureCoef
 
 BodyNoSlip
 9
-1 2 3 4 5 6 7 8 9
+1 2 3 4
 
 PeriodicFlow
-16
-11 14 15 16 17 18 19 20 12 28 27 26 25 24 23 22
+2
+11 28
 PeriodicTranslation
 0. 0.04039 0.
