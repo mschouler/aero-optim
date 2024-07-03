@@ -9,42 +9,12 @@ from aero_optim.utils import from_dat, check_dir
 logger = logging.getLogger(__name__)
 
 
-def mesh_format(mesh_file: str, non_corner_tags: list[int]):
-    """
-    Makes gmsh default .mesh formatting consistent with WOLF's and defines 'Corners'.
-    """
-    mesh = open(mesh_file, "r").read().splitlines()
-    c_vertices: list[int] = []
-    logger.info(f"non-corner tags: {non_corner_tags}")
-
-    # fix dimension if 2d
+def get_mesh_kwd(mesh: list[str], kwd: str) -> int:
     try:
-        idx = next(idx for idx, el in enumerate(mesh) if "Dimension" in el)
+        idx = next(idx for idx, el in enumerate(mesh) if kwd in el)
     except StopIteration:
-        raise Exception("ERROR -- no 'Dimension' entry in mesh file")
-    mesh[idx] = " Dimension 2"
-    del mesh[idx + 1]
-
-    # remove third coordinate
-    try:
-        vert_idx = next(idx for idx, el in enumerate(mesh) if "Vertices" in el)
-        n_vert = int(mesh[vert_idx + 1])
-    except StopIteration:
-        raise Exception("ERROR -- no 'Vertices' entry in mesh file")
-    for v_id, id in enumerate(range(vert_idx + 2, vert_idx + 2 + n_vert)):
-        line_data = list(map(float, mesh[id].split()))
-        if int(line_data[-1]) not in non_corner_tags:
-            c_vertices.append(v_id + 1)
-        mesh[id] = " " * 4 + f"{line_data[0]:>20}" + \
-                   " " * 4 + f"{line_data[1]:>20}" + \
-                   " " * 4 + f"{int(line_data[-1]):>20}"
-
-    # append corners
-    mesh = mesh[:-1] + ["Corners", str(len(c_vertices))] + [str(v) for v in c_vertices] + ["End"]
-
-    # overwrite mesh file
-    with open(mesh_file, 'w') as ftw:
-        ftw.write("\n".join(mesh))
+        raise Exception(f"ERROR -- no '{kwd}' entry in mesh file")
+    return idx
 
 
 def split_view(nview: int):
@@ -103,7 +73,9 @@ class Mesh(ABC):
         - quality (bool): whether to display quality metrics in gmsh GUI (True) or not (False).
         - pts (list[list[float]]): the geometry coordinates.
         - surf_tag (list[int]): flow-field elements tags used to recombine the mesh if structured.
-        - non_corner_tag (list[int]): non-corner physical entity tags used to define 'Corners'.
+        - non_corner_tags (list[int]): non-corner physical entity tags used to define 'Corners'.
+        - lower_tag (list[int]): lower periodic tags to be identified as one.
+        - lower_tag (list[int]): upper periodic tags to be identified as one.
         """
         self.config = config
         self.process_config()
@@ -131,7 +103,9 @@ class Mesh(ABC):
         self.pts: list[list[float]] = from_dat(self.dat_file, self.header, self.scale)
         # flow-field and non-corner tags (for recombination and corners definition)
         self.surf_tag: list[int] = []
-        self.non_corner_tag: list[int] = []
+        self.non_corner_tags: list[int] = []
+        self.bottom_tags: list[int] = []
+        self.top_tags: list[int] = []
 
     def get_nlayer(self) -> int:
         """
@@ -181,7 +155,7 @@ class Mesh(ABC):
         if self.GUI:
             gmsh.fltk.run()
 
-    def write_mesh(self, mesh_dir: str = "", format: bool = True) -> str:
+    def write_mesh(self, mesh_dir: str = "") -> str:
         """
         **Writes** all output files: <file>.geo_unrolled, <file>.log, <file>.mesh and
         returns the mesh filename.
@@ -200,9 +174,18 @@ class Mesh(ABC):
         logger.info(f"writing {self.outfile}.{self.mesh_format} to {mesh_dir}")
         gmsh.write(os.path.join(mesh_dir, self.outfile + f".{self.mesh_format}"))
         # medit formatting
-        if self.mesh_format == "mesh" and format:
+        if self.mesh_format == "mesh":
             logger.info(f"medit formatting of {self.outfile}.mesh")
-            mesh_format(os.path.join(mesh_dir, self.outfile + ".mesh"), self.non_corner_tag)
+            mesh_file = os.path.join(mesh_dir, self.outfile + ".mesh")
+            mesh = open(mesh_file, "r").read().splitlines()
+            if self.extrusion_layers == 0:
+                mesh = self.reformat_2d(mesh)
+            if self.non_corner_tags:
+                mesh = self.add_corners(mesh)
+            if self.bottom_tags and self.top_tags:
+                mesh = self.merge_refs(mesh)
+            with open(mesh_file, 'w') as ftw:
+                ftw.write("\n".join(mesh))
         # .log
         log = gmsh.logger.get()
         log_file = open(os.path.join(mesh_dir, self.outfile + ".log"), "w")
@@ -215,6 +198,70 @@ class Mesh(ABC):
         gmsh.logger.stop()
         gmsh.finalize()
         return os.path.join(mesh_dir, self.outfile + f".{self.mesh_format}")
+
+    def reformat_2d(self, mesh: list[str]) -> list[str]:
+        """
+        **Fix** gmsh default .mesh format in 2D.
+        """
+        idx = get_mesh_kwd(mesh, "Dimension")
+        mesh[idx] = " Dimension 2"
+        del mesh[idx + 1]
+
+        vert_idx = get_mesh_kwd(mesh, "Vertices")
+        n_vert = int(mesh[vert_idx + 1])
+        for id in range(vert_idx + 2, vert_idx + 2 + n_vert):
+            line_data = list(map(float, mesh[id].split()))
+            mesh[id] = " " * 4 + f"{line_data[0]:>20}" + \
+                       " " * 4 + f"{line_data[1]:>20}" + \
+                       " " * 4 + f"{int(line_data[-1]):>20}"
+        return mesh
+
+    def add_corners(self, mesh: list[str]) -> list[str]:
+        """
+        **Adds** Corners at the end of the mesh file.
+        """
+        c_vert: list[int] = []
+        logger.info(f"non-corner tags: {self.non_corner_tags}")
+
+        vert_idx = get_mesh_kwd(mesh, "Vertices")
+        n_vert = int(mesh[vert_idx + 1])
+        for v_id, id in enumerate(range(vert_idx + 2, vert_idx + 2 + n_vert)):
+            line_data = list(map(float, mesh[id].split()))
+            if int(line_data[-1]) not in self.non_corner_tags:
+                c_vert.append(v_id + 1)
+
+        mesh = mesh[:-1] + ["Corners", str(len(c_vert))] + [str(v) for v in c_vert] + ["End"]
+        return mesh
+
+    def merge_refs(self, mesh: list[str]) -> list[str]:
+        """
+        **Merges** periodic references of each sides.
+        """
+        logger.info(f"top tags: {self.top_tags} merged in ref: {max(self.top_tags)}")
+        logger.info(f"bottom tags: {self.bottom_tags} merged in ref: {min(self.bottom_tags)}")
+
+        vert_idx = get_mesh_kwd(mesh, "Vertices")
+        n_vert = int(mesh[vert_idx + 1])
+        for id in range(vert_idx + 2, vert_idx + 2 + n_vert):
+            line_data = list(map(float, mesh[id].split()))
+            if int(line_data[-1]) in self.bottom_tags:
+                line_data[-1] = min(self.bottom_tags)
+            elif int(line_data[-1]) in self.top_tags:
+                line_data[-1] = max(self.top_tags)
+            mesh[id] = " " * 4 + f"{line_data[0]:>20}" + \
+                       " " * 4 + f"{line_data[1]:>20}" + \
+                       " " * 4 + f"{int(line_data[-1]):>20}"
+
+        edge_idx = get_mesh_kwd(mesh, "Edges")
+        n_edges = int(mesh[edge_idx + 1])
+        for id in range(edge_idx + 2, edge_idx + 2 + n_edges):
+            line_data = list(map(int, mesh[id].split()))
+            if line_data[2] in self.bottom_tags:
+                line_data[2] = min(self.bottom_tags)
+            elif line_data[2] in self.top_tags:
+                line_data[2] = max(self.top_tags)
+            mesh[id] = " " + f"{line_data[0]}" + " " + f"{line_data[1]}" + " " + f"{line_data[2]}"
+        return mesh
 
     @abstractmethod
     def process_config(self):
