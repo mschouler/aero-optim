@@ -235,7 +235,7 @@ class Mesh(ABC):
 
     def merge_refs(self, mesh: list[str]) -> list[str]:
         """
-        **Merges** periodic references of each sides.
+        **Merges** the periodic boundaries references on each side of the domain.
         """
         logger.info(f"top tags: {self.top_tags} merged in ref: {max(self.top_tags)}")
         logger.info(f"bottom tags: {self.bottom_tags} merged in ref: {min(self.bottom_tags)}")
