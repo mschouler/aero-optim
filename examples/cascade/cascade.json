@@ -6,7 +6,7 @@
     },
     "gmsh": {
         "mesh": {
-            "bl": true,
+            "bl": false,
             "bl_thickness": 4e-3,
             "bl_ratio": 1.15,
             "bl_size": 5e-5,
@@ -32,6 +32,6 @@
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/cascade/adap_robust.py -in @.mesh -cmp 6000 -cmax 20000 -nproc 8 -nite 4 -gro 1.5 -smax 2"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/cascade/adap_robust.py -in @.mesh -cmp 6000 -cmax 20000 -nproc 8 -nite 4 -gro 2 -smax 2"
     }
 }
