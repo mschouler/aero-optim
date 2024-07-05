@@ -24,12 +24,11 @@
     },
     "simulator": {
         "ref_input": "cascade_rans.wolf",
-        "files_to_cp": ["cascade_adap.metrix"],
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/cascade/adap_robust.py -in @.mesh -cmp 6000 -cmax 20000 -nproc 8 -nite 4 -gro 2 -smax 2"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/cascade/adap_robust.py -in @.mesh -cmp 2000 -nproc 8 -nite 4 -smax 4"
     }
 }
