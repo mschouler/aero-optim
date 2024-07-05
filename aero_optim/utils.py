@@ -1,9 +1,11 @@
 import importlib.util
+import glob
 import json
 import logging
 import os.path
 import shutil
 import signal
+import subprocess
 
 from types import FrameType
 
@@ -165,3 +167,72 @@ def get_custom_class(filename: str, module_name: str):
     except Exception:
         logger.warning(f"could not find {module_name} in {filename}")
         return None
+
+
+def run(cmd: list[str], output: str):
+    """
+    Wrapper around subprocess.run that executes cmd and redirects stdout/stderr to output.
+    """
+    with open(output, "wb") as out:
+        subprocess.run(cmd, stdout=out, stderr=out, check=True)
+
+
+def sed_in_file(fname: str, sim_args: dict):
+    """
+    Mimics the bash sed function.
+    It updates the file fname by altering keywords according to sim_args which has the form:
+    sim_args = {1st key: {"inplace": bool, "param": list[str]}, 2nd key: ...}.
+    If "inplace" is set to True, the key is changed in place by the unique value in the list.
+    If not, the key is unchanged and its following lines are replaced with the values in the list.
+    """
+    file_content = open(fname, "r").read().splitlines()
+    for key, value in sim_args.items():
+        idx = file_content.index(key)
+        if value["inplace"]:
+            file_content[idx] = value['param'][0]
+        else:
+            for ii, param in enumerate(value['param']):
+                file_content[idx + 1 + ii] = param
+    with open(fname, 'w') as ftw:
+        ftw.write("\n".join(file_content))
+
+
+def rm_filelist(deletion_list: list[str]):
+    """
+    Wrapper around os.remove that deletes all files specified in deletion_list.
+    """
+    [os.remove(f) for f_pattern in deletion_list for f in glob.glob(f_pattern)]  # type: ignore
+
+
+def cp_filelist(in_files: list[str], out_files: list[str], move: bool = False):
+    """
+    Wrapper around shutil.copy that mimics bash cp command.
+    It copies all files specified in in_files to out_files if move is set to False.
+    If move is set to True, the behavior is changed to the bash mv command.
+    """
+    for in_f, out_f in zip(in_files, out_files):
+        try:
+            shutil.copy(in_f, out_f) if not move else shutil.move(in_f, out_f)
+        except FileNotFoundError:
+            print(f"WARNING -- {in_f} not found")
+
+
+def mv_filelist(*args):
+    """
+    Wrapper around shutil.move that mimics bash mv command.
+    """
+    return cp_filelist(*args, move=True)
+
+
+def ln_filelist(in_files: list[str], out_files: list[str]):
+    """
+    Wrapper around os.symlink that mimics bash ln -s command.
+    If the symbolic link already exists, the behavior is changed to ln -sf.
+    """
+    for in_f, out_f in zip(in_files, out_files):
+        try:
+            os.symlink(in_f, out_f)
+        except FileExistsError as e:
+            print(f"WARNING -- {e}, symlink will be forced")
+            os.symlink(in_f, "tmplink")
+            os.rename("tmplink", out_f)
