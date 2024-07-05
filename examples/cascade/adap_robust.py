@@ -128,9 +128,6 @@ def main() -> int:
     # setup working directory
     cp_filelist([f"So2/{input}.o.solb", f"So2/{input}.metric.solb"],
                 [f"{input}.solb", f"{input}.metric.solb"])
-    cp_filelist([f"So2/residual.{sim_iter}.dat", f"So2/res.{sim_iter}.dat",
-                 f"So2/aerocoef.{sim_iter}.dat", f"So2/turbocoef.{sim_iter}.dat"],
-                [f"{cwd}"] * 4)
 
     # adaptation loop
     cmp = args.cmp
@@ -139,7 +136,7 @@ def main() -> int:
         print(f"** ITERATION {ite} - COMPLEXITY {cmp} **")
         print(f"** ----------{'-' * len(str(ite))}--------------{'-' * len(str(cmp))} **")
         # set computational directory
-        pdir = f"adap_{ite - 1}" if ite > 1 else ""
+        pdir = f"adap_{ite - 1}" if ite > 1 else "So2"
         cdir = f"adap_{ite}"
         print(f">> current directory: {cdir}")
         shutil.rmtree(cdir, ignore_errors=True)
@@ -150,10 +147,6 @@ def main() -> int:
         if ite == 1:
             # copy input files
             cp_filelist([f"{input}.wolf", f"{input}.meshb", f"{input}.solb"], [f"{cwd}/{cdir}"] * 3)
-            # copy residual files
-            cp_filelist([f"residual.{sim_iter}.dat", f"res.{sim_iter}.dat",
-                        f"aerocoef.{sim_iter}.dat", f"turbocoef.{sim_iter}.dat"],
-                        [f"{cdir}"] * 4)
         else:
             # copy input files
             cp_filelist(
@@ -162,10 +155,10 @@ def main() -> int:
                 [f"{cdir}/{input}.wolf", f"{cdir}/{input}.meshb", f"{cdir}/{input}.solb",
                  f"{cdir}/{input}.metric.solb"]
             )
-            # copy residual files
-            cp_filelist([f"{pdir}/residual.{sim_iter}.dat", f"{pdir}/res.{sim_iter}.dat",
-                        f"{pdir}/aerocoef.{sim_iter}.dat", f"{pdir}/turbocoef.{sim_iter}.dat"],
-                        [f"{cdir}"] * 4)
+        # copy residual files
+        cp_filelist([f"{pdir}/residual.{sim_iter}.dat", f"{pdir}/res.{sim_iter}.dat",
+                    f"{pdir}/aerocoef.{sim_iter}.dat", f"{pdir}/turbocoef.{sim_iter}.dat"],
+                    [f"{cdir}"] * 4)
 
         os.chdir(cdir)
         cp_filelist(
