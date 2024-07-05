@@ -107,22 +107,30 @@ def main() -> int:
     wolf_cmd = [WOLF, "-in", f"{input}", "-nproc", f"{args.nproc}"]
     run(wolf_cmd + ["-uni"], "wolf.job")
     print(f">> Order 1 - execution time: {time.time() - t0} seconds.\n")
+    # get iter number
+    sim_iter = int(get_turbocoef()[0])
     os.chdir(cwd)
 
     # sol. initialization (order 2)
     os.makedirs("So2", exist_ok=True)
     cp_filelist([f"{input}.meshb", f"{input}.wolf", f"So1/{input}.o.solb"],
                 [f"So2/{input}.meshb", f"So2/{input}.wolf", f"So2/{input}.solb"])
-    cp_filelist(["So1/residual.dat", "So1/aerocoef.dat", "So1/turbocoef.dat"], ["So2"] * 3)
+    cp_filelist([f"So1/residual.{sim_iter}.dat", f"So1/res.{sim_iter}.dat",
+                 f"So1/aerocoef.{sim_iter}.dat", f"So1/turbocoef.{sim_iter}.dat"],
+                ["So2"] * 4)
     os.chdir("So2")
     run(wolf_cmd, "wolf.job")
     print(f">> Order 2 - execution time: {time.time() - t0} seconds.\n")
+    # get iter number
+    sim_iter = int(get_turbocoef()[0])
     os.chdir(cwd)
 
     # setup working directory
     cp_filelist([f"So2/{input}.o.solb", f"So2/{input}.metric.solb"],
                 [f"{input}.solb", f"{input}.metric.solb"])
-    cp_filelist(["So2/residual.dat", "So2/aerocoef.dat", "So2/turbocoef.dat"], [f"{cwd}"] * 3)
+    cp_filelist([f"So2/residual.{sim_iter}.dat", f"So2/res.{sim_iter}.dat",
+                 f"So2/aerocoef.{sim_iter}.dat", f"So2/turbocoef.{sim_iter}.dat"],
+                [f"{cwd}"] * 4)
 
     # adaptation loop
     cmp = args.cmp
@@ -138,17 +146,26 @@ def main() -> int:
         os.mkdir(cdir)
         # copy background mesh
         cp_filelist([f"{input}.back.meshb", f"{input}.back.solb"], [f"{cdir}"] * 2)
-        cp_filelist(["residual.dat", "aerocoef.dat", "turbocoef.dat"], [f"{cdir}"] * 3)
 
         if ite == 1:
+            # copy input files
             cp_filelist([f"{input}.wolf", f"{input}.meshb", f"{input}.solb"], [f"{cwd}/{cdir}"] * 3)
+            # copy residual files
+            cp_filelist([f"residual.{sim_iter}.dat", f"res.{sim_iter}.dat",
+                        f"aerocoef.{sim_iter}.dat", f"turbocoef.{sim_iter}.dat"],
+                        [f"{cdir}"] * 4)
         else:
+            # copy input files
             cp_filelist(
                 [f"{input}.wolf", f"{pdir}/final.meshb", f"{pdir}/final.solb",
                  f"{pdir}/final.metric.solb"],
                 [f"{cdir}/{input}.wolf", f"{cdir}/{input}.meshb", f"{cdir}/{input}.solb",
                  f"{cdir}/{input}.metric.solb"]
             )
+            # copy residual files
+            cp_filelist([f"{pdir}/residual.{sim_iter}.dat", f"{pdir}/res.{sim_iter}.dat",
+                        f"{pdir}/aerocoef.{sim_iter}.dat", f"{pdir}/turbocoef.{sim_iter}.dat"],
+                        [f"{cdir}"] * 4)
 
         os.chdir(cdir)
         cp_filelist(
@@ -306,6 +323,7 @@ def main() -> int:
                           f"at isocomplexity {cmp}")
                     return FAILURE
 
+        sim_iter = int(turbocoef[0])
         cp_filelist(["aerocoef.dat", "turbocoef.dat", "wall.dat", "residual.dat"], [f"{cwd}"] * 4)
         os.chdir(cwd)
         ite += 1
