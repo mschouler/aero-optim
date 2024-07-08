@@ -13,6 +13,7 @@ WOLF: str = "/home/mschouler/bin/wolf"
 METRIX: str = "/home/mschouler/bin/metrix2"
 FEFLO: str = "/home/mschouler/bin/fefloa_margaret"
 INTERPOL: str = "/home/mschouler/bin/interpol2"
+SPYDER: str = "/home/mschouler/bin/spyder2"
 
 print = functools.partial(print, flush=True)
 
@@ -65,6 +66,7 @@ def main() -> int:
     res_tgt: float = 1e-6
     m_field: str = "mach"
     cv_tgt: float = 0.01
+    tol_fail: int = 1
 
     # Initialization
     print("** INITIAL SOLUTION COMPUTATION WITH 1000 ITERATIONS **")
@@ -106,7 +108,7 @@ def main() -> int:
         else:
             cp_filelist(
                 [f"{pdir}/file.wolf", f"{pdir}/final.solb", f"{pdir}/final.solb",
-                 f"{pdir}/final.mesh", f"{pdir}/final.metrix", f"{pdir}/{m_field}.solb"],
+                 f"{pdir}/final.mesh", f"{pdir}/adap.metrix", f"{pdir}/{m_field}.solb"],
                 [f"{cdir}/file.wolf", f"{cdir}/file.solb", f"{cdir}/file.o.solb",
                  f"{cdir}/file.mesh", f"{cdir}/adap.metrix", f"{cdir}/{m_field}.solb"]
             )
@@ -120,6 +122,7 @@ def main() -> int:
 
         # convergence at fixed complexity
         sub_ite = 1
+        n_fail = 0
         cd3 = cd2 = cd1 = 1.
         cl3 = cl2 = cl1 = 1.
         while sub_ite <= args.smax:
@@ -133,13 +136,13 @@ def main() -> int:
             print("** METRIC CONSTRUCTION **")
             cp_filelist([f"{m_field}.solb"], ["adap.solb"])
             metrix_cmd = [METRIX, "-O", "1", "-in", "adap", "-out", "adap.met.solb",
-                          "-v", "6", "-Cmp", f"{cmp}", "-hmax", "5"]
+                          "-v", "6", "-Cmp", f"{cmp}", "-hmax", "6"]
             run(metrix_cmd, "metrix.job")
 
             print("** MESH ADAPTATION **")
             cp_filelist(["file.mesh"], ["adap.met.mesh"])
             feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out", "file.mesh",
-                         "-noref", "-nordg", "-hgrad", "1.5"]
+                         "-noref", "-nordg", "-hgrad", "1.5", "-keep-line-ids", "1, 2, 3"]
             run(feflo_cmd, "feflo.job")
 
             print("** SOLUTION INTERPOLATION **")
@@ -157,8 +160,20 @@ def main() -> int:
             if res < res_tgt:
                 print(f">> WOLF converged: residual {res} < {res_tgt}")
             else:
-                print(f"ERROR -- WOLF did not converge: residual {res} > {res_tgt}")
-                return FAILURE
+                print(f"WARNING -- WOLF did not converge: residual {res} > {res_tgt}")
+                n_fail += 1
+                # restore backup
+                cp_filelist(backup_files, init_files)
+                # perturb complexity
+                cmp *= 1.01
+                # restart convergence at fixed complexity
+                sub_ite = 1
+                if n_fail > tol_fail:
+                    print(f"ERROR -- number of tolerated failures exceeded: {n_fail} > {tol_fail}")
+                    return FAILURE
+                else:
+                    print(f">> restart mesh convergence at fixed complexity {cmp}\n")
+                    continue
             cp_filelist(["file.o.solb", "file.mesh"],
                         [f"fin.{sub_ite}.solb", f"fin.{sub_ite}.mesh"])
             cp_filelist([f"{m_field}.solb"], [f"fin.{m_field}.{sub_ite}.solb"])
@@ -186,9 +201,9 @@ def main() -> int:
             cd_cv, cd_d2, cd_d1 = check_cv(cd3, cd2, cd1, cv_tgt)
             cl_cv, cl_d2, cl_d1 = check_cv(cl3, cl2, cl1, cv_tgt)
             if sub_ite >= 3:
-                print(f">> Cd {'converged' if cd_cv else 'dit not converge'}, "
+                print(f">> Cd {'converged' if cd_cv else 'did not converge'}, "
                       f"E2={cd_d2}, E1={cd_d1}")
-                print(f">> Cl {'converged' if cl_cv else 'dit not converge'}, "
+                print(f">> Cl {'converged' if cl_cv else 'did not converge'}, "
                       f"E2={cl_d2}, E1={cl_d1}\n")
                 sub_ite = args.smax + 1 if cd_cv and cl_cv else sub_ite + 1
             else:

@@ -42,6 +42,6 @@
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/NACA12/naca_adap/adap_robust.py -in @.mesh -cmp 2000"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/NACA12/naca_adap/adap_robust.py -in @.mesh -cmp 2000 -smax 5"
     }
 }
