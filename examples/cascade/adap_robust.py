@@ -299,11 +299,11 @@ def main() -> int:
             _, ied2, ied1 = check_cv(iseff3, iseff2, iseff1, cv_tgt_tab[ite - 1])
             _, lcd2, lcd1 = check_cv(loss_coef3, loss_coef2, loss_coef1, cv_tgt_tab[ite - 1])
             if sub_ite >= 3:
-                print(f">> debit ratio {'converged' if debit_cv else 'dit not converge'}, "
+                print(f">> debit ratio {'converged' if debit_cv else 'did not converge'}, "
                       f"E2={dd2}, E1={dd1}")
-                print(f">> Ptot ratio {'converged' if ptot_cv else 'dit not converge'}, "
+                print(f">> Ptot ratio {'converged' if ptot_cv else 'did not converge'}, "
                       f"E2={pd2}, E1={pd1}")
-                print(f">> Ttot ratio {'converged' if ttot_cv else 'dit not converge'}, "
+                print(f">> Ttot ratio {'converged' if ttot_cv else 'did not converge'}, "
                       f"E2={td2}, E1={td1}")
                 print(f">> isentropic efficiency relative differences: E2={ied2}, E1={ied1}")
                 print(f">> loss coefficient relative differences: E2={lcd2}, E1={lcd1}\n")
