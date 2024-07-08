@@ -46,10 +46,12 @@ L2ProjectionGradient
 #  -------------------
 
 Implicit
+
 SGSNew
 SGSFastSolve
 SGSFastResidual
 SGSHighOrder
+
 SGSNumberOfSubIterations
 20
 LinearSystemResidual
@@ -65,7 +67,9 @@ CflMax
 100000.
 CflLocalDynamicGeometric
 1.025
+
 CflUnderRelaxationNewtonExact
+
 FlipFlopUnderRelaxation
 
 #  -------------------
@@ -81,11 +85,10 @@ NumberOfTimeSteps
 10000
 
 LogAvgResidual
-1.e-7
-LogAvgResidualOverMax
-1.e-6
-statisticalresidualovermax
-1.e-12
+1.e-10
+
+StatisticalResidual
+1.e-13
 
 BFSRenumberingXYZ
 -10. -10. 0.
