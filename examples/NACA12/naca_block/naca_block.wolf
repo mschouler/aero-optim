@@ -82,7 +82,7 @@ PhysicalTime
 10000.
 
 NumberOfTimeSteps
-10000
+2000
 
 LogAvgResidual
 1.e-10
@@ -109,8 +109,8 @@ AeroReferenceCenter
 0.252225 0. 0.
 
 SaveAeroCoefficients
-SaveAllMach
-SaveAllPressure
+# SaveAllMach
+# SaveAllPressure
 
 #  -------------------
 #  Boundary conditions
