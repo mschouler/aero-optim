@@ -179,3 +179,4 @@ class NACABaseMesh(Mesh):
 
         # flow-field nodes defined as non_corner points
         self.non_corner_tags = self.surf_tag
+        self.non_corner_tags.extend([abs(spl) for spl in [spline_low, spline_le, spline_up]])
