@@ -13,7 +13,6 @@ WOLF: str = "/home/mschouler/bin/wolf"
 METRIX: str = "/home/mschouler/bin/metrix2"
 FEFLO: str = "/home/mschouler/bin/fefloa_margaret"
 INTERPOL: str = "/home/mschouler/bin/interpol2"
-SPYDER: str = "/home/mschouler/bin/spyder2"
 
 print = functools.partial(print, flush=True)
 
@@ -136,7 +135,7 @@ def main() -> int:
             print("** METRIC CONSTRUCTION **")
             cp_filelist([f"{m_field}.solb"], ["adap.solb"])
             metrix_cmd = [METRIX, "-O", "1", "-in", "adap", "-out", "adap.met.solb",
-                          "-v", "6", "-Cmp", f"{cmp}", "-hmax", "6"]
+                          "-v", "6", "-Cmp", f"{cmp}", "-hmax", "2"]
             run(metrix_cmd, "metrix.job")
 
             print("** MESH ADAPTATION **")
