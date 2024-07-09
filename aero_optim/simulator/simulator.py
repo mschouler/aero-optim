@@ -229,7 +229,7 @@ class WolfSimulator(Simulator):
                 self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(dict_id)
                 break
             else:
-                raise Exception(f"ERROR -- simulation {p_id} crashed")
+                raise Exception(f"ERROR -- simulation {dict_id} crashed")
         # update the list of active processes
         self.sim_pro = [tup for id, tup in enumerate(self.sim_pro) if id not in finished_sim]
         return len(self.sim_pro)

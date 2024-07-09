@@ -16,9 +16,6 @@ FEFLO: str = "/home/mschouler/bin/fefloa_margaret"
 INTERPOL: str = "/home/mschouler/bin/interpol2"
 SPYDER: str = "/home/mschouler/bin/spyder2"
 
-res_tgt: float = 1e-7
-m_field: str = "mach"
-
 print = functools.partial(print, flush=True)
 
 
@@ -52,8 +49,8 @@ def main() -> int:
     parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
     parser.add_argument("-cmp", type=int, help="targetted complexity")
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
-    parser.add_argument("-nite", type=int, help="number of adaptation iterations", default=5)
-    parser.add_argument("-smax", type=int, help="max. number of adaptation perturbation", default=3)
+    parser.add_argument("-nite", type=int, help="number of complexities", default=2)
+    parser.add_argument("-smax", type=int, help="max. number of adaptations at iso comp", default=3)
 
     args = parser.parse_args()
     t0 = time.time()
@@ -66,14 +63,15 @@ def main() -> int:
     assert os.path.isfile(f"{input}.mesh")
 
     # adaptation variables
-    cfl = 0.1
-    grad_tab = [1.4, 1.375, 1.425, 1.35, 1.45, 1.325, 1.475]
-    cv_tgt_tab = [0.01, 0.01, 0.005, 0.003] + [0.003] * max(0, args.nite - 4)
+    res_tgt: float = 1e-7
+    m_field: str = "mach"
+    cfl: float = 0.1
+    grad_tab: list[float] = [1.4, 1.375, 1.425, 1.35, 1.45, 1.325, 1.475]
+    cv_tgt_tab: list[float] = [0.01, 0.01, 0.005, 0.003] + [0.003] * max(0, args.nite - 4)
 
-    # preprocessing
     print("** MESH PREPROCESSING **")
     print("** ------------------ **")
-    # 1. re-orient mesh
+    # re-orient mesh
     cp_filelist([f"{input}.mesh"], [f"{input}_ORI.mesh"])
     spyder_cmd = [SPYDER, "-in", f"{input}_ORI", "-out", f"{input}", "-v", "6"]
     run(spyder_cmd + ["-corner", "-nbrcor", "4", "-corlst", "10", "11", "21", "28"], "spyder.job")
@@ -81,7 +79,7 @@ def main() -> int:
     feflo_cmd = [FEFLO, "-in", f"{input}", "-out", f"{input}_fine", "-novol", "-nosurf", "-nordg"]
     run(feflo_cmd, "feflo.job")
     print(">> mesh re-oriented by feflo")
-    # 2. create background mesh
+    # create background mesh
     feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-prepro", "-nordg", "-out", "tmp"]
     run(feflo_cmd, "feflo.job")
     print(">> background mesh created")
@@ -89,15 +87,15 @@ def main() -> int:
         ["tmp.back.meshb", "tmp.back.solb"], [f"{input}.back.meshb", f"{input}.back.solb"]
     )
     rm_filelist(["tmp.*"])
-    # 3. check orientation and coarsen mesh
+    # check orientation and coarsen mesh
     feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh", "-cfac", "2",
                  "-nordg", "-hmax", "0.01", "-out", f"{input}", "-keep-line-ids", "10,11,21,28"]
     run(feflo_cmd, "feflo.job")
     print(">> mesh re-orientation checked\n")
 
-    # sol. initialization (order 1)
     print("** INITIAL SOLUTION COMPUTATION WITH ~1000 ITERATIONS **")
     print("** -------------------------------------------------- **")
+    # sol. initialization (order 1)
     os.makedirs("So1", exist_ok=True)
     cp_filelist([f"{input}.meshb", f"{input}.wolf"], [f"So1/{input}.meshb", f"So1/{input}.wolf"])
     os.chdir("So1")
@@ -182,6 +180,7 @@ def main() -> int:
         while sub_ite <= args.smax:
             print(f"** SUBITERATION {sub_ite} - ISOCMP {cmp} **")
             print(f"** -------------{'-' * len(str(sub_ite))}----------{'-' * len(str(cmp))} **")
+            # create backup files
             cp_filelist(["file.meshb", "file.o.solb", "file.meshb"],
                         ["file.back.meshb", "file.back.solb", "adap.met.meshb"])
             rm_filelist(["Back.meshb"])
@@ -300,21 +299,17 @@ def main() -> int:
             _, ied2, ied1 = check_cv(iseff3, iseff2, iseff1, cv_tgt_tab[ite - 1])
             _, lcd2, lcd1 = check_cv(loss_coef3, loss_coef2, loss_coef1, cv_tgt_tab[ite - 1])
             if sub_ite >= 3:
-                print(f">> debit ratio {'converged' if debit_cv else 'dit not converge'}, "
+                print(f">> debit ratio {'converged' if debit_cv else 'did not converge'}, "
                       f"E2={dd2}, E1={dd1}")
-                print(f">> Ptot ratio {'converged' if ptot_cv else 'dit not converge'}, "
+                print(f">> Ptot ratio {'converged' if ptot_cv else 'did not converge'}, "
                       f"E2={pd2}, E1={pd1}")
-                print(f">> Ttot ratio {'converged' if ttot_cv else 'dit not converge'}, "
+                print(f">> Ttot ratio {'converged' if ttot_cv else 'did not converge'}, "
                       f"E2={td2}, E1={td1}")
                 print(f">> isentropic efficiency relative differences: E2={ied2}, E1={ied1}")
                 print(f">> loss coefficient relative differences: E2={lcd2}, E1={lcd1}\n")
                 sub_ite = args.smax + 1 if debit_cv and ptot_cv and ttot_cv else sub_ite + 1
             else:
                 sub_ite += 1
-                if sub_ite > args.smax:
-                    print(f"ERRROR -- the mesh failed to converge in {sub_ite - 1} iterations "
-                          f"at isocomplexity {cmp}")
-                    return FAILURE
 
         sim_iter = int(turbocoef[0])
         cp_filelist(["aerocoef.dat", "turbocoef.dat", "wall.dat", "residual.dat"], [f"{cwd}"] * 4)

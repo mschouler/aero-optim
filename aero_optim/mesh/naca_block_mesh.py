@@ -142,3 +142,4 @@ class NACABlockMesh(NACABaseMesh):
         # non-corner points defined as flow-field and inner block line nodes
         self.non_corner_tags.extend([abs(s_tag) for s_tag in self.surf_tag])
         self.non_corner_tags.extend([abs(li) for li in [line_5, line_6, line_13, line_14, line_15]])
+        self.non_corner_tags.extend([abs(spl) for spl in [spline_up, spline_le, spline_low]])
