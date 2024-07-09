@@ -16,7 +16,7 @@ The full documentation is available [**HERE**](https://mschouler.github.io/aero-
 **AERO-Optim** requires Python 3.10 or newer and comes with a few dependencies listed in [`requirements.txt`](./requirements.txt) and recalled below:
 ```sh
 gmsh        # to design and visualize meshes (MESH)
-inspyred    # optimzation toolbox (OPTIM)
+inspyred    # optimization toolbox (OPTIM)
 numpy       # to manipulate geometries as arrays (FFD)
 matplotlib  # to visualize the generated deformed profiles (FFD)
 pandas      # to load simulation results (OPTIM)
