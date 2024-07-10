@@ -5,7 +5,9 @@ import numpy as np
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.core.problem import Problem
-from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
+
+from aero_optim.geom import get_area
+from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer
 
 plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
@@ -70,11 +72,11 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         """
         out = []
         for cid, pro in enumerate(self.ffd_profiles[gid]):
-            ieq_1 = abs(shoe_lace(pro) - self.baseline_area) / self.baseline_area - self.area_margin
+            ieq_1 = abs(abs(get_area(pro)) - self.baseline_area) / self.baseline_area - self.area_margin
             ieq_2 = self.penalty[-1] - self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]
             if ieq_1 > 0 or ieq_2 > 0:
                 logger.info(f"penalized candidate g{gid}, c{cid} "
-                            f"with area {shoe_lace(pro)} "
+                            f"with area {abs(get_area(pro))} "
                             f"and CL {self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]}")
             out.append([ieq_1, ieq_2])
         return np.row_stack(out)

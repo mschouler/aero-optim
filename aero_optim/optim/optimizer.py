@@ -12,6 +12,7 @@ from inspyred.ec import Individual
 from random import Random
 from typing import Any
 
+from aero_optim.geom import get_area
 from aero_optim.ffd.ffd import FFD_2D
 from aero_optim.mesh.naca_base_mesh import NACABaseMesh
 from aero_optim.mesh.naca_block_mesh import NACABlockMesh
@@ -21,16 +22,6 @@ from aero_optim.simulator.simulator import DebugSimulator, WolfSimulator
 from aero_optim.utils import check_dir, get_custom_class
 
 logger = logging.getLogger(__name__)
-
-
-def shoe_lace(xy: np.ndarray) -> float:
-    """
-    **Returns** the geometry area computed with the shoelace formula.</br>
-    see https://rosettacode.org/wiki/Shoelace_formula_for_polygonal_area#Python
-    """
-    return 0.5 * np.abs(
-        np.sum([xy[i - 1, 0] * xy[i, 1] - xy[i, 0] * xy[i - 1, 1] for i in range(len(xy))])
-    )
 
 
 class Optimizer(ABC):
@@ -387,7 +378,7 @@ class WolfOptimizer(Optimizer, ABC):
         """
         self.baseline_CD: float = self.config["optim"].get("baseline_CD", 0.15)
         self.baseline_CL: float = self.config["optim"].get("baseline_CL", 0.36)
-        self.baseline_area: float = shoe_lace(self.ffd.pts)
+        self.baseline_area: float = abs(get_area(self.ffd.pts))
         self.area_margin: float = self.config["optim"].get("area_margin", 40.) / 100.
         self.penalty: list = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
 
