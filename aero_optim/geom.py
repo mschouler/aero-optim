@@ -149,12 +149,12 @@ def get_orth_proj(
     """
     # leading edge
     lle = pts[le_idx + 1] - pts[le_idx]
-    le_x = pts[le_idx, 0] + (d**2 - d**2 / (1 + lle[1]**2 / lle[0]**2))**0.5
-    le_y = pts[le_idx, 1] + d / (1 + lle[1]**2 / lle[0]**2)**0.5
+    le_x = pts[le_idx, 0] + d / (1 + lle[0]**2 / lle[1]**2)**0.5
+    le_y = pts[le_idx, 1] + (pts[le_idx, 0] - le_x) * lle[0] / lle[1]
     # trailing edge
     tte = pts[te_idx + 1] - pts[te_idx]
-    te_x = pts[te_idx, 0] - (d**2 - d**2 / (1 + tte[1]**2 / tte[0]**2))**0.5
-    te_y = pts[te_idx, 1] - d / (1 + tte[1]**2 / tte[0]**2)**0.5
+    te_x = pts[te_idx, 0] - d / (1 + tte[0]**2 / tte[1]**2)**0.5
+    te_y = pts[te_idx, 1] + (pts[te_idx, 0] - te_x) * tte[0] / tte[1]
     return np.array([le_x, le_y]), np.array([te_x, te_y])
 
 
