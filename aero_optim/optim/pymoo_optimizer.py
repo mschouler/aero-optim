@@ -72,7 +72,9 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         """
         out = []
         for cid, pro in enumerate(self.ffd_profiles[gid]):
-            ieq_1 = abs(abs(get_area(pro)) - self.baseline_area) / self.baseline_area - self.area_margin
+            ieq_1 = (
+                abs(abs(get_area(pro)) - self.baseline_area) / self.baseline_area - self.area_margin
+            )
             ieq_2 = self.penalty[-1] - self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]
             if ieq_1 > 0 or ieq_2 > 0:
                 logger.info(f"penalized candidate g{gid}, c{cid} "

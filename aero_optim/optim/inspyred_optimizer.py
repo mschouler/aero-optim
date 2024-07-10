@@ -6,7 +6,7 @@ import numpy as np
 from inspyred.ec import Individual
 from random import Random
 
-from aero_optim.geom import get_area 
+from aero_optim.geom import get_area
 from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer
 
 plt.set_loglevel(level='warning')
@@ -67,8 +67,10 @@ class InspyredWolfOptimizer(WolfOptimizer):
         **Returns** a penalty value based on some specific constraints</br>
         see https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection
         """
-        area_cond: bool = (abs(get_area(ffd_profile)) > (1. + self.area_margin) * self.baseline_area
-                           or abs(get_area(ffd_profile)) < (1. - self.area_margin) * self.baseline_area)
+        area_cond: bool = (
+            abs(get_area(ffd_profile)) > (1. + self.area_margin) * self.baseline_area
+            or abs(get_area(ffd_profile)) < (1. - self.area_margin) * self.baseline_area
+        )
         penalty_cond: bool = pen_value < self.penalty[-1]
         if area_cond or penalty_cond:
             logger.info(f"penalized candidate g{gid}, c{cid} "
