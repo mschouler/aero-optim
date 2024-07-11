@@ -26,7 +26,7 @@ def get_camber_th(
     **Returns** an approximation of the camber line, of the geometry absolute (th)
     and axial (th_x) thicknesses, and the coordinates of the points maximizing the thickness.
 
-    If `interpolate` is set to `True`, the upper and lower profiles are interpolated with scipy
+    If interpolate is set to True, the upper and lower profiles are interpolated with scipy
     which gives a more precise estimation of the thicknesses.
     """
     min_dx = []
@@ -67,7 +67,7 @@ def get_chords(pts: np.ndarray) -> tuple[float, float]:
 
 def get_circle(origin: np.ndarray, r: float) -> np.ndarray:
     """
-    **Returns** the coordinates of the points on the circle centered on `origin` with radius `r`.
+    **Returns** the coordinates of the points on the circle centered on origin with radius r.
     """
     theta = np.linspace(0., 2 * np.pi, 100)
     x_c = r * np.cos(theta) + origin[0]
@@ -102,31 +102,20 @@ def get_curv_abs(pts: np.ndarray) -> np.ndarray:
     return np.array(s)
 
 
-def get_geom_edges_idx(pts: np.ndarray) -> tuple[int, int]:
+def get_geom_edge_idx(pts: np.ndarray, idx: int, n_bound: int = 30) -> int:
     """
-    **Returns** the indices of the leading/trailing geometric edges
-    i.e. computed from the minimal curvature.
+    **Returns** the index of the geometric edge
+    i.e. computed from the minimal curvature of sub_pts, the curve portion around idx.
     """
-    # physical leading/trailing edge
-    phy_idx_le, phy_idx_te = get_phys_edges_idx(pts)
-
-    # geometrical leading/trailing edge bounds
-    assert abs(phy_idx_le - phy_idx_te) > 60
-    le_bnds = (max(0, phy_idx_le - 30), min(len(pts), phy_idx_le + 30))
-    te_bnds = (max(0, phy_idx_te - 30), min(len(pts), phy_idx_te + 30))
+    # geometrical edge bounds
+    bnds = (max(0, idx - n_bound), min(len(pts), idx + n_bound))
 
     # leading edge
-    le_pts = pts[le_bnds[0]:le_bnds[-1]]
-    le_s_np = get_curv_abs(le_pts)
+    sub_pts = pts[bnds[0]:bnds[-1]]
+    le_s_np = get_curv_abs(sub_pts)
     lap_s = np.gradient(np.gradient(le_s_np))
-    le_idx_lap = le_bnds[0] + np.argmin(abs(lap_s))
-
-    # trailing edge
-    te_pts = pts[te_bnds[0]:te_bnds[-1]]
-    te_s_np = get_curv_abs(te_pts)
-    lap_s = np.gradient(np.gradient(te_s_np))
-    te_idx_lap = te_bnds[0] + np.argmin(abs(lap_s))
-    return int(le_idx_lap), int(te_idx_lap)
+    idx_lap = bnds[0] + np.argmin(abs(lap_s))
+    return int(idx_lap)
 
 
 def get_phys_edges_idx(pts: np.ndarray) -> tuple[int, int]:
@@ -145,7 +134,7 @@ def get_orth_proj(
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     **Returns** the orthogonal projection of the leading/trailing edge wrt its tangent
-    and at distance `d` inside the geometry.
+    and at distance d inside the geometry.
     """
     # leading edge
     lle = pts[le_idx + 1] - pts[le_idx]
@@ -160,8 +149,8 @@ def get_orth_proj(
 
 def get_radius_violation(pts: np.ndarray, origin: np.ndarray, d: float) -> bool:
     """
-    **Returns** `True` if a circle of radius `d` centered on `origin` can fit inside `pts`,
-    `False` otherwise.
+    **Returns** True if a circle of radius d centered on origin can fit inside pts,
+    False otherwise.
     """
     pts_dist = np.sqrt(np.einsum("ij,ij->i", pts[:, :2] - origin, pts[:, :2] - origin))
     return np.where(pts_dist < d)[0].size > 0
@@ -187,10 +176,16 @@ def split_profile(
         > max([p[1] for p in np.vstack((pts[:start + 1], pts[end:]))])
     ):
         upper = pts[start:end + 1]
-        lower = np.vstack((pts[end:], pts[:start + 1]))
+        if pts[-1][0] > pts[start][0]:
+            lower = np.vstack((pts[end:], pts[:start + 1]))
+        else:
+            lower = np.vstack((pts[:start + 1], pts[end:]))
     else:
         lower = pts[start:end + 1]
-        upper = np.vstack((pts[:start + 1], pts[end:]))
+        if pts[start][0] > pts[end][0]:
+            upper = np.vstack((pts[:start + 1], pts[end:]))
+        else:
+            upper = np.vstack((pts[end:], pts[:start + 1]))
     return upper, lower
 
 
@@ -200,24 +195,33 @@ def plot_profile(pts: np.ndarray, cog: np.ndarray = np.array([])):
     such as the center of gravity and the leading/trailing edges.
     """
     idx_le, idx_te = get_phys_edges_idx(pts)
-    idx_le_geom, idx_te_geom = get_geom_edges_idx(pts)
+    idx_le_geom = get_geom_edge_idx(pts, idx_le)
+    idx_te_geom = get_geom_edge_idx(pts, idx_te)
     # Figure
     fsize = (12, 4)
     _, ax = plt.subplots(figsize=fsize)
-    ax.plot(pts[:, 0], pts[:, 1], label="baseline profile")
-    # physical leading/trailing edges
-    ax.scatter(pts[idx_le][0], pts[idx_le][1],
-               c="red", s=40, marker="+", zorder=40, label="phys. leading edge")
-    ax.scatter(pts[idx_te][0], pts[idx_te][1],
-               c="black", s=40, marker="+", zorder=40, label="phys. trailing edge")
-    # geometric leading/trailing edges
-    ax.scatter(pts[idx_le_geom][0], pts[idx_le_geom][1],
-               c="black", s=40, marker="+", zorder=10, label="geo. leading edge")
-    ax.scatter(pts[idx_te_geom][0], pts[idx_te_geom][1],
-               c="red", s=40, marker="+", zorder=10, label="geo. trailing edge")
+    ax.plot(pts[:, 0], pts[:, 1], label="profile")
+    dy = 1.5 / 100. * (np.max(pts, axis=1)[1] - np.min(pts, axis=1)[1])
+    # leading edges
+    sdy = dy if pts[idx_le][1] > pts[idx_le_geom][1] else -dy
+    ax.scatter(pts[idx_le][0], pts[idx_le][1], c="red", s=40, marker="+", zorder=40)
+    ax.annotate("phys. le", xy=(pts[idx_le][0], pts[idx_le][1]),
+                xytext=(pts[idx_le][0], pts[idx_le][1] + sdy), color="red")
+    ax.scatter(pts[idx_le_geom][0], pts[idx_le_geom][1], c="black", s=40, marker="+", zorder=10)
+    ax.annotate("geo. le", xy=(pts[idx_le_geom][0], pts[idx_le_geom][1]),
+                xytext=(pts[idx_le_geom][0], pts[idx_le_geom][1] - sdy), color="black")
+    # trailing edges
+    sdy = dy if pts[idx_te][1] > pts[idx_te_geom][1] else -dy
+    ax.scatter(pts[idx_te][0], pts[idx_te][1], c="black", s=40, marker="+", zorder=40)
+    ax.annotate("phys. te", xy=(pts[idx_te][0], pts[idx_te][1]),
+                xytext=(pts[idx_te][0], pts[idx_te][1] + sdy), color="black")
+    ax.scatter(pts[idx_te_geom][0], pts[idx_te_geom][1], c="red", s=40, marker="+", zorder=10)
+    ax.annotate("geo. te", xy=(pts[idx_te_geom][0], pts[idx_te_geom][1]),
+                xytext=(pts[idx_te_geom][0], pts[idx_te_geom][1] - sdy), color="red")
     # CoG
     if cog.size > 0:
-        ax.scatter(cog[0], cog[1], c="green", s=12, label="CoG")
+        ax.scatter(cog[0], cog[1], c="green", s=12)
+        ax.annotate("CoG", (cog[0], cog[1]), color="green")
     # legend and display
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
