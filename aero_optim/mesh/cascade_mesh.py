@@ -70,7 +70,7 @@ class CascadeMesh(Mesh):
         self.nodes_sp7: int = self.config["gmsh"]["mesh"].get("nodes_sp7", 57)
         self.nodes_sp8: int = self.config["gmsh"]["mesh"].get("nodes_sp8", 32)
         self.nodes_ss: int = self.config["gmsh"]["mesh"].get("nodes_ss", 600)
-        self.nodes_ps: int = self.config["gmsh"]["mesh"].get("nodes_ss", 600)
+        self.nodes_ps: int = self.config["gmsh"]["mesh"].get("nodes_ps", 600)
 
     def process_config(self):
         logger.info("processing config..")
