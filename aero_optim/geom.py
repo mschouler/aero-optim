@@ -8,6 +8,8 @@ from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 EPS = 1e-6
 
 
+# General purpose geometric functions
+# these are theoretically compatible with any 2D geometry defined as an ordered set of points
 def get_area(pts: np.ndarray) -> float:
     """
     **Returns** the geometry signed area computed with the shoelace formula.</br>
@@ -61,7 +63,7 @@ def get_chords(pts: np.ndarray) -> tuple[float, float]:
     """
     **Returns** chord (c) and axial chord (c_ax).
     """
-    idx_le, idx_te = get_phys_edges_idx(pts)
+    idx_le, idx_te = get_edges_idx(pts)
     return float(np.linalg.norm(pts[idx_le] - pts[idx_te])), float((pts[idx_te] - pts[idx_le])[0])
 
 
@@ -79,6 +81,10 @@ def get_circle_centers(upper: np.ndarray, lower: np.ndarray) -> tuple[np.ndarray
     """
     **Returns** the origins of the edge circles as the mean point of the curvature extrema
     on each tip of the profile.
+
+    Note:
+        this function is suited for naca/blade profiles with smooth tips
+        i.e. where the point density is significantly higher than on the rest of the geometry.
     """
     # upper side
     s = get_curv_abs(upper)
@@ -126,73 +132,19 @@ def get_curv_abs(pts: np.ndarray) -> np.ndarray:
     return np.array(s)
 
 
-def get_geom_edge_idx(pts: np.ndarray, idx: int, n_bound: int = 30) -> int:
+def get_edges_idx(pts: np.ndarray) -> tuple[int, int]:
     """
-    **Returns** the index of the geometric edge
-    i.e. computed from the minimal curvature of sub_pts, the curve portion around idx.
-    """
-    # geometrical edge bounds
-    bnds = (max(0, idx - n_bound), min(len(pts), idx + n_bound))
-
-    # leading edge
-    sub_pts = pts[bnds[0]:bnds[-1]]
-    le_s_np = get_curv_abs(sub_pts)
-    lap_s = np.gradient(np.gradient(le_s_np))
-    idx_lap = bnds[0] + np.argmin(abs(lap_s))
-    return int(idx_lap)
-
-
-def get_phys_edges_idx(pts: np.ndarray) -> tuple[int, int]:
-    """
-    **Returns** the indices of the leading/trailing physical edges
+    **Returns** the indices of the leading/trailing edges
     i.e. computed from the left/right-most points.
     """
     return np.argmin(pts, axis=0)[0], np.argmax(pts, axis=0)[0]
 
 
-def get_orth_proj(
-        pts: np.ndarray,
-        le_idx: int,
-        te_idx: int,
-        d: float
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    **Returns** the orthogonal projection of the leading/trailing edge wrt its tangent
-    and at distance d inside the geometry.
-    """
-    # leading edge
-    lle = pts[le_idx + 1] - pts[le_idx]
-    le_x = pts[le_idx, 0] + d / (1 + lle[0]**2 / lle[1]**2)**0.5
-    le_y = pts[le_idx, 1] + (pts[le_idx, 0] - le_x) * lle[0] / lle[1]
-    # trailing edge
-    tte = pts[te_idx + 1] - pts[te_idx]
-    te_x = pts[te_idx, 0] - d / (1 + tte[0]**2 / tte[1]**2)**0.5
-    te_y = pts[te_idx, 1] + (pts[te_idx, 0] - te_x) * tte[0] / tte[1]
-    return np.array([le_x, le_y]), np.array([te_x, te_y])
-
-
-def get_radius_violation(pts: np.ndarray, origin: np.ndarray, d: float) -> bool:
-    """
-    **Returns** True if a circle of radius d centered on origin can fit inside pts,
-    False otherwise.
-    """
-    pts_dist = np.sqrt(np.einsum("ij,ij->i", pts[:, :2] - origin, pts[:, :2] - origin))
-    return np.where(pts_dist < d)[0].size > 0
-
-
-def split_profile(
-        pts: np.ndarray,
-        idx_le: int = -1,
-        idx_te: int = -1
-) -> tuple[np.ndarray, np.ndarray]:
+def split_profile(pts: np.ndarray,) -> tuple[np.ndarray, np.ndarray]:
     """
     **Returns** the upper and lower parts wrt the leading/trailing edges.
-
-    Note:
-        by default, the leading/trailing edges are computed as the left/right-most points
-        of the geometry.
     """
-    idx_le, idx_te = get_phys_edges_idx(pts) if idx_le < 0 and idx_te < 0 else (idx_le, idx_te)
+    idx_le, idx_te = get_edges_idx(pts)
     start: int = min(idx_le, idx_te)
     end: int = max(idx_le, idx_te)
     if (
@@ -213,35 +165,38 @@ def split_profile(
     return upper, lower
 
 
+# Constraint verification functions
+# return boolean value based on whether the constraint is violated (True) or not (False)
+def get_radius_violation(pts: np.ndarray, origin: np.ndarray, d: float) -> bool:
+    """
+    **Returns** True if a circle of radius d centered on origin does not fit inside pts,
+    False otherwise.
+    """
+    pts_dist = np.sqrt(np.einsum("ij,ij->i", pts[:, :2] - origin, pts[:, :2] - origin))
+    return np.where(pts_dist < d)[0].size > 0
+
+
+# Plotting functions
+# for visual assessment and debugging purposes
 def plot_profile(pts: np.ndarray, cog: np.ndarray = np.array([])):
     """
     **Plots** the complete profile and other optional attributes
     such as the center of gravity and the leading/trailing edges.
     """
-    idx_le, idx_te = get_phys_edges_idx(pts)
-    idx_le_geom = get_geom_edge_idx(pts, idx_le)
-    idx_te_geom = get_geom_edge_idx(pts, idx_te)
+    idx_le, idx_te = get_edges_idx(pts)
     # Figure
     fsize = (12, 4)
     _, ax = plt.subplots(figsize=fsize)
     ax.plot(pts[:, 0], pts[:, 1], label="profile")
     dy = 1.5 / 100. * (np.max(pts, axis=1)[1] - np.min(pts, axis=1)[1])
     # leading edges
-    sdy = dy if pts[idx_le][1] > pts[idx_le_geom][1] else -dy
     ax.scatter(pts[idx_le][0], pts[idx_le][1], c="red", s=40, marker="+", zorder=40)
     ax.annotate("phys. le", xy=(pts[idx_le][0], pts[idx_le][1]),
-                xytext=(pts[idx_le][0], pts[idx_le][1] + sdy), color="red")
-    ax.scatter(pts[idx_le_geom][0], pts[idx_le_geom][1], c="black", s=40, marker="+", zorder=10)
-    ax.annotate("geo. le", xy=(pts[idx_le_geom][0], pts[idx_le_geom][1]),
-                xytext=(pts[idx_le_geom][0], pts[idx_le_geom][1] - sdy), color="black")
+                xytext=(pts[idx_le][0], pts[idx_le][1] + dy), color="red")
     # trailing edges
-    sdy = dy if pts[idx_te][1] > pts[idx_te_geom][1] else -dy
     ax.scatter(pts[idx_te][0], pts[idx_te][1], c="black", s=40, marker="+", zorder=40)
     ax.annotate("phys. te", xy=(pts[idx_te][0], pts[idx_te][1]),
-                xytext=(pts[idx_te][0], pts[idx_te][1] + sdy), color="black")
-    ax.scatter(pts[idx_te_geom][0], pts[idx_te_geom][1], c="red", s=40, marker="+", zorder=10)
-    ax.annotate("geo. te", xy=(pts[idx_te_geom][0], pts[idx_te_geom][1]),
-                xytext=(pts[idx_te_geom][0], pts[idx_te_geom][1] - sdy), color="red")
+                xytext=(pts[idx_te][0], pts[idx_te][1] + dy), color="black")
     # CoG
     if cog.size > 0:
         ax.scatter(cog[0], cog[1], c="green", s=12)
