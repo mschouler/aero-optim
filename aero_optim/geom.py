@@ -75,6 +75,30 @@ def get_circle(origin: np.ndarray, r: float) -> np.ndarray:
     return np.column_stack((x_c, y_c))
 
 
+def get_circle_centers(upper: np.ndarray, lower: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+    **Returns** the origins of the edge circles as the mean point of the curvature extrema
+    on each tip of the profile.
+    """
+    # upper side
+    s = get_curv_abs(upper)
+    d_s = np.gradient(s)
+    u_dd_s = np.gradient(d_s)
+    u_min_dd_s = np.argmin(u_dd_s)
+    u_max_dd_s = np.argmax(u_dd_s)
+
+    # lower side
+    s = get_curv_abs(lower)
+    d_s = np.gradient(s)
+    l_dd_s = np.gradient(d_s)
+    l_min_dd_s = np.argmin(l_dd_s)
+    l_max_dd_s = np.argmax(l_dd_s)
+
+    mean_le_pt = 0.5 * (upper[u_max_dd_s] + lower[l_min_dd_s])
+    mean_te_pt = 0.5 * (upper[u_min_dd_s] + lower[l_max_dd_s])
+    return mean_le_pt, mean_te_pt
+
+
 def get_cog(pts: np.ndarray) -> np.ndarray:
     """
     **Returns** the coordinates of the geometry's center of gravity.
@@ -223,6 +247,8 @@ def plot_profile(pts: np.ndarray, cog: np.ndarray = np.array([])):
         ax.scatter(cog[0], cog[1], c="green", s=12)
         ax.annotate("CoG", (cog[0], cog[1]), color="green")
     # legend and display
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
@@ -243,8 +269,8 @@ def plot_sides(
     # Figure
     fsize = (12, 4)
     _, ax = plt.subplots(figsize=fsize)
-    ax.plot(upper[:, 0], upper[:, 1], label="baseline upper side")
-    ax.plot(lower[:, 0], lower[:, 1], label="baseline lower side")
+    ax.plot(upper[:, 0], upper[:, 1], label="upper side")
+    ax.plot(lower[:, 0], lower[:, 1], label="lower side")
     if camber.size > 0:
         ax.plot(camber[:, 0], camber[:, 1], label="camber line")
     if le_circle.size > 0:
@@ -284,6 +310,8 @@ def plot_sides(
     if th_vec.size > 0:
         ax.plot(th_vec[:, 0], th_vec[:, 1], label="th_max")
     # legend and display
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
