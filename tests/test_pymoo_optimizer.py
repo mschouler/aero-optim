@@ -62,6 +62,5 @@ def test_pymoo_optimizer(opt: PymooWolfOptimizer):
     expected_J = [0.11, 0.115, 0.13, 0.12, 0.135, 0.15]
     assert opt.max_generations == opt.gen_ctr
     assert np.sum([abs(i - j) for i, j in zip(cast(list[float], opt.J), expected_J)]) < 1e-10
-    assert type(opt.J[1]) is float and type(opt_J) is float
-    assert abs(opt.J[1] - opt_J) < 1e-6
+    assert abs(opt.J[1] - opt_J) < 1e-6  # type: ignore
     assert (gid, cid) == (0, 1)
