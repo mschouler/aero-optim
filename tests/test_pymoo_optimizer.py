@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pytest
+from typing import cast
 
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.optimize import minimize
@@ -43,7 +44,7 @@ def dummy_observe(pop_fitness: np.ndarray):
     return
 
 
-def test_ins_optimizer(opt: PymooWolfOptimizer):
+def test_pymoo_optimizer(opt: PymooWolfOptimizer):
     # simplify deform and mesh methods
     setattr(opt, "deform", dummy_deform)
     setattr(opt, "mesh", dummy_mesh)
@@ -60,6 +61,7 @@ def test_ins_optimizer(opt: PymooWolfOptimizer):
     # CL < 0.31 => g0, c0 becomes a bad candidate
     expected_J = [0.11, 0.115, 0.13, 0.12, 0.135, 0.15]
     assert opt.max_generations == opt.gen_ctr
-    assert np.sum([abs(i - j) for i, j in zip(opt.J, expected_J)]) < 1e-10
+    assert np.sum([abs(i - j) for i, j in zip(cast(list[float], opt.J), expected_J)]) < 1e-10
+    assert type(opt.J[1]) is float and type(opt_J) is float
     assert abs(opt.J[1] - opt_J) < 1e-6
     assert (gid, cid) == (0, 1)
