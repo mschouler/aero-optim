@@ -21,6 +21,11 @@ from aero_optim.optim.generator import Generator
 from aero_optim.simulator.simulator import DebugSimulator, WolfSimulator
 from aero_optim.utils import check_dir, get_custom_class
 
+# set pillow and matplotlib loggers to WARNING mode
+logging.getLogger("PIL").setLevel(logging.WARNING)
+plt.set_loglevel(level='warning')
+
+# get framework logger
 logger = logging.getLogger(__name__)
 
 
