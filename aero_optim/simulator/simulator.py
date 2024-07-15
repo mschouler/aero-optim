@@ -226,7 +226,10 @@ class WolfSimulator(Simulator):
             elif returncode == 0:
                 logger.info(f"simulation {dict_id} finished")
                 finished_sim.append(id)
-                self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(dict_id)
+                sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
+                self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
+                    dict_id, sim_out_dir
+                )
                 break
             else:
                 raise Exception(f"ERROR -- simulation {dict_id} crashed")
@@ -234,17 +237,16 @@ class WolfSimulator(Simulator):
         self.sim_pro = [tup for id, tup in enumerate(self.sim_pro) if id not in finished_sim]
         return len(self.sim_pro)
 
-    def post_process(self, dict_id: dict) -> pd.DataFrame:
+    def post_process(self, dict_id: dict, sim_out_dir: str) -> pd.DataFrame:
         """
         **Post-processes** the results of a terminated simulation.</br>
         **Returns** the extracted results in a DataFrame.
         """
-        sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
         qty_list: list[list[float]] = []
         head_list: list[str] = []
         # loop over the post-processing arguments to extract from the results
         for key, value in self.post_process_args.items():
-            # filter removes possible blank lines avoiding index out of range errors at L186
+            # filter removes possible blank lines avoiding index out of range errors
             file = list(filter(None, open(os.path.join(sim_out_dir, key), "r").read().splitlines()))
             headers = file[0][2:].split()  # ignore "# " before first item in headers
             for qty in value:
