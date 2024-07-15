@@ -1,6 +1,5 @@
 import inspyred
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 
 from inspyred.ec import Individual
@@ -9,7 +8,6 @@ from random import Random
 from aero_optim.geom import get_area
 from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer
 
-plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
 
 
