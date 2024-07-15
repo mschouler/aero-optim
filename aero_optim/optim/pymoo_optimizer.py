@@ -1,5 +1,4 @@
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pymoo.algorithms.soo.nonconvex.ga import GA
@@ -9,7 +8,6 @@ from pymoo.core.problem import Problem
 from aero_optim.geom import get_area
 from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer
 
-plt.set_loglevel(level='warning')
 logger = logging.getLogger(__name__)
 
 
@@ -55,15 +53,15 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         # execute all candidates
         self.execute_candidates(X, gid)
 
-        # add penalty to the candidates fitness
+        # update candidates fitness
         self.J.extend([
             self.simulator.df_dict[gid][cid][self.QoI].iloc[-1] for cid in range(len(X))
         ])
 
-        self.gen_ctr += 1
         out["F"] = np.array(self.J[-self.doe_size:])
         out["G"] = self.apply_constraints(gid)
         self._observe(out["F"])
+        self.gen_ctr += 1
 
     def apply_constraints(self, gid: int) -> np.ndarray:
         """
@@ -91,7 +89,7 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         > the candidates fitness,</br>
         > the baseline and deformed profiles.
         """
-        gid = self.gen_ctr - 1
+        gid = self.gen_ctr
 
         # extract generation best profiles
         sorted_idx = np.argsort(pop_fitness, kind="stable")[:self.n_plt]
@@ -138,16 +136,16 @@ class PymooDebugOptimizer(DebugOptimizer, Problem):
         for cid, _ in enumerate(X):
             self.J.append(self.simulator.df_dict[gid][cid]["result"].iloc[-1])
 
-        self.gen_ctr += 1
         out["F"] = np.array(self.J[-self.doe_size:])
         self._observe(out["F"])
+        self.gen_ctr += 1
 
     def _observe(self, pop_fitness: np.ndarray):
         """
         Dummy _observe function.
         """
         # extract best profiles
-        gid = self.gen_ctr - 1
+        gid = self.gen_ctr
         sorted_idx = np.argsort(pop_fitness, kind="stable")[:self.n_plt]
         logger.info(f"extracting {self.n_plt} best profiles in g{gid}: {sorted_idx}..")
         logger.debug(f"g{gid} J-fitnesses (candidates): {pop_fitness}")
