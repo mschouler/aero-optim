@@ -1,5 +1,6 @@
 import argparse
 import functools
+import math
 import os
 import shutil
 import sys
@@ -41,21 +42,12 @@ def check_cv(
     return delta_1 < target_delta and delta_2 < target_delta, delta_2, delta_1
 
 
-def main() -> int:
+def execute_simulation(args: argparse.Namespace) -> int:
     """
-    This program runs a CFD simulation with mesh adaptation i.e. coupling WOLF, METRIX and FEFLO.
+    **Performs** a single mesh adapted simulation with args.
     """
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
-    parser.add_argument("-cmp", type=int, help="targetted complexity")
-    parser.add_argument("-nproc", type=int, help="number of procs", default=1)
-    parser.add_argument("-nite", type=int, help="number of complexities", default=2)
-    parser.add_argument("-smax", type=int, help="max. number of adaptations at iso comp", default=3)
-
-    args = parser.parse_args()
     t0 = time.time()
     cwd = os.getcwd()
-    print(f"simulation performed with: {args}\n")
 
     # assert required input files exist
     input = args.input.split(".")[0]
@@ -316,6 +308,85 @@ def main() -> int:
         os.chdir(cwd)
         ite += 1
         cmp *= 2.
+
+    return SUCCESS
+
+
+def main() -> int:
+    """
+    This program runs a CFD simulation with mesh adaptation i.e. coupling WOLF, METRIX and FEFLO.
+    """
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
+    parser.add_argument("-cmp", type=int, help="targetted complexity")
+    parser.add_argument("-nproc", type=int, help="number of procs", default=1)
+    parser.add_argument("-nite", type=int, help="number of complexities", default=2)
+    parser.add_argument("-smax", type=int, help="max. number of adaptations at iso comp", default=3)
+    parser.add_argument("-ms", "--multi-sim", action="store_true", help="simulate ADP, OP1 and OP2")
+
+    args = parser.parse_args()
+    cwd = os.getcwd()
+    print(f"simulations performed with: {args}\n")
+
+    # ADP simulation
+    print("** ADP SIMULATION **")
+    print("** -------------- **")
+    if not args.multi_sim:
+        exit_status = execute_simulation(args)
+        return exit_status
+    else:
+        sim_dir = "ADP"
+        os.mkdir(sim_dir)
+        cp_filelist([f"{args.input}.wolf", f"{args.input}.mesh"], [sim_dir] * 2)
+        os.chdir(sim_dir)
+        exit_status = execute_simulation(args)
+    # abort if multi-sim mode and ADP failed
+    if exit_status != SUCCESS:
+        print(f"ERROR -- {sim_dir} failed")
+
+    # OP1 simulation
+    os.chdir(cwd)
+    print("** OP1 SIMULATION (-5 deg.) **")
+    print("** ------------------------ **")
+    sim_dir = "OP1"
+    os.mkdir(sim_dir)
+    cp_filelist([f"{args.input}.wolf", f"{args.input}.mesh"], [sim_dir] * 2)
+    os.chdir(sim_dir)
+    # update input velocity
+    u = 199.5 * math.cos((43 - 5) / 180 * math.pi)
+    v = 199.5 * math.sin((43 - 5) / 180 * math.pi)
+    # update input file
+    sim_args = {
+        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
+    }
+    sed_in_file(f"{args.input}.wolf", sim_args)
+    exit_status = execute_simulation(args)
+    # abort if OP1 failed
+    if exit_status != SUCCESS:
+        print(f"ERROR -- {sim_dir} failed")
+        return exit_status
+
+    # OP2 simulation
+    os.chdir(cwd)
+    print("** OP2 SIMULATION (+5 deg.) **")
+    print("** ------------------------ **")
+    sim_dir = "OP2"
+    os.mkdir(sim_dir)
+    cp_filelist([f"{args.input}.wolf", f"{args.input}.mesh"], [sim_dir] * 2)
+    os.chdir(sim_dir)
+    # update input velocity
+    u = 199.5 * math.cos((43 + 5) / 180 * math.pi)
+    v = 199.5 * math.sin((43 + 5) / 180 * math.pi)
+    # update input file
+    sim_args = {
+        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
+    }
+    sed_in_file(f"{args.input}.wolf", sim_args)
+    exit_status = execute_simulation(args)
+    # abort if OP2 failed
+    if exit_status != SUCCESS:
+        print(f"ERROR -- {sim_dir} failed")
+        return exit_status
 
     return SUCCESS
 
