@@ -167,21 +167,29 @@ def split_profile(pts: np.ndarray,) -> tuple[np.ndarray, np.ndarray]:
 
 # Constraint verification functions
 # return boolean value based on whether the constraint is violated (True) or not (False)
-def get_radius_violation(pts: np.ndarray, origin: np.ndarray, d: float) -> bool:
+def get_radius_violation(pts: np.ndarray, origin: np.ndarray, d: float) -> float:
     """
-    **Returns** True if a circle of radius d centered on origin does not fit inside pts,
-    False otherwise.
+    **Returns** the value of the difference between the given value d
+    and the minimal origin to profile distance.
+
+    If this value is positive, the circle of radius d centered on origin
+    does not fit inside the profile. If the value is negative, it does.
+
+    Note:
+        this mechanism complies with the way pymoo handles constraints.
     """
     pts_dist = np.sqrt(np.einsum("ij,ij->i", pts[:, :2] - origin, pts[:, :2] - origin))
-    return np.where(pts_dist < d)[0].size > 0
+    return np.min(d - pts_dist)
 
 
 # Plotting functions
 # for visual assessment and debugging purposes
-def plot_profile(pts: np.ndarray, cog: np.ndarray = np.array([])):
+def plot_profile(pts: np.ndarray, cog: np.ndarray = np.array([]), figname: str = ""):
     """
     **Plots** the complete profile and other optional attributes
     such as the center of gravity and the leading/trailing edges.
+
+    If figname exists, the graph is saved to figname (i.e. figname includes the path).
     """
     idx_le, idx_te = get_edges_idx(pts)
     # Figure
@@ -206,7 +214,10 @@ def plot_profile(pts: np.ndarray, cog: np.ndarray = np.array([])):
     ax.set_ylabel("y [m]")
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    plt.show()
+    if figname:
+        plt.savefig(figname)
+    else:
+        plt.show()
 
 
 def plot_sides(
@@ -215,11 +226,14 @@ def plot_sides(
         camber: np.ndarray = np.array([]),
         le_circle: np.ndarray = np.array([]),
         te_circle: np.ndarray = np.array([]),
-        th_vec: np.ndarray = np.array([])
+        th_vec: np.ndarray = np.array([]),
+        figname: str = ""
 ):
     """
     **Plots** the upper and lower sides of the profile and other optional attributes
     such as the camber line, the leading/trailing edge circles and the maximal thickness.
+
+    If figname exists, the graph is saved to figname (i.e. figname includes the path).
     """
     # Figure
     fsize = (12, 4)
@@ -269,4 +283,7 @@ def plot_sides(
     ax.set_ylabel("y [m]")
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    plt.show()
+    if figname:
+        plt.savefig(figname)
+    else:
+        plt.show()
