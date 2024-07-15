@@ -341,7 +341,7 @@ class Optimizer(ABC):
         )
 
     @abstractmethod
-    def _evaluate(self, *args, **kwargs) -> list[float] | None:
+    def _evaluate(self, *args, **kwargs) -> list[float | list[float]] | None:
         """
         Computes all candidates outputs and return the optimizer list of QoIs.
         """

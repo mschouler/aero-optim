@@ -30,7 +30,7 @@ class InspyredWolfOptimizer(WolfOptimizer):
     """
     This class implements a Wolf based Optimizer.
     """
-    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
+    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float | list[float]]:
         """
         **Executes** Wolf simulations, **extracts** results
         and **returns** the list of candidates QoIs.
@@ -125,7 +125,7 @@ class InspyredWolfOptimizer(WolfOptimizer):
 
 
 class InspyredDebugOptimizer(DebugOptimizer):
-    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
+    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float | list[float]]:
         """
         **Executes** dummy simulations, **extracts** results
         and **returns** the list of candidates QoIs.
