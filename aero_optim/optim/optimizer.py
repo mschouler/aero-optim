@@ -85,7 +85,7 @@ class Optimizer(ABC):
         - median (list[float]): list of populations median fitness.
         - max (list[float]): list of populations max fitness.
         - min (list[float]): list of populations min fitness.
-        - J (list[float]): the list of all generated candidates fitnesses.
+        - J (list[float | list[float]]): the list of all generated candidates fitnesses.
         - inputs (list[list[np.ndarray]]): all input candidates.
         - ffd_profiles (list[list[np.ndarray]]): all deformed geometries {gid: {cid: ffd_profile}}.
         - QoI (str): the quantity of intereset to minimize/maximize.
@@ -133,7 +133,7 @@ class Optimizer(ABC):
         self.max: list[float] = []
         self.min: list[float] = []
         # set other inner optimization variables
-        self.J: list[float] = []
+        self.J: list[float | list[float]] = []
         self.inputs: list[list[np.ndarray]] = []
         self.ffd_profiles: list[list[np.ndarray]] = []
         self.QoI: str = self.config["optim"].get("QoI", "CD")
