@@ -6,6 +6,7 @@ import shutil
 import sys
 import time
 
+from subprocess import CalledProcessError
 from aero_optim.utils import cp_filelist, ln_filelist, mv_filelist, rm_filelist, run, sed_in_file
 
 FAILURE: int = 1
@@ -42,11 +43,20 @@ def check_cv(
     return delta_1 < target_delta and delta_2 < target_delta, delta_2, delta_1
 
 
-def execute_simulation(args: argparse.Namespace) -> int:
+def clean_repo(cwd: str, sim_dir: str, input_name: str, sim_args: dict = {}):
+    os.chdir(cwd)
+    shutil.rmtree(sim_dir)
+    os.mkdir(sim_dir)
+    cp_filelist([f"{input_name}.wolf", f"{input_name}.mesh"], [sim_dir] * 2)
+    os.chdir(sim_dir)
+    if sim_args:
+        sed_in_file(f"{input_name}.wolf", sim_args)
+
+
+def execute_simulation(args: argparse.Namespace, t0: float) -> int:
     """
     **Performs** a single mesh adapted simulation with args.
     """
-    t0 = time.time()
     cwd = os.getcwd()
 
     # assert required input files exist
@@ -173,8 +183,9 @@ def execute_simulation(args: argparse.Namespace) -> int:
             print(f"** SUBITERATION {sub_ite} - ISOCMP {cmp} **")
             print(f"** -------------{'-' * len(str(sub_ite))}----------{'-' * len(str(cmp))} **")
             # create backup files
-            cp_filelist(["file.meshb", "file.o.solb", "file.meshb"],
-                        ["file.back.meshb", "file.back.solb", "adap.met.meshb"])
+            init_files = ["file.meshb", "file.o.solb", "file.meshb"]
+            backup_files = ["file.back.meshb", "file.back.solb", "adap.met.meshb"]
+            cp_filelist(init_files, backup_files)
             rm_filelist(["Back.meshb"])
             per_ite = 1
             while not os.path.isfile("Back.meshb"):
@@ -235,7 +246,14 @@ def execute_simulation(args: argparse.Namespace) -> int:
             print(f"** ---------------------{'-' * len(str(sub_ite))} **")
             rm_filelist(["file.o.solb", f"wolf.{sub_ite}.job"])
             wolf_cmd = [WOLF, "-in", "file", "-out", "file.o", "-nproc", f"{args.nproc}", "-v", "6"]
-            run(wolf_cmd + ["-C", f"{cmp}", "-profile", "-cfl", f"{cfl}"], f"wolf.{sub_ite}.job")
+            try:
+                run(wolf_cmd + ["-C", f"{cmp}", "-profile", "-cfl", f"{cfl}"],
+                    f"wolf.{sub_ite}.job")
+            except CalledProcessError:
+                cp_filelist(backup_files, init_files)
+                cmp *= 1.01
+                print(f"ERROR -- wolf subprocess failed >> restart attempt with Cmp {cmp}")
+                continue
             rm_filelist(["localCfl.*.solb"])
             res = get_residual()
             if res < res_tgt:
@@ -315,6 +333,10 @@ def execute_simulation(args: argparse.Namespace) -> int:
 def main() -> int:
     """
     This program runs a CFD simulation with mesh adaptation i.e. coupling WOLF, METRIX and FEFLO.
+
+    Note:
+        in multi simulation mode, possible non-deterministic failures due to non-converge
+        are dealt with by attempting to run the simulation once again.
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
@@ -326,13 +348,14 @@ def main() -> int:
 
     args = parser.parse_args()
     cwd = os.getcwd()
+    t0 = time.time()
     print(f"simulations performed with: {args}\n")
 
     # ADP simulation
     print("** ADP SIMULATION **")
     print("** -------------- **")
     if not args.multi_sim:
-        exit_status = execute_simulation(args)
+        exit_status = execute_simulation(args, t0)
         return exit_status
     else:
         sim_dir = "ADP"
@@ -340,11 +363,15 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = execute_simulation(args)
+        exit_status = execute_simulation(args, t0)
     # abort if multi-sim mode and ADP failed
-    if exit_status != SUCCESS:
-        print(f"ERROR -- {sim_dir} failed")
-        return exit_status
+    if exit_status == FAILURE:
+        print(f"ERROR -- {sim_dir} did not converge >> restart attempt")
+        clean_repo(cwd, sim_dir, input)
+        exit_status = execute_simulation(args, t0)
+        if exit_status == FAILURE:
+            print(f"ERROR -- {sim_dir} did not converge again >> abort")
+            return exit_status
 
     # OP1 simulation
     os.chdir(cwd)
@@ -362,11 +389,15 @@ def main() -> int:
         "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
     }
     sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = execute_simulation(args)
+    exit_status = execute_simulation(args, t0)
     # abort if OP1 failed
-    if exit_status != SUCCESS:
-        print(f"ERROR -- {sim_dir} failed")
-        return exit_status
+    if exit_status == FAILURE:
+        print(f"ERROR -- {sim_dir} did not converge >> restart attempt")
+        clean_repo(cwd, sim_dir, input)
+        exit_status = execute_simulation(args, t0)
+        if exit_status == FAILURE:
+            print(f"ERROR -- {sim_dir} did not converge again >> abort")
+            return exit_status
 
     # OP2 simulation
     os.chdir(cwd)
@@ -384,11 +415,15 @@ def main() -> int:
         "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
     }
     sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = execute_simulation(args)
+    exit_status = execute_simulation(args, t0)
     # abort if OP2 failed
-    if exit_status != SUCCESS:
-        print(f"ERROR -- {sim_dir} failed")
-        return exit_status
+    if exit_status == FAILURE:
+        print(f"ERROR -- {sim_dir} did not converge >> restart attempt")
+        clean_repo(cwd, sim_dir, input)
+        exit_status = execute_simulation(args, t0)
+        if exit_status == FAILURE:
+            print(f"ERROR -- {sim_dir} did not converge again >> abort")
+            return exit_status
 
     return SUCCESS
 
