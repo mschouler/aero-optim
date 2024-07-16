@@ -336,13 +336,15 @@ def main() -> int:
         return exit_status
     else:
         sim_dir = "ADP"
+        input = args.input.split(".")[0]
         os.mkdir(sim_dir)
-        cp_filelist([f"{args.input}.wolf", f"{args.input}.mesh"], [sim_dir] * 2)
+        cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
         exit_status = execute_simulation(args)
     # abort if multi-sim mode and ADP failed
     if exit_status != SUCCESS:
         print(f"ERROR -- {sim_dir} failed")
+        return exit_status
 
     # OP1 simulation
     os.chdir(cwd)
@@ -350,7 +352,7 @@ def main() -> int:
     print("** ------------------------ **")
     sim_dir = "OP1"
     os.mkdir(sim_dir)
-    cp_filelist([f"{args.input}.wolf", f"{args.input}.mesh"], [sim_dir] * 2)
+    cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
     os.chdir(sim_dir)
     # update input velocity
     u = 199.5 * math.cos((43 - 5) / 180 * math.pi)
@@ -359,7 +361,7 @@ def main() -> int:
     sim_args = {
         "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
     }
-    sed_in_file(f"{args.input}.wolf", sim_args)
+    sed_in_file(f"{input}.wolf", sim_args)
     exit_status = execute_simulation(args)
     # abort if OP1 failed
     if exit_status != SUCCESS:
@@ -372,7 +374,7 @@ def main() -> int:
     print("** ------------------------ **")
     sim_dir = "OP2"
     os.mkdir(sim_dir)
-    cp_filelist([f"{args.input}.wolf", f"{args.input}.mesh"], [sim_dir] * 2)
+    cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
     os.chdir(sim_dir)
     # update input velocity
     u = 199.5 * math.cos((43 + 5) / 180 * math.pi)
@@ -381,7 +383,7 @@ def main() -> int:
     sim_args = {
         "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
     }
-    sed_in_file(f"{args.input}.wolf", sim_args)
+    sed_in_file(f"{input}.wolf", sim_args)
     exit_status = execute_simulation(args)
     # abort if OP2 failed
     if exit_status != SUCCESS:
