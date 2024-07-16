@@ -354,6 +354,7 @@ def main() -> int:
     # ADP simulation
     print("** ADP SIMULATION **")
     print("** -------------- **")
+    n_restart = 0
     if not args.multi_sim:
         exit_status = execute_simulation(args, t0)
         return exit_status
@@ -365,18 +366,20 @@ def main() -> int:
         os.chdir(sim_dir)
         exit_status = execute_simulation(args, t0)
     # abort if multi-sim mode and ADP failed
-    if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge >> restart attempt")
+    while exit_status == FAILURE and n_restart < 3:
+        n_restart += 1
+        print(f"ERROR -- {sim_dir} did not converge >> restart attempt n°{n_restart}")
         clean_repo(cwd, sim_dir, input)
         exit_status = execute_simulation(args, t0)
-        if exit_status == FAILURE:
-            print(f"ERROR -- {sim_dir} did not converge again >> abort")
-            return exit_status
+    if exit_status == FAILURE:
+        print(f"ERROR -- {sim_dir} did not converge in {n_restart} attempts >> abort")
+        return exit_status
 
     # OP1 simulation
     os.chdir(cwd)
     print("** OP1 SIMULATION (-5 deg.) **")
     print("** ------------------------ **")
+    n_restart = 0
     sim_dir = "OP1"
     os.mkdir(sim_dir)
     cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
@@ -391,18 +394,20 @@ def main() -> int:
     sed_in_file(f"{input}.wolf", sim_args)
     exit_status = execute_simulation(args, t0)
     # abort if OP1 failed
-    if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge >> restart attempt")
-        clean_repo(cwd, sim_dir, input)
+    while exit_status == FAILURE and n_restart < 3:
+        n_restart += 1
+        print(f"ERROR -- {sim_dir} did not converge >> restart attempt n°{n_restart}")
+        clean_repo(cwd, sim_dir, input, sim_args)
         exit_status = execute_simulation(args, t0)
-        if exit_status == FAILURE:
-            print(f"ERROR -- {sim_dir} did not converge again >> abort")
-            return exit_status
+    if exit_status == FAILURE:
+        print(f"ERROR -- {sim_dir} did not converge in {n_restart} attempts >> abort")
+        return exit_status
 
     # OP2 simulation
     os.chdir(cwd)
     print("** OP2 SIMULATION (+5 deg.) **")
     print("** ------------------------ **")
+    n_restart = 0
     sim_dir = "OP2"
     os.mkdir(sim_dir)
     cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
@@ -417,13 +422,14 @@ def main() -> int:
     sed_in_file(f"{input}.wolf", sim_args)
     exit_status = execute_simulation(args, t0)
     # abort if OP2 failed
-    if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge >> restart attempt")
-        clean_repo(cwd, sim_dir, input)
+    while exit_status == FAILURE and n_restart < 3:
+        n_restart += 1
+        print(f"ERROR -- {sim_dir} did not converge >> restart attempt n°{n_restart}")
+        clean_repo(cwd, sim_dir, input, sim_args)
         exit_status = execute_simulation(args, t0)
-        if exit_status == FAILURE:
-            print(f"ERROR -- {sim_dir} did not converge again >> abort")
-            return exit_status
+    if exit_status == FAILURE:
+        print(f"ERROR -- {sim_dir} did not converge in {n_restart} attempts >> abort")
+        return exit_status
 
     return SUCCESS
 
