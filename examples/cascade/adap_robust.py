@@ -91,7 +91,7 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
     rm_filelist(["tmp.*"])
     # check orientation and coarsen mesh
     feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh", "-cfac", "2",
-                 "-nordg", "-hmax", "0.01", "-out", f"{input}", "-keep-line-ids", "10,11,21,28"]
+                 "-nordg", "-hmax", "0.01", "-out", f"{input}", "-keep-line-ids", "1-4,10,11,21,28"]
     run(feflo_cmd, "feflo.job")
     print(">> mesh re-orientation checked\n")
 
@@ -105,7 +105,7 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
                 "OrderTrb": {"inplace": False, "param": ["1"]}}
     sed_in_file(f"{input}.wolf", sim_args)
     wolf_cmd = [WOLF, "-in", f"{input}", "-nproc", f"{args.nproc}"]
-    run(wolf_cmd + ["-uni"], "wolf.job")
+    run(wolf_cmd + ["-uni", "-ite", "500"], "wolf.job")
     print(f">> Order 1 - execution time: {time.time() - t0} seconds.\n")
     # get iter number
     sim_iter = int(get_turbocoef()[0])
@@ -119,7 +119,7 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
                  f"So1/aerocoef.{sim_iter}.dat", f"So1/turbocoef.{sim_iter}.dat"],
                 ["So2"] * 4)
     os.chdir("So2")
-    run(wolf_cmd, "wolf.job")
+    run(wolf_cmd + ["-ite", "500"], "wolf.job")
     print(f">> Order 2 - execution time: {time.time() - t0} seconds.\n")
     # get iter number
     sim_iter = int(get_turbocoef()[0])
