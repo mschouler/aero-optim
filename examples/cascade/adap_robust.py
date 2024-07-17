@@ -53,9 +53,21 @@ def clean_repo(cwd: str, sim_dir: str, input_name: str, sim_args: dict = {}):
         sed_in_file(f"{input_name}.wolf", sim_args)
 
 
-def execute_simulation(args: argparse.Namespace, t0: float) -> int:
+def execute_simulation(
+        args: argparse.Namespace,
+        t0: float,
+        max_restart: int = 3,
+        init_ite: int = 1
+) -> tuple[int, int]:
     """
-    **Performs** a single mesh adapted simulation with args.
+    **Performs** a single mesh adapted simulation and **enforces** robustness in case of failure.
+
+    Note:
+        there are 2 sub iteration failure cases:
+        1. when a wolf subprocess fails which indicates an anomaly in the adaptation,
+        the complexity is altered and the sub iteration is restarted
+        2. when wolf fails to converge, the sub iteration is restarted max_restart times
+        and if it still has not converged, then FAILURE and ite number are returned.
     """
     cwd = os.getcwd()
 
@@ -65,7 +77,7 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
     assert os.path.isfile(f"{input}.mesh")
 
     # adaptation variables
-    res_tgt: float = 1e-7
+    res_tgt: float = 1e-6
     m_field: str = "mach"
     cfl: float = 0.1
     grad_tab: list[float] = [1.4, 1.375, 1.425, 1.35, 1.45, 1.325, 1.475]
@@ -95,7 +107,7 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
     run(feflo_cmd, "feflo.job")
     print(">> mesh re-orientation checked\n")
 
-    print("** INITIAL SOLUTION COMPUTATION WITH ~1000 ITERATIONS **")
+    print("** INITIAL SOLUTION COMPUTATION WITH ~1500 ITERATIONS **")
     print("** -------------------------------------------------- **")
     # sol. initialization (order 1)
     os.makedirs("So1", exist_ok=True)
@@ -119,7 +131,7 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
                  f"So1/aerocoef.{sim_iter}.dat", f"So1/turbocoef.{sim_iter}.dat"],
                 ["So2"] * 4)
     os.chdir("So2")
-    run(wolf_cmd + ["-ite", "500"], "wolf.job")
+    run(wolf_cmd + ["-ite", "1000"], "wolf.job")
     print(f">> Order 2 - execution time: {time.time() - t0} seconds.\n")
     # get iter number
     sim_iter = int(get_turbocoef()[0])
@@ -130,8 +142,9 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
                 [f"{input}.solb", f"{input}.metric.solb"])
 
     # adaptation loop
-    cmp = args.cmp
-    ite = 1
+    n_restart = 1
+    cmp = args.cmp * 2**(init_ite - 1)
+    ite = init_ite
     while ite <= args.nite:
         print(f"** ITERATION {ite} - COMPLEXITY {cmp} **")
         print(f"** ----------{'-' * len(str(ite))}--------------{'-' * len(str(cmp))} **")
@@ -169,7 +182,11 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
 
         # compute metric from initial condition
         wolf_cmd = [WOLF, "-in", "file", "-out", "file.o", "-nproc", f"{args.nproc}", "-v", "6"]
-        run(wolf_cmd + ["-ite", "1", "-C", f"{cmp}", "-cfl", f"{cfl}"], "wolf.job")
+        try:
+            run(wolf_cmd + ["-ite", "1", "-C", f"{cmp}", "-cfl", f"{cfl}"], "wolf.job")
+        except CalledProcessError:
+            print("ERROR -- metric computation failed >> retry once")
+            run(wolf_cmd + ["-ite", "1", "-C", f"{cmp}", "-cfl", f"{cfl}"], "wolf.job")
         print(">> computed metric from initial condition\n")
 
         # convergence at fixed complexity
@@ -183,8 +200,10 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
             print(f"** SUBITERATION {sub_ite} - ISOCMP {cmp} **")
             print(f"** -------------{'-' * len(str(sub_ite))}----------{'-' * len(str(cmp))} **")
             # create backup files
-            init_files = ["file.meshb", "file.o.solb", "file.meshb"]
-            backup_files = ["file.back.meshb", "file.back.solb", "adap.met.meshb"]
+            init_files = ["file.meshb", "file.o.solb", "file.meshb", "file.metric.solb"]
+            backup_files = [
+                "file.back.meshb", "file.back.solb", "adap.met.meshb", "file.back.metric.solb"
+            ]
             cp_filelist(init_files, backup_files)
             rm_filelist(["Back.meshb"])
             per_ite = 1
@@ -246,21 +265,35 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
             print(f"** ---------------------{'-' * len(str(sub_ite))} **")
             rm_filelist(["file.o.solb", f"wolf.{sub_ite}.job"])
             wolf_cmd = [WOLF, "-in", "file", "-out", "file.o", "-nproc", f"{args.nproc}", "-v", "6"]
+            # robust subprocess execution
             try:
                 run(wolf_cmd + ["-C", f"{cmp}", "-profile", "-cfl", f"{cfl}"],
                     f"wolf.{sub_ite}.job")
             except CalledProcessError:
                 cp_filelist(backup_files, init_files)
                 cmp *= 1.01
-                print(f"ERROR -- wolf subprocess failed >> restart attempt with Cmp {cmp}")
+                print(f"ERROR -- wolf subprocess failed >> sub_ite restart with Cmp {cmp}")
                 continue
             rm_filelist(["localCfl.*.solb"])
+            # robust solution computation
             res = get_residual()
             if res < res_tgt:
                 print(f">> WOLF converged: residual {res} < {res_tgt}")
+                n_restart = 1
             else:
                 print(f"ERROR -- WOLF did not converge: residual {res} > {res_tgt}")
-                return FAILURE
+                if n_restart > max_restart:
+                    print("ERROR -- maximal restart number reached")
+                    os.chdir(cwd)
+                    return FAILURE, ite
+                else:
+                    print(f"ERROR -- wolf did not converge >> sub_ite restart with same Cmp {cmp}")
+                    cp_filelist(backup_files, init_files)
+                    cmp *= 1.01
+                    n_restart += 1
+                    continue
+
+            # save results files
             cp_filelist(
                 ["file.o.solb", "file.meshb", "file.metric.solb"],
                 [f"fin.{sub_ite}.solb", f"fin.{sub_ite}.meshb", f"fin.metric.{sub_ite}.solb"]
@@ -305,19 +338,19 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
             # convergence check
             debit_cv, dd2, dd1 = check_cv(q_ratio3, q_ratio2, q_ratio1, cv_tgt_tab[ite - 1])
             ptot_cv, pd2, pd1 = check_cv(ptot_ratio3, ptot_ratio2, ptot_ratio1, cv_tgt_tab[ite - 1])
-            ttot_cv, td2, td1 = check_cv(ttot_ratio3, ttot_ratio2, ttot_ratio1, cv_tgt_tab[ite - 1])
+            _, td2, td1 = check_cv(ttot_ratio3, ttot_ratio2, ttot_ratio1, cv_tgt_tab[ite - 1])
             _, ied2, ied1 = check_cv(iseff3, iseff2, iseff1, cv_tgt_tab[ite - 1])
-            _, lcd2, lcd1 = check_cv(loss_coef3, loss_coef2, loss_coef1, cv_tgt_tab[ite - 1])
+            loss_cv, lcd2, lcd1 = check_cv(loss_coef3, loss_coef2, loss_coef1, cv_tgt_tab[ite - 1])
             if sub_ite >= 3:
                 print(f">> debit ratio {'converged' if debit_cv else 'did not converge'}, "
                       f"E2={dd2}, E1={dd1}")
                 print(f">> Ptot ratio {'converged' if ptot_cv else 'did not converge'}, "
                       f"E2={pd2}, E1={pd1}")
-                print(f">> Ttot ratio {'converged' if ttot_cv else 'did not converge'}, "
-                      f"E2={td2}, E1={td1}")
+                print(f">> LossCoef {'converged' if loss_cv else 'did not converge'}, "
+                      f"E2={lcd2}, E1={lcd1}")
                 print(f">> isentropic efficiency relative differences: E2={ied2}, E1={ied1}")
-                print(f">> loss coefficient relative differences: E2={lcd2}, E1={lcd1}\n")
-                sub_ite = args.smax + 1 if debit_cv and ptot_cv and ttot_cv else sub_ite + 1
+                print(f">> Ttot ratio relative differences: E2={td2}, E1={td1}\n")
+                sub_ite = args.smax + 1 if debit_cv and ptot_cv and loss_cv else sub_ite + 1
             else:
                 sub_ite += 1
 
@@ -325,9 +358,29 @@ def execute_simulation(args: argparse.Namespace, t0: float) -> int:
         cp_filelist(["aerocoef.dat", "turbocoef.dat", "wall.dat", "residual.dat"], [f"{cwd}"] * 4)
         os.chdir(cwd)
         ite += 1
-        cmp *= 2.
+        cmp = args.cmp * 2**(ite - 1)
 
-    return SUCCESS
+    return SUCCESS, ite
+
+
+def robust_execution(sim_dir: str, args: argparse.Namespace, t0: float, max_restart: int) -> int:
+    """
+    **Enhances** simulation robustness by restarting failed simulations from a previous iteration.
+    **Returns** the exit_status.
+    """
+    exit_status, ite = execute_simulation(args, t0, max_restart=max_restart)
+    new_ite = ite
+    while exit_status == FAILURE:
+        print(f"ERROR -- {sim_dir} did not converge >> restart from ite {new_ite}\n")
+        exit_status, ite = execute_simulation(args, t0, max_restart=max_restart, init_ite=new_ite)
+        if exit_status == SUCCESS:
+            break
+        else:
+            if new_ite > 1:
+                new_ite -= 1
+            else:
+                break
+    return exit_status
 
 
 def main() -> int:
@@ -354,9 +407,10 @@ def main() -> int:
     # ADP simulation
     print("** ADP SIMULATION **")
     print("** -------------- **")
-    n_restart = 0
     if not args.multi_sim:
-        exit_status = execute_simulation(args, t0)
+        exit_status, _ = execute_simulation(args, t0, max_restart=3)
+        if exit_status == SUCCESS:
+            print(f">> simulations finished successfully in {time.time() - t0} seconds.")
         return exit_status
     else:
         sim_dir = "ADP"
@@ -364,22 +418,15 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = execute_simulation(args, t0)
-    # abort if multi-sim mode and ADP failed
-    while exit_status == FAILURE and n_restart < 3:
-        n_restart += 1
-        print(f"ERROR -- {sim_dir} did not converge >> restart attempt n°{n_restart}")
-        clean_repo(cwd, sim_dir, input)
-        exit_status = execute_simulation(args, t0)
+        exit_status = robust_execution(sim_dir, args, t0, max_restart=1)
     if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge in {n_restart} attempts >> abort")
+        print(f"ERROR -- {sim_dir} did not converge >> abort")
         return exit_status
 
     # OP1 simulation
     os.chdir(cwd)
     print("** OP1 SIMULATION (-5 deg.) **")
     print("** ------------------------ **")
-    n_restart = 0
     sim_dir = "OP1"
     os.mkdir(sim_dir)
     cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
@@ -392,22 +439,15 @@ def main() -> int:
         "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
     }
     sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = execute_simulation(args, t0)
-    # abort if OP1 failed
-    while exit_status == FAILURE and n_restart < 3:
-        n_restart += 1
-        print(f"ERROR -- {sim_dir} did not converge >> restart attempt n°{n_restart}")
-        clean_repo(cwd, sim_dir, input, sim_args)
-        exit_status = execute_simulation(args, t0)
+    exit_status = robust_execution(sim_dir, args, t0, max_restart=1)
     if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge in {n_restart} attempts >> abort")
+        print(f"ERROR -- {sim_dir} did not converge >> abort")
         return exit_status
 
     # OP2 simulation
     os.chdir(cwd)
     print("** OP2 SIMULATION (+5 deg.) **")
     print("** ------------------------ **")
-    n_restart = 0
     sim_dir = "OP2"
     os.mkdir(sim_dir)
     cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
@@ -420,17 +460,12 @@ def main() -> int:
         "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
     }
     sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = execute_simulation(args, t0)
-    # abort if OP2 failed
-    while exit_status == FAILURE and n_restart < 3:
-        n_restart += 1
-        print(f"ERROR -- {sim_dir} did not converge >> restart attempt n°{n_restart}")
-        clean_repo(cwd, sim_dir, input, sim_args)
-        exit_status = execute_simulation(args, t0)
+    exit_status = robust_execution(sim_dir, args, t0, max_restart=1)
     if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge in {n_restart} attempts >> abort")
+        print(f"ERROR -- {sim_dir} did not converge >> abort")
         return exit_status
 
+    print(f">> simulations finished successfully in {time.time() - t0} seconds.")
     return SUCCESS
 
 
