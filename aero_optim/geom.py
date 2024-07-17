@@ -213,9 +213,8 @@ def plot_profile(pts: np.ndarray, cog: np.ndarray = np.array([]), figname: str =
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-    plt.tight_layout()
     if figname:
-        plt.savefig(figname)
+        plt.savefig(figname, bbox_inches='tight')
     else:
         plt.show()
 
@@ -282,8 +281,7 @@ def plot_sides(
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-    plt.tight_layout()
     if figname:
-        plt.savefig(figname)
+        plt.savefig(figname, bbox_inches='tight')
     else:
         plt.show()
