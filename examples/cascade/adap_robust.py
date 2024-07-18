@@ -77,74 +77,81 @@ def execute_simulation(
     assert os.path.isfile(f"{input}.mesh")
 
     # adaptation variables
-    res_tgt: float = 1e-6
+    default_res_tgt: float = 1e-6
     m_field: str = "mach"
     cfl: float = 0.1
-    grad_tab: list[float] = [1.4, 1.375, 1.425, 1.35, 1.45, 1.325, 1.475]
     cv_tgt_tab: list[float] = [0.01, 0.01, 0.005, 0.003] + [0.003] * max(0, args.nite - 4)
 
-    print("** MESH PREPROCESSING **")
-    print("** ------------------ **")
-    # re-orient mesh
-    cp_filelist([f"{input}.mesh"], [f"{input}_ORI.mesh"])
-    spyder_cmd = [SPYDER, "-in", f"{input}_ORI", "-out", f"{input}", "-v", "6"]
-    run(spyder_cmd + ["-corner", "-nbrcor", "4", "-corlst", "10", "11", "21", "28"], "spyder.job")
-    print(">> mesh re-oriented by spyder")
-    feflo_cmd = [FEFLO, "-in", f"{input}", "-out", f"{input}_fine", "-novol", "-nosurf", "-nordg"]
-    run(feflo_cmd, "feflo.job")
-    print(">> mesh re-oriented by feflo")
-    # create background mesh
-    feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-prepro", "-nordg", "-out", "tmp"]
-    run(feflo_cmd, "feflo.job")
-    print(">> background mesh created")
-    mv_filelist(
-        ["tmp.back.meshb", "tmp.back.solb"], [f"{input}.back.meshb", f"{input}.back.solb"]
-    )
-    rm_filelist(["tmp.*"])
-    # check orientation and coarsen mesh
-    feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh", "-cfac", "2",
-                 "-nordg", "-hmax", "0.01", "-out", f"{input}", "-keep-line-ids", "1-4,10,11,21,28"]
-    run(feflo_cmd, "feflo.job")
-    print(">> mesh re-orientation checked\n")
+    if init_ite == 1:
+        print("** MESH PREPROCESSING **")
+        print("** ------------------ **")
+        # re-orient mesh
+        cp_filelist([f"{input}.mesh"], [f"{input}_ORI.mesh"])
+        spyder_cmd = [SPYDER, "-in", f"{input}_ORI", "-out", f"{input}", "-v", "6"]
+        run(spyder_cmd + ["-corner", "-nbrcor", "4", "-corlst", "10", "11", "21", "28"],
+            "spyder.job")
+        print(">> mesh re-oriented by spyder")
+        feflo_cmd = [
+            FEFLO, "-in", f"{input}", "-out", f"{input}_fine", "-novol", "-nosurf", "-nordg"
+        ]
+        run(feflo_cmd, "feflo.job")
+        print(">> mesh re-oriented by feflo")
+        # create background mesh
+        feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-prepro", "-nordg", "-out", "tmp"]
+        run(feflo_cmd, "feflo.job")
+        print(">> background mesh created")
+        mv_filelist(
+            ["tmp.back.meshb", "tmp.back.solb"], [f"{input}.back.meshb", f"{input}.back.solb"]
+        )
+        rm_filelist(["tmp.*"])
+        # check orientation and coarsen mesh
+        feflo_cmd = [
+            FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh", "-cfac", "2",
+            "-nordg", "-hmax", "0.01", "-out", f"{input}", "-keep-line-ids", "1-4,10,11,21,28"
+        ]
+        run(feflo_cmd, "feflo.job")
+        print(">> mesh re-orientation checked\n")
 
-    print("** INITIAL SOLUTION COMPUTATION WITH ~1500 ITERATIONS **")
-    print("** -------------------------------------------------- **")
-    # sol. initialization (order 1)
-    os.makedirs("So1", exist_ok=True)
-    cp_filelist([f"{input}.meshb", f"{input}.wolf"], [f"So1/{input}.meshb", f"So1/{input}.wolf"])
-    os.chdir("So1")
-    sim_args = {"Order": {"inplace": False, "param": ["1"]},
-                "OrderTrb": {"inplace": False, "param": ["1"]}}
-    sed_in_file(f"{input}.wolf", sim_args)
-    wolf_cmd = [WOLF, "-in", f"{input}", "-nproc", f"{args.nproc}"]
-    run(wolf_cmd + ["-uni", "-ite", "500"], "wolf.job")
-    print(f">> Order 1 - execution time: {time.time() - t0} seconds.\n")
-    # get iter number
-    sim_iter = int(get_turbocoef()[0])
-    os.chdir(cwd)
+        print("** INITIAL SOLUTION COMPUTATION WITH ~1500 ITERATIONS **")
+        print("** -------------------------------------------------- **")
+        # sol. initialization (order 1)
+        os.makedirs("So1", exist_ok=True)
+        cp_filelist([f"{input}.meshb", f"{input}.wolf"],
+                    [f"So1/{input}.meshb", f"So1/{input}.wolf"])
+        os.chdir("So1")
+        sim_args = {"Order": {"inplace": False, "param": ["1"]},
+                    "OrderTrb": {"inplace": False, "param": ["1"]}}
+        sed_in_file(f"{input}.wolf", sim_args)
+        wolf_cmd = [WOLF, "-in", f"{input}", "-nproc", f"{args.nproc}"]
+        run(wolf_cmd + ["-uni", "-ite", "500"], "wolf.job")
+        print(f">> Order 1 - execution time: {time.time() - t0} seconds.\n")
+        # get iter number
+        sim_iter = int(get_turbocoef()[0])
+        os.chdir(cwd)
 
-    # sol. initialization (order 2)
-    os.makedirs("So2", exist_ok=True)
-    cp_filelist([f"{input}.meshb", f"{input}.wolf", f"So1/{input}.o.solb"],
-                [f"So2/{input}.meshb", f"So2/{input}.wolf", f"So2/{input}.solb"])
-    cp_filelist([f"So1/residual.{sim_iter}.dat", f"So1/res.{sim_iter}.dat",
-                 f"So1/aerocoef.{sim_iter}.dat", f"So1/turbocoef.{sim_iter}.dat"],
-                ["So2"] * 4)
-    os.chdir("So2")
-    run(wolf_cmd + ["-ite", "1000"], "wolf.job")
-    print(f">> Order 2 - execution time: {time.time() - t0} seconds.\n")
-    # get iter number
-    sim_iter = int(get_turbocoef()[0])
-    os.chdir(cwd)
+        # sol. initialization (order 2)
+        os.makedirs("So2", exist_ok=True)
+        cp_filelist([f"{input}.meshb", f"{input}.wolf", f"So1/{input}.o.solb"],
+                    [f"So2/{input}.meshb", f"So2/{input}.wolf", f"So2/{input}.solb"])
+        cp_filelist([f"So1/residual.{sim_iter}.dat", f"So1/res.{sim_iter}.dat",
+                    f"So1/aerocoef.{sim_iter}.dat", f"So1/turbocoef.{sim_iter}.dat"],
+                    ["So2"] * 4)
+        os.chdir("So2")
+        run(wolf_cmd + ["-ite", "1000"], "wolf.job")
+        print(f">> Order 2 - execution time: {time.time() - t0} seconds.\n")
+        # get iter number
+        sim_iter = int(get_turbocoef()[0])
+        os.chdir(cwd)
 
-    # setup working directory
-    cp_filelist([f"So2/{input}.o.solb", f"So2/{input}.metric.solb"],
-                [f"{input}.solb", f"{input}.metric.solb"])
+        # setup working directory
+        cp_filelist([f"So2/{input}.o.solb", f"So2/{input}.metric.solb"],
+                    [f"{input}.solb", f"{input}.metric.solb"])
 
     # adaptation loop
     n_restart = 1
     cmp = args.cmp * 2**(init_ite - 1)
     ite = init_ite
+    res_tgt = default_res_tgt
     while ite <= args.nite:
         print(f"** ITERATION {ite} - COMPLEXITY {cmp} **")
         print(f"** ----------{'-' * len(str(ite))}--------------{'-' * len(str(cmp))} **")
@@ -168,6 +175,8 @@ def execute_simulation(
                 [f"{cdir}/{input}.wolf", f"{cdir}/{input}.meshb", f"{cdir}/{input}.solb",
                  f"{cdir}/{input}.metric.solb"]
             )
+            # retrieve sim_iter
+            sim_iter = int(get_turbocoef(f"{pdir}/turbocoef.dat")[0])
         # copy residual files
         cp_filelist([f"{pdir}/residual.{sim_iter}.dat", f"{pdir}/res.{sim_iter}.dat",
                     f"{pdir}/aerocoef.{sim_iter}.dat", f"{pdir}/turbocoef.{sim_iter}.dat"],
@@ -206,49 +215,43 @@ def execute_simulation(
             ]
             cp_filelist(init_files, backup_files)
             rm_filelist(["Back.meshb"])
-            per_ite = 1
-            while not os.path.isfile("Back.meshb"):
-                print(f"** PERIODIC ITERATION {per_ite} **")
-                print(f"** -------------------{'-' * len(str(per_ite))} **")
-                if per_ite == len(grad_tab) + 1:
-                    raise Exception("PERIODIC MESH GENERATION FAILURE")
-                grad = grad_tab[per_ite - 1]
+            print("** PERIODIC ITERATION **")
+            print("** ------------------ **")
 
-                # metric gradation
-                metrix_cmd = [METRIX, "-in", "file.metric", "-met", "file.metric",
-                              "-out", "adap.met.solb", "-v", "6", "-nproc", f"{args.nproc}",
-                              "-Cmp", f"{cmp}", "-hgrad", f"{grad}", "-cofgrad", "1.4"]
-                run(metrix_cmd, "metrix.job")
-                print(f">> metric gradation succeeded with -hgrad {grad}")
+            # metric gradation
+            metrix_cmd = [METRIX, "-in", "file.metric", "-met", "file.metric",
+                          "-out", "adap.met.solb", "-v", "6", "-nproc", f"{args.nproc}",
+                          "-Cmp", f"{cmp}", "-hgrad", "1.4", "-cofgrad", "1.4"]
+            run(metrix_cmd, "metrix.job")
+            print(">> metric gradation succeeded with -hgrad 1.4")
 
-                # mesh adaptation
-                shutil.rmtree(f"fefloa_{sub_ite}", ignore_errors=True)
-                os.mkdir(f"fefloa_{sub_ite}")
-                cp_filelist(["adap.met.meshb", "adap.met.solb"], [f"fefloa_{sub_ite}"] * 2)
-                feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out",
-                             "CycleMet.meshb", "-keep-line-ids", "11,28", "-nordg",
-                             "-geom", f"{input}.back" , "-itp", "file.back.solb"]
-                run(feflo_cmd, f"feflo.{sub_ite}.job")
-                print(f">> mesh adaptation succeeded at per_ite {per_ite}")
-                mv_filelist(["CycleMet.solb", "file.back.itp.solb"],
-                            ["CycleMet.Met.solb", "CycleMet.solb"])
-                rm_filelist(["Forth.meshb"])
-                # wolf cycle forth
-                wolf_cmd = [WOLF, "-in", "CycleMet", "-cycleforth", "-cyclenbl", "4"]
-                run(wolf_cmd, "cycleforth.job")
-                print(f">> wolf cycleforth succeeded at per_ite {per_ite}")
-                assert os.path.isfile("Forth.meshb")
-                mv_filelist(["ForthMet.solb"], ["CycleMetForth.solb"])
-                # feflo cycle forth
-                feflo_cmd = [FEFLO, "-in", "Forth", "-met", "CycleMetForth", "-out",
-                             "Cycleadap.meshb", "-keep-line-ids", "32125,32126,1,2,3,4"]
-                run(feflo_cmd, f"feflo.{sub_ite}.job")
-                print(f">> feflo cycle adaptation succeeded at per_ite {per_ite}")
-                # wolf cycle back
-                wolf_cmd = [WOLF, "-in", "Cycleadap", "-cycleback"]
-                run(wolf_cmd, "cycleback.job")
-                print(f">> wolf cycle adaptation succeeded at per_ite {per_ite}")
-                per_ite += 1
+            # mesh adaptation
+            shutil.rmtree(f"fefloa_{sub_ite}", ignore_errors=True)
+            os.mkdir(f"fefloa_{sub_ite}")
+            cp_filelist(["adap.met.meshb", "adap.met.solb"], [f"fefloa_{sub_ite}"] * 2)
+            feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out",
+                         "CycleMet.meshb", "-keep-line-ids", "11,28", "-nordg",
+                         "-geom", f"{input}.back" , "-itp", "file.back.solb"]
+            run(feflo_cmd, f"feflo.{sub_ite}.job")
+            print(">> CycleMet mesh adaptation succeeded")
+            mv_filelist(["CycleMet.solb", "file.back.itp.solb"],
+                        ["CycleMet.Met.solb", "CycleMet.solb"])
+            rm_filelist(["Forth.meshb"])
+            # wolf cycle forth
+            wolf_cmd = [WOLF, "-in", "CycleMet", "-cycleforth", "-cyclenbl", "4"]
+            run(wolf_cmd, "cycleforth.job")
+            print(">> wolf cycleforth succeeded")
+            assert os.path.isfile("Forth.meshb")
+            mv_filelist(["ForthMet.solb"], ["CycleMetForth.solb"])
+            # feflo cycle forth
+            feflo_cmd = [FEFLO, "-in", "Forth", "-met", "CycleMetForth", "-out",
+                         "Cycleadap.meshb", "-keep-line-ids", "32125,32126,1,2,3,4"]
+            run(feflo_cmd, f"feflo.{sub_ite}.job")
+            print(">> feflo cycle adaptation succeeded at per_ite")
+            # wolf cycle back
+            wolf_cmd = [WOLF, "-in", "Cycleadap", "-cycleback"]
+            run(wolf_cmd, "cycleback.job")
+            print(">> wolf cycle adaptation succeeded at per_ite")
 
             # interpolation
             print(f"** INTERPOLATION {sub_ite} **")
@@ -280,6 +283,7 @@ def execute_simulation(
             if res < res_tgt:
                 print(f">> WOLF converged: residual {res} < {res_tgt}")
                 n_restart = 1
+                res_tgt = default_res_tgt
             else:
                 print(f"ERROR -- WOLF did not converge: residual {res} > {res_tgt}")
                 if n_restart > max_restart:
@@ -288,9 +292,13 @@ def execute_simulation(
                     return FAILURE, ite
                 else:
                     cp_filelist(backup_files, init_files)
-                    cmp *= 1.01
+                    if ite == 1 and sub_ite == 1:
+                        res_tgt = 1e-3
+                    else:
+                        cmp *= 1.01
                     n_restart += 1
-                    print(f"ERROR -- wolf did not converge >> sub_ite restart with Cmp {cmp}")
+                    print(f"ERROR -- wolf did not converge "
+                          f">> sub_ite restart with Cmp {cmp} res tgt {res_tgt}")
                     continue
 
             # save results files
@@ -379,7 +387,7 @@ def robust_execution(sim_dir: str, args: argparse.Namespace, t0: float, max_rest
             if new_ite > 1:
                 new_ite -= 1
             else:
-                break
+                continue
     return exit_status
 
 
