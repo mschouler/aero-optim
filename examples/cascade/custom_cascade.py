@@ -102,8 +102,7 @@ class CustomOptimizer(PymooWolfOptimizer):
 
         # update candidates fitness
         for cid in range(len(X)):
-            if np.where(out["G"][cid] > 0.)[0].size == 0:
-                self.feasible_cid[gid].append(cid)
+            if cid in self.feasible_cid[gid]:
                 loss_ADP = self.simulator.df_dict[gid][cid]["ADP"][self.QoI].iloc[-1]
                 loss_OP1 = self.simulator.df_dict[gid][cid]["OP1"][self.QoI].iloc[-1]
                 loss_OP2 = self.simulator.df_dict[gid][cid]["OP2"][self.QoI].iloc[-1]
@@ -215,7 +214,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         baseline: np.ndarray = self.ffd.pts
         profiles: list[np.ndarray] = self.ffd_profiles[gid]
         res_dict = self.simulator.df_dict[gid]
-        df_key = res_dict[0]["ADP"].columns  # ResTot  LossCoef   x   y  Cp  Mis
+        df_key = res_dict[self.feasible_cid[gid][0]]["ADP"].columns
         cmap = mpl.colormaps[self.cmap].resampled(self.doe_size)
         colors = cmap(np.linspace(0, 1, self.doe_size))
         # subplot construction
@@ -227,10 +226,8 @@ class CustomOptimizer(PymooWolfOptimizer):
         ax1.plot(baseline[:, 0], baseline[:, 1], color="k", lw=2, ls="--", label="baseline")
         # loop over candidates through the last generated profiles
         for cid in self.feasible_cid[gid]:
-            # only plot half profiles and residuals
             ax1.plot(profiles[cid][:, 0], profiles[cid][:, 1], color=colors[cid], label=f"c{cid}")
             res_dict[cid]["ADP"][df_key[0]].plot(ax=ax2, color=colors[cid], label=f"c{cid}")
-            # plot all fitnesses
             ax3.scatter(pop_fitness[cid, 0], pop_fitness[cid, 1],
                         color=colors[cid], label=f"c{cid}")
         # legend and title
