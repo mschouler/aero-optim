@@ -29,6 +29,6 @@
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/cascade/adap_robust.py -in @.mesh -cmp 2000 -nproc 8 -nite 4 -smax 4"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/cascade/adap_robust.py -in @.mesh -cmp 2000 -nproc 8 -nite 4 -smax 10"
     }
 }
