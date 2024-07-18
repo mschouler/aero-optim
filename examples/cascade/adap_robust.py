@@ -287,10 +287,10 @@ def execute_simulation(
                     os.chdir(cwd)
                     return FAILURE, ite
                 else:
-                    print(f"ERROR -- wolf did not converge >> sub_ite restart with same Cmp {cmp}")
                     cp_filelist(backup_files, init_files)
                     cmp *= 1.01
                     n_restart += 1
+                    print(f"ERROR -- wolf did not converge >> sub_ite restart with Cmp {cmp}")
                     continue
 
             # save results files
