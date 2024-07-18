@@ -80,7 +80,7 @@ class NACABaseMesh(Mesh):
         **Returns** the upper and lower parts of the airfoil as ordered lists (wrt the x axis).
 
         Note:
-            The trailing and leading edges are voluntarily excluded from both parts
+            the trailing and leading edges are voluntarily excluded from both parts
             since the geometry is closed and these points must each have a unique tag.
         """
         start: int = min(self.idx_le, self.idx_te)

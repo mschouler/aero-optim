@@ -91,7 +91,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         **Computes** the objective function and constraints for each candidate in the generation.
 
         Note:
-            For this use-case, constraints can be computed before simulations.
+            for this use-case, constraints can be computed before simulations.
             Unfeasible candidates are not simulated.
         """
         gid = self.gen_ctr
@@ -156,7 +156,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         and **returns** their values as a list of floats.
 
         Note:
-            When some constraint is violated, a graph is also generated.
+            when some constraint is violated, a graph is also generated.
         """
         # relative constraints
         # thmax / c:        +/- 30%
