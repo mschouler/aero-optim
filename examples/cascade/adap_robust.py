@@ -6,7 +6,7 @@ import shutil
 import sys
 import time
 
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, TimeoutExpired
 from aero_optim.utils import cp_filelist, ln_filelist, mv_filelist, rm_filelist, run, sed_in_file
 
 FAILURE: int = 1
@@ -57,10 +57,19 @@ def execute_simulation(
         args: argparse.Namespace,
         t0: float,
         max_restart: int = 3,
-        init_ite: int = 1
+        init_ite: int = 1,
+        init_res_tgt: float = 0
 ) -> tuple[int, int]:
     """
     **Performs** a single mesh adapted simulation and **enforces** robustness in case of failure.
+
+    **Input**:
+
+    - args (Namespace): various input args such as nite, input, cmp, nproc.
+    - t0 (float): the script start time used to compute the execution time.
+    - max_restart (int): limits the number of times a sub iteration is allowed to restart.
+    - init_ite (int): adaptation initiation from where to start.
+    - init_res_tgt (float): temporary residual target to be used in case of repeated failure.
 
     Note:
         there are 2 sub iteration failure cases:
@@ -151,7 +160,7 @@ def execute_simulation(
     n_restart = 1
     cmp = args.cmp * 2**(init_ite - 1)
     ite = init_ite
-    res_tgt = default_res_tgt
+    res_tgt = init_res_tgt if init_res_tgt else default_res_tgt
     while ite <= args.nite:
         print(f"** ITERATION {ite} - COMPLEXITY {cmp} **")
         print(f"** ----------{'-' * len(str(ite))}--------------{'-' * len(str(cmp))} **")
@@ -237,20 +246,35 @@ def execute_simulation(
             mv_filelist(["CycleMet.solb", "file.back.itp.solb"],
                         ["CycleMet.Met.solb", "CycleMet.solb"])
             rm_filelist(["Forth.meshb"])
+
             # wolf cycle forth
             wolf_cmd = [WOLF, "-in", "CycleMet", "-cycleforth", "-cyclenbl", "4"]
             run(wolf_cmd, "cycleforth.job")
             print(">> wolf cycleforth succeeded")
             assert os.path.isfile("Forth.meshb")
             mv_filelist(["ForthMet.solb"], ["CycleMetForth.solb"])
+
             # feflo cycle forth
             feflo_cmd = [FEFLO, "-in", "Forth", "-met", "CycleMetForth", "-out",
                          "Cycleadap.meshb", "-keep-line-ids", "32125,32126,1,2,3,4"]
-            run(feflo_cmd, f"feflo.{sub_ite}.job")
+            try:
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=1.)
+            except TimeoutExpired:
+                cp_filelist(backup_files, init_files)
+                cmp *= 1.01
+                print(f"ERROR -- cycleforth subprocess timed out >> sub_ite restart with Cmp {cmp}")
+                continue
             print(">> feflo cycle adaptation succeeded at per_ite")
+
             # wolf cycle back
             wolf_cmd = [WOLF, "-in", "Cycleadap", "-cycleback"]
-            run(wolf_cmd, "cycleback.job")
+            try:
+                run(wolf_cmd, "cycleback.job")
+            except CalledProcessError:
+                cp_filelist(backup_files, init_files)
+                cmp *= 1.01
+                print(f"ERROR -- cycleback subprocess failed >> sub_ite restart with Cmp {cmp}")
+                continue
             print(">> wolf cycle adaptation succeeded at per_ite")
 
             # interpolation
@@ -292,10 +316,7 @@ def execute_simulation(
                     return FAILURE, ite
                 else:
                     cp_filelist(backup_files, init_files)
-                    if ite == 1 and sub_ite == 1:
-                        res_tgt = 1e-3
-                    else:
-                        cmp *= 1.01
+                    cmp *= 1.01
                     n_restart += 1
                     print(f"ERROR -- wolf did not converge "
                           f">> sub_ite restart with Cmp {cmp} res tgt {res_tgt}")
@@ -377,17 +398,20 @@ def robust_execution(sim_dir: str, args: argparse.Namespace, t0: float, max_rest
     **Returns** the exit_status.
     """
     exit_status, ite = execute_simulation(args, t0, max_restart=max_restart)
-    new_ite = ite
+    new_ite, restart = ite, 0
     while exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge >> restart from ite {new_ite}\n")
-        exit_status, ite = execute_simulation(args, t0, max_restart=max_restart, init_ite=new_ite)
+        restart += 1
+        print(f"ERROR -- {sim_dir} did not converge >> restart from ite {new_ite} ({restart})\n")
+        if restart < 5:
+            exit_status, ite = execute_simulation(args, t0, max_restart, new_ite)
+        else:
+            # if adaptation is stuck the residual target is momentarily increased
+            exit_status, ite = execute_simulation(args, t0, max_restart, new_ite, init_res_tgt=1e-3)
+            restart = 0
         if exit_status == SUCCESS:
             break
         else:
-            if new_ite > 1:
-                new_ite -= 1
-            else:
-                continue
+            new_ite = new_ite - 1 if new_ite > 1 else new_ite
     return exit_status
 
 
