@@ -169,12 +169,12 @@ def get_custom_class(filename: str, module_name: str):
         return None
 
 
-def run(cmd: list[str], output: str):
+def run(cmd: list[str], output: str, timeout: float | None = None):
     """
     Wrapper around subprocess.run that executes cmd and redirects stdout/stderr to output.
     """
     with open(output, "wb") as out:
-        subprocess.run(cmd, stdout=out, stderr=out, check=True)
+        subprocess.run(cmd, stdout=out, stderr=out, check=True, timeout=timeout)
 
 
 def sed_in_file(fname: str, sim_args: dict):
