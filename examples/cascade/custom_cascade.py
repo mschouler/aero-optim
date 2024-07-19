@@ -60,6 +60,8 @@ class CustomOptimizer(PymooWolfOptimizer):
         """
         **Sets** some baseline quantities required to compute the relative constraints:
 
+        - bsl_w_ADP (float)
+        - bsl_w_OP (float)
         - bsl_camber_th (tuple[np.ndarray, float, float, np.ndarray])
         - bsl_area (float)
         - bsl_c (float)
@@ -67,6 +69,8 @@ class CustomOptimizer(PymooWolfOptimizer):
         - bsl_cog (np.ndarray)
         - bsl_cog_x (float)
         """
+        self.bsl_w_ADP = self.config["optim"].get("baseline_w_ADP", 0.0316)
+        self.bsl_w_OP = self.config["optim"].get("baseline_w_OP", 0.03745)
         bsl_pts = self.ffd.pts
         self.bsl_c, self.bsl_c_ax = get_chords(bsl_pts)
         logger.info(f"baseline chord = {self.bsl_c} m, baseline axial chord = {self.bsl_c_ax}")
@@ -214,22 +218,32 @@ class CustomOptimizer(PymooWolfOptimizer):
         baseline: np.ndarray = self.ffd.pts
         profiles: list[np.ndarray] = self.ffd_profiles[gid]
         res_dict = self.simulator.df_dict[gid]
-        df_key = res_dict[self.feasible_cid[gid][0]]["ADP"].columns
+        df_key = res_dict[self.feasible_cid[gid][0]]["ADP"].columns  # ResTot, LossCoef, x, y, Mis
         cmap = mpl.colormaps[self.cmap].resampled(self.doe_size)
         colors = cmap(np.linspace(0, 1, self.doe_size))
         # subplot construction
         fig = plt.figure(figsize=(16, 16))
         ax1 = plt.subplot(2, 1, 1)  # profiles
-        ax2 = plt.subplot(2, 2, 3)  # ResTot
-        ax3 = plt.subplot(2, 2, 4)  # fitness (loss_ADP vs loss_OP)
+        ax2 = plt.subplot(2, 3, 4)  # loss_ADP
+        ax3 = plt.subplot(2, 3, 5)  # loss_OP
+        ax4 = plt.subplot(2, 3, 6)  # fitness (loss_ADP vs loss_OP)
         plt.subplots_adjust(wspace=0.25)
         ax1.plot(baseline[:, 0], baseline[:, 1], color="k", lw=2, ls="--", label="baseline")
         # loop over candidates through the last generated profiles
         for cid in self.feasible_cid[gid]:
             ax1.plot(profiles[cid][:, 0], profiles[cid][:, 1], color=colors[cid], label=f"c{cid}")
-            res_dict[cid]["ADP"][df_key[0]].plot(ax=ax2, color=colors[cid], label=f"c{cid}")
-            ax3.scatter(pop_fitness[cid, 0], pop_fitness[cid, 1],
+            res_dict[cid]["ADP"][df_key[1]].plot(ax=ax2, color=colors[cid], label=f"c{cid}")
+            vsize = min(len(res_dict[cid]["OP1"][df_key[1]]), len(res_dict[cid]["OP2"][df_key[1]]))
+            ax3.plot(
+                range(vsize),
+                0.5 * (res_dict[cid]["OP1"][df_key[1]].values[-vsize:]
+                       + res_dict[cid]["OP2"][df_key[1]].values[-vsize:]),
+                color=colors[cid],
+                label=f"c{cid}"
+            )
+            ax4.scatter(pop_fitness[cid, 0], pop_fitness[cid, 1],
                         color=colors[cid], label=f"c{cid}")
+        ax4.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="black", label="baseline")
         # legend and title
         fig.suptitle(
             f"Generation {gid} results", size="x-large", weight="bold", y=0.93
@@ -240,15 +254,18 @@ class CustomOptimizer(PymooWolfOptimizer):
         ax1.set_xlabel('x')
         ax1.set_ylabel('y')
         # bottom left
-        ax2.set_title(f"ADP {df_key[0]}", weight="bold")
-        ax2.set_yscale("log")
+        ax2.set_title(f"{df_key[1]} ADP", weight="bold")
         ax2.set_xlabel('it. #')
-        ax2.set_ylabel('residual')
-        # bottom right
-        ax3.set_title(f"{self.QoI} ADP vs {self.QoI} OP", weight="bold")
-        ax3.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax3.set_xlabel('$w_\\text{ADP}$')
+        ax2.set_ylabel('$w_\\text{ADP}$')
+        # bottom center
+        ax3.set_title(f"{df_key[1]} OP", weight="bold")
+        ax3.set_xlabel('it. #')
         ax3.set_ylabel('$w_\\text{OP}$')
+        # bottom right
+        ax4.set_title(f"{self.QoI} ADP vs {self.QoI} OP", weight="bold")
+        ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax4.set_xlabel('$w_\\text{ADP}$')
+        ax4.set_ylabel('$w_\\text{OP}$')
         # save figure as png
         fig_name = f"pymoo_g{gid}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
@@ -273,6 +290,7 @@ class CustomOptimizer(PymooWolfOptimizer):
             ax.scatter(gen_fitness[gid * self.doe_size: (gid + 1) * self.doe_size][:, 0],
                        gen_fitness[gid * self.doe_size: (gid + 1) * self.doe_size][:, 1],
                        color=colors[gid], label=f"g{gid}")
+        ax.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="black", label="baseline")
         plt.grid(True)
 
         # legend and title
