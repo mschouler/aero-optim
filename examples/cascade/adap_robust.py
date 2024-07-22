@@ -56,26 +56,31 @@ def clean_repo(cwd: str, sim_dir: str, input_name: str, sim_args: dict = {}):
 def execute_simulation(
         args: argparse.Namespace,
         t0: float,
+        cv_tgt: list[float],
         max_restart: int = 3,
         init_ite: int = 1,
-        init_res_tgt: float = 0
+        init_res_tgt: float = 0,
+        preprocess: bool = True,
 ) -> tuple[int, int]:
     """
-    **Performs** a single mesh adapted simulation and **enforces** robustness in case of failure.
+    **Performs** a multi-iteration mesh adaptation run for a given simulation
+    and **enforces** robustness at the subiteration level in case of failure.
 
     **Input**:
 
     - args (Namespace): various input args such as nite, input, cmp, nproc.
     - t0 (float): the script start time used to compute the execution time.
-    - max_restart (int): limits the number of times a sub iteration is allowed to restart.
+    - cv_tgt_tab (float): list of QoI convergence targets for each adaptation iteration.
+    - max_restart (int): limits the number of times a subiteration is allowed to restart.
     - init_ite (int): adaptation initiation from where to start.
     - init_res_tgt (float): temporary residual target to be used in case of repeated failure.
+    - preprocess (bool): whether to coarsen/reorient the initial mesh (True) or not (False).
 
     Note:
-        there are 2 sub iteration failure cases:
-        1. when a wolf subprocess fails which indicates an anomaly in the adaptation,
-        the complexity is altered and the sub iteration is restarted
-        2. when wolf fails to converge, the sub iteration is restarted max_restart times
+        there are 2 subiteration failure cases:
+        1. when a wolf subprocess fails which may indicate an anomaly in the adaptation,
+        the complexity is hence altered and the subiteration is restarted
+        2. when wolf fails to converge, the subiteration is restarted max_restart times
         and if it still has not converged, then FAILURE and ite number are returned.
     """
     cwd = os.getcwd()
@@ -83,43 +88,44 @@ def execute_simulation(
     # assert required input files exist
     input = args.input.split(".")[0]
     assert os.path.isfile(input + ".wolf")
-    assert os.path.isfile(f"{input}.mesh")
+    assert os.path.isfile(f"{input}.mesh") or os.path.isfile(f"{input}.meshb")
 
     # adaptation variables
-    default_res_tgt: float = 1e-6
-    m_field: str = "mach"
-    cfl: float = 0.1
-    cv_tgt_tab: list[float] = [0.01, 0.01, 0.005, 0.003] + [0.003] * max(0, args.nite - 4)
+    default_res_tgt = 1e-5
+    m_field = "mach"
+    cfl = 0.1
+    cv_tgt_tab = cv_tgt + [cv_tgt[-1]] * max(0, args.nite - len(cv_tgt))
 
     if init_ite == 1:
-        print("** MESH PREPROCESSING **")
-        print("** ------------------ **")
-        # re-orient mesh
-        cp_filelist([f"{input}.mesh"], [f"{input}_ORI.mesh"])
-        spyder_cmd = [SPYDER, "-in", f"{input}_ORI", "-out", f"{input}", "-v", "6"]
-        run(spyder_cmd + ["-corner", "-nbrcor", "4", "-corlst", "10", "11", "21", "28"],
-            "spyder.job")
-        print(">> mesh re-oriented by spyder")
-        feflo_cmd = [
-            FEFLO, "-in", f"{input}", "-out", f"{input}_fine", "-novol", "-nosurf", "-nordg"
-        ]
-        run(feflo_cmd, "feflo.job")
-        print(">> mesh re-oriented by feflo")
-        # create background mesh
-        feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-prepro", "-nordg", "-out", "tmp"]
-        run(feflo_cmd, "feflo.job")
-        print(">> background mesh created")
-        mv_filelist(
-            ["tmp.back.meshb", "tmp.back.solb"], [f"{input}.back.meshb", f"{input}.back.solb"]
-        )
-        rm_filelist(["tmp.*"])
-        # check orientation and coarsen mesh
-        feflo_cmd = [
-            FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh", "-cfac", "2",
-            "-nordg", "-hmax", "0.01", "-out", f"{input}", "-keep-line-ids", "1-4,10,11,21,28"
-        ]
-        run(feflo_cmd, "feflo.job")
-        print(">> mesh re-orientation checked\n")
+        if preprocess:
+            print("** MESH PREPROCESSING **")
+            print("** ------------------ **")
+            # re-orient mesh
+            cp_filelist([f"{input}.mesh"], [f"{input}_ORI.mesh"])
+            spyder_cmd = [SPYDER, "-in", f"{input}_ORI", "-out", f"{input}", "-v", "6"]
+            run(spyder_cmd + ["-corner", "-nbrcor", "4", "-corlst", "10", "11", "21", "28"],
+                "spyder.job")
+            print(">> mesh re-oriented by spyder")
+            feflo_cmd = [
+                FEFLO, "-in", f"{input}", "-out", f"{input}_fine", "-novol", "-nosurf", "-nordg"
+            ]
+            run(feflo_cmd, "feflo.job")
+            print(">> mesh re-oriented by feflo")
+            # create background mesh
+            feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-prepro", "-nordg", "-out", "tmp"]
+            run(feflo_cmd, "feflo.job")
+            print(">> background mesh created")
+            mv_filelist(
+                ["tmp.back.meshb", "tmp.back.solb"], [f"{input}.back.meshb", f"{input}.back.solb"]
+            )
+            rm_filelist(["tmp.*"])
+            # check orientation and coarsen mesh
+            feflo_cmd = [
+                FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh", "-cfac", "2",
+                "-nordg", "-hmax", "0.01", "-out", f"{input}", "-keep-line-ids", "1-4,10,11,21,28"
+            ]
+            run(feflo_cmd, "feflo.job")
+            print(">> mesh re-orientation checked\n")
 
         print("** INITIAL SOLUTION COMPUTATION WITH ~1500 ITERATIONS **")
         print("** -------------------------------------------------- **")
@@ -132,7 +138,11 @@ def execute_simulation(
                     "OrderTrb": {"inplace": False, "param": ["1"]}}
         sed_in_file(f"{input}.wolf", sim_args)
         wolf_cmd = [WOLF, "-in", f"{input}", "-nproc", f"{args.nproc}"]
-        run(wolf_cmd + ["-uni", "-ite", "500"], "wolf.job")
+        try:
+            run(wolf_cmd + ["-uni", "-ite", "500"], "wolf.job")
+        except CalledProcessError:
+            print("ERROR -- 1st order solution computation failed >> retry once")
+            run(wolf_cmd + ["-uni", "-ite", "500"], "wolf.job")
         print(f">> Order 1 - execution time: {time.time() - t0} seconds.\n")
         # get iter number
         sim_iter = int(get_turbocoef()[0])
@@ -146,7 +156,11 @@ def execute_simulation(
                     f"So1/aerocoef.{sim_iter}.dat", f"So1/turbocoef.{sim_iter}.dat"],
                     ["So2"] * 4)
         os.chdir("So2")
-        run(wolf_cmd + ["-ite", "1000"], "wolf.job")
+        try:
+            run(wolf_cmd + ["-ite", "1000"], "wolf.job")
+        except CalledProcessError:
+            print("ERROR -- 2nd order solution computation failed >> retry once")
+            run(wolf_cmd + ["-ite", "1000"], "wolf.job")
         print(f">> Order 2 - execution time: {time.time() - t0} seconds.\n")
         # get iter number
         sim_iter = int(get_turbocoef()[0])
@@ -230,9 +244,9 @@ def execute_simulation(
             # metric gradation
             metrix_cmd = [METRIX, "-in", "file.metric", "-met", "file.metric",
                           "-out", "adap.met.solb", "-v", "6", "-nproc", f"{args.nproc}",
-                          "-Cmp", f"{cmp}", "-hgrad", "1.4", "-cofgrad", "1.4"]
+                          "-Cmp", f"{cmp}", "-hgrad", "1.5", "-cofgrad", "1.5"]
             run(metrix_cmd, "metrix.job")
-            print(">> metric gradation succeeded with -hgrad 1.4")
+            print(">> metric gradation succeeded with -hgrad 1.5")
 
             # mesh adaptation
             shutil.rmtree(f"fefloa_{sub_ite}", ignore_errors=True)
@@ -241,7 +255,13 @@ def execute_simulation(
             feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out",
                          "CycleMet.meshb", "-keep-line-ids", "11,28", "-nordg",
                          "-geom", f"{input}.back" , "-itp", "file.back.solb"]
-            run(feflo_cmd, f"feflo.{sub_ite}.job")
+            try:
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=1.)
+            except TimeoutExpired:
+                cp_filelist(backup_files, init_files)
+                cmp *= 1.01
+                print(f"ERROR -- CycleMet subprocess timed out >> sub_ite restart with Cmp {cmp}")
+                continue
             print(">> CycleMet mesh adaptation succeeded")
             mv_filelist(["CycleMet.solb", "file.back.itp.solb"],
                         ["CycleMet.Met.solb", "CycleMet.solb"])
@@ -392,26 +412,45 @@ def execute_simulation(
     return SUCCESS, ite
 
 
-def robust_execution(sim_dir: str, args: argparse.Namespace, t0: float, max_restart: int) -> int:
+def robust_execution(
+        sim_dir: str,
+        args: argparse.Namespace,
+        t0: float,
+        cv_tgt: list[float],
+        max_restart: int,
+        preprocess: bool = True
+) -> int:
     """
-    **Enhances** simulation robustness by restarting failed simulations from a previous iteration.
-    **Returns** the exit_status.
+    Wrapper around execute_simulation with enhanced robustness at the iteration level.
+    **Returns** the exit_status which should always be equal to SUCCESS in the end.
     """
-    exit_status, ite = execute_simulation(args, t0, max_restart=max_restart)
+    exit_status, ite = execute_simulation(
+        args, t0, cv_tgt, max_restart=max_restart, preprocess=preprocess
+    )
     new_ite, restart = ite, 0
     while exit_status == FAILURE:
         restart += 1
         print(f"ERROR -- {sim_dir} did not converge >> restart from ite {new_ite} ({restart})\n")
         if restart < 5:
-            exit_status, ite = execute_simulation(args, t0, max_restart, new_ite)
+            exit_status, ite = execute_simulation(
+                args, t0, cv_tgt, max_restart=max_restart, init_ite=new_ite, preprocess=preprocess
+            )
         else:
             # if adaptation is stuck the residual target is momentarily increased
-            exit_status, ite = execute_simulation(args, t0, max_restart, new_ite, init_res_tgt=1e-3)
+            exit_status, ite = execute_simulation(
+                args,
+                t0,
+                cv_tgt,
+                max_restart=max_restart,
+                init_ite=new_ite,
+                init_res_tgt=1e-3,
+                preprocess=preprocess
+            )
             restart = 0
         if exit_status == SUCCESS:
             break
         else:
-            new_ite = new_ite - 1 if new_ite > 1 else new_ite
+            new_ite = new_ite - 1 if new_ite > 1 else ite
     return exit_status
 
 
@@ -420,8 +459,8 @@ def main() -> int:
     This program runs a CFD simulation with mesh adaptation i.e. coupling WOLF, METRIX and FEFLO.
 
     Note:
-        in multi simulation mode, possible non-deterministic failures due to non-converge
-        are dealt with by attempting to run the simulation once again.
+        robustness is ensured through a failure reaction protocol at both the iteration
+        and the subiteration levels.
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
@@ -439,8 +478,9 @@ def main() -> int:
     # ADP simulation
     print("** ADP SIMULATION **")
     print("** -------------- **")
+    cv_tgt = [0.01, 0.01, 0.005, 0.003]
     if not args.multi_sim:
-        exit_status, _ = execute_simulation(args, t0, max_restart=3)
+        exit_status, _ = execute_simulation(args, t0, cv_tgt, max_restart=3)
         if exit_status == SUCCESS:
             print(f">> simulations finished successfully in {time.time() - t0} seconds.")
         return exit_status
@@ -450,39 +490,20 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = robust_execution(sim_dir, args, t0, max_restart=1)
-    if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge >> abort")
-        return exit_status
+        exit_status = robust_execution(sim_dir, args, t0, cv_tgt, max_restart=1)
 
     # OP1 simulation
     os.chdir(cwd)
-    print("** OP1 SIMULATION (-5 deg.) **")
+    print("** OP1 SIMULATION (+5 deg.) **")
     print("** ------------------------ **")
     sim_dir = "OP1"
     os.mkdir(sim_dir)
-    cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
-    os.chdir(sim_dir)
-    # update input velocity
-    u = 199.5 * math.cos((43 - 5) / 180 * math.pi)
-    v = 199.5 * math.sin((43 - 5) / 180 * math.pi)
-    # update input file
-    sim_args = {
-        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
-    }
-    sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = robust_execution(sim_dir, args, t0, max_restart=1)
-    if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge >> abort")
-        return exit_status
-
-    # OP2 simulation
-    os.chdir(cwd)
-    print("** OP2 SIMULATION (+5 deg.) **")
-    print("** ------------------------ **")
-    sim_dir = "OP2"
-    os.mkdir(sim_dir)
-    cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
+    # restart from ADP adapted mesh and last complexity
+    cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
+    cp_filelist([f"ADP/adap_{args.nite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
+    cv_tgt = cv_tgt[args.nite - 1:]
+    args.cmp = args.cmp * 2**(args.nite - 1)
+    args.nite = 1
     os.chdir(sim_dir)
     # update input velocity
     u = 199.5 * math.cos((43 + 5) / 180 * math.pi)
@@ -492,10 +513,29 @@ def main() -> int:
         "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
     }
     sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = robust_execution(sim_dir, args, t0, max_restart=1)
-    if exit_status == FAILURE:
-        print(f"ERROR -- {sim_dir} did not converge >> abort")
-        return exit_status
+    exit_status = robust_execution(sim_dir, args, t0, cv_tgt, max_restart=1, preprocess=False)
+
+    # OP2 simulation
+    os.chdir(cwd)
+    print("** OP2 SIMULATION (-5 deg.) **")
+    print("** ------------------------ **")
+    sim_dir = "OP2"
+    os.mkdir(sim_dir)
+    # restart from ADP adapted mesh and last complexity
+    cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
+    cp_filelist([f"ADP/adap_{args.nite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
+    args.cmp = args.cmp * 2**(args.nite - 1)
+    args.nite = 1
+    os.chdir(sim_dir)
+    # update input velocity
+    u = 199.5 * math.cos((43 - 5) / 180 * math.pi)
+    v = 199.5 * math.sin((43 - 5) / 180 * math.pi)
+    # update input file
+    sim_args = {
+        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
+    }
+    sed_in_file(f"{input}.wolf", sim_args)
+    exit_status = robust_execution(sim_dir, args, t0, cv_tgt, max_restart=1, preprocess=False)
 
     print(f">> simulations finished successfully in {time.time() - t0} seconds.")
     return SUCCESS
