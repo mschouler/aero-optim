@@ -238,7 +238,7 @@ class WolfSimulator(Simulator):
 
     def monitor_sim_progress(self) -> int:
         """
-        **Returns** the list of simulations under execution.
+        **Updates** the list of simulations under execution and **returns** its length.
         """
         finished_sim = []
         # loop over the list of simulation processes
