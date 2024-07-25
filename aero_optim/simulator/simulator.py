@@ -130,10 +130,14 @@ class WolfSimulator(Simulator):
         - sim_pro (list[tuple[dict, subprocess.Popen[str]]]): list to track simulations
           and their associated subprocess.
 
-            It has the following form ({'gid': gid, 'cid': cid}, subprocess).
+            It has the following form:
+            ({'gid': gid, 'cid': cid, 'meshfile': meshfile, 'restart': restart}, subprocess).
+
+        - restart (int): how many times a simulation is allowed to be restarted in case of failure.
         """
         super().__init__(config)
         self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
+        self.restart: int = config["simulator"].get("restart", 0)
 
     def process_config(self):
         """
@@ -155,17 +159,26 @@ class WolfSimulator(Simulator):
         """
         self.solver_name = "wolf"
 
-    def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0):
+    def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0, restart: int = 0):
         """
         **Pre-processes** and **executes** a Wolf simulation.
         """
-        # Pre-process
-        sim_outdir, exec_cmd = self.pre_process(meshfile, gid, cid)
-        # Execution
-        self.execute(sim_outdir, exec_cmd, gid, cid)
         # add gid entry to the results dictionary
         if gid not in self.df_dict:
             self.df_dict[gid] = {}
+
+        try:
+            sim_outdir = self.get_sim_outdir(gid, cid)
+            dict_id: dict = {"gid": gid, "cid": cid, "meshfile": meshfile}
+            self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
+                dict_id, sim_outdir
+            )
+            logger.info(f"g{gid}, c{cid}: loaded pre-existing results from files")
+        except FileNotFoundError:
+            # Pre-process
+            sim_outdir, exec_cmd = self.pre_process(meshfile, gid, cid)
+            # Execution
+            self.execute(sim_outdir, exec_cmd, gid, cid, meshfile, restart)
 
     def pre_process(self, meshfile: str, gid: int, cid: int) -> tuple[str, list[str]]:
         """
@@ -194,7 +207,15 @@ class WolfSimulator(Simulator):
         exec_cmd[idx] = os.path.join(meshfile)
         return sim_outdir, exec_cmd
 
-    def execute(self, sim_outdir: str, exec_cmd: list[str], gid: int, cid: int):
+    def execute(
+            self,
+            sim_outdir: str,
+            exec_cmd: list[str],
+            gid: int,
+            cid: int,
+            meshfile: str,
+            restart: int
+    ):
         """
         **Submits** the simulation subprocess and **updates** sim_pro.
         """
@@ -211,7 +232,9 @@ class WolfSimulator(Simulator):
                                         universal_newlines=True)
         os.chdir(self.cwd)
         # append simulation to the list of active processes
-        self.sim_pro.append(({"gid": gid, "cid": cid}, proc))
+        self.sim_pro.append(
+            ({"gid": gid, "cid": cid, "meshfile": meshfile, "restart": restart}, proc)
+        )
 
     def monitor_sim_progress(self) -> int:
         """
@@ -226,13 +249,22 @@ class WolfSimulator(Simulator):
             elif returncode == 0:
                 logger.info(f"simulation {dict_id} finished")
                 finished_sim.append(id)
-                sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
+                sim_outdir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
                 self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
-                    dict_id, sim_out_dir
+                    dict_id, sim_outdir
                 )
                 break
             else:
-                raise Exception(f"ERROR -- simulation {dict_id} crashed")
+                if dict_id["restart"] < self.restart:
+                    logger.error(f"ERROR -- simulation {dict_id} crashed and will be restarted")
+                    finished_sim.append(id)
+                    sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
+                    shutil.rmtree(sim_out_dir, ignore_errors=True)
+                    self.execute_sim(
+                        dict_id["meshfile"], dict_id["gid"], dict_id["cid"], dict_id["restart"] + 1
+                    )
+                else:
+                    raise Exception(f"ERROR -- simulation {dict_id} crashed")
         # update the list of active processes
         self.sim_pro = [tup for id, tup in enumerate(self.sim_pro) if id not in finished_sim]
         return len(self.sim_pro)
