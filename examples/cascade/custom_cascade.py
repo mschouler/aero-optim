@@ -243,7 +243,7 @@ class CustomOptimizer(PymooWolfOptimizer):
             )
             ax4.scatter(pop_fitness[cid, 0], pop_fitness[cid, 1],
                         color=colors[cid], label=f"c{cid}")
-        ax4.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="black", label="baseline")
+        ax4.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="red", label="baseline")
         # legend and title
         fig.suptitle(
             f"Generation {gid} results", size="x-large", weight="bold", y=0.93
@@ -272,7 +272,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
 
-    def final_observe(self):
+    def final_observe(self, best_candidates: np.ndarray):
         """
         **Plots** convergence progress by plotting the fitness values
         obtained with the successive generations.
@@ -290,8 +290,13 @@ class CustomOptimizer(PymooWolfOptimizer):
             ax.scatter(gen_fitness[gid * self.doe_size: (gid + 1) * self.doe_size][:, 0],
                        gen_fitness[gid * self.doe_size: (gid + 1) * self.doe_size][:, 1],
                        color=colors[gid], label=f"g{gid}")
-        ax.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="black", label="baseline")
-        plt.grid(True)
+        ax.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="red", label="baseline")
+        sorted_idx = np.argsort(best_candidates, axis=0)[:, 0]
+        ax.plot(best_candidates[sorted_idx, 0], best_candidates[sorted_idx, 1],
+                color="black", linestyle="dashed", label="pareto estimate")
+        ax.plot()
+        ax.set_axisbelow(True)
+        plt.grid(True, color="grey", linestyle="dashed")
 
         # legend and title
         ax.set_title(f"Optimization evolution ({self.gen_ctr} g. x {self.doe_size} c.)")
@@ -323,7 +328,7 @@ class CustomEvolution(PymooEvolution):
                        seed=self.optimizer.seed,
                        verbose=True)
 
-        self.optimizer.final_observe()
+        self.optimizer.final_observe(res.F)
 
         # output results
         best = res.F
