@@ -471,7 +471,7 @@ class WolfOptimizer(Optimizer, ABC):
         """
 
     @abstractmethod
-    def final_observe(self):
+    def final_observe(self, *args, **kwargs):
         """
         Plots convergence progress by plotting the fitness values
         obtained with the successive generations.

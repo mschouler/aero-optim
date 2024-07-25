@@ -114,7 +114,7 @@ class InspyredWolfOptimizer(WolfOptimizer):
         fig_name = f"inspyred_g{num_generations}.png"
         self.plot_generation(gid, sorted_idx, fitness, fig_name)
 
-    def final_observe(self):
+    def final_observe(self, *args, **kwargs):
         """
         **Plots** convergence progress by plotting the fitness values
         obtained with the successive generations</br>

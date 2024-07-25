@@ -104,7 +104,7 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         fig_name = f"pymoo_g{gid}.png"
         self.plot_generation(gid, sorted_idx, pop_fitness, fig_name)
 
-    def final_observe(self):
+    def final_observe(self, *args, **kwargs):
         """
         **Plots** convergence progress by plotting the fitness values
         obtained with the successive generations
