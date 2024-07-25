@@ -143,7 +143,8 @@ def execute_simulation(
         except CalledProcessError:
             print("ERROR -- 1st order solution computation failed >> retry once")
             run(wolf_cmd + ["-uni", "-ite", "500"], "wolf.job")
-        print(f">> Order 1 - execution time: {time.time() - t0} seconds.\n")
+        print(f">> Order 1 - residual: {get_residual()}, "
+              f"execution time: {time.time() - t0} seconds.\n")
         # get iter number
         sim_iter = int(get_turbocoef()[0])
         os.chdir(cwd)
@@ -161,7 +162,8 @@ def execute_simulation(
         except CalledProcessError:
             print("ERROR -- 2nd order solution computation failed >> retry once")
             run(wolf_cmd, "wolf.job")
-        print(f">> Order 2 - execution time: {time.time() - t0} seconds.\n")
+        print(f">> Order 2 - residual: {get_residual()}, "
+              f"execution time: {time.time() - t0} seconds.\n")
         # get iter number
         sim_iter = int(get_turbocoef()[0])
         os.chdir(cwd)
@@ -498,7 +500,7 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = robust_execution(sim_dir, args, t0, cv_tgt, ite_restart=5, subite_restart=1)
+        exit_status = robust_execution(sim_dir, args, t0, cv_tgt, ite_restart=5, subite_restart=5)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
