@@ -30,11 +30,11 @@ Order
 2
 NumericalDissipation
 4
-PipernoLimiter
+GammaLimiter
 
 OrderTrb
 2
-PipernoLimiterTrb
+GammaLimiterTrb
 
 MedianCell
 
@@ -98,7 +98,7 @@ PhysicalTime
 1e30
 
 NumberOfTimeSteps
-1000
+500
 
 LogAvgResidual
 1.e-10
