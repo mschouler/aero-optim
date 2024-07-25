@@ -211,10 +211,15 @@ class Optimizer(ABC):
     def mesh(self, ffdfile: str) -> str:
         """
         **Builds** mesh for a given candidate and returns its resulting file.
+
+        Note:
+            if a mesh file matching the pattern name already exists, it is not rebuilt.
         """
         mesh_dir = os.path.join(self.outdir, "MESH")
         check_dir(mesh_dir)
         gmsh_mesh = self.MeshClass(self.config, ffdfile)
+        if os.path.isfile(gmsh_mesh.get_meshfile(mesh_dir)):
+            return gmsh_mesh.get_meshfile(mesh_dir)
         gmsh_mesh.build_mesh()
         return gmsh_mesh.write_mesh(mesh_dir)
 
