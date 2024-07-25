@@ -197,7 +197,7 @@ class Mesh(ABC):
         # close gmsh
         gmsh.logger.stop()
         gmsh.finalize()
-        return os.path.join(mesh_dir, self.outfile + f".{self.mesh_format}")
+        return self.get_meshfile(mesh_dir)
 
     def reformat_2d(self, mesh: list[str]) -> list[str]:
         """
@@ -262,6 +262,12 @@ class Mesh(ABC):
                 line_data[2] = max(self.top_tags)
             mesh[id] = " " + f"{line_data[0]}" + " " + f"{line_data[1]}" + " " + f"{line_data[2]}"
         return mesh
+
+    def get_meshfile(self, mesh_dir: str) -> str:
+        """
+        **Returns** the path to the generated mesh.
+        """
+        return os.path.join(mesh_dir, self.outfile + f".{self.mesh_format}")
 
     @abstractmethod
     def process_config(self):

@@ -1,7 +1,7 @@
 {
     "study": {
         "study_type": "base",
-        "outdir": "output"
+        "outdir": "output_simulator"
     },
     "simulator": {
         "ref_input": "tests/extras/empty_file.wolf",

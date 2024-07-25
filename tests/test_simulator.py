@@ -23,7 +23,7 @@ def wolf() -> WolfSimulator:
 
 def test_execute_sim(wolf: WolfSimulator):
     wolf.execute_sim(meshfile=mesh_file_path)
-    assert wolf.sim_pro[0][0] == {'cid': 0, 'gid': 0}
+    assert wolf.sim_pro[0][0] == {'cid': 0, 'gid': 0, "meshfile": mesh_file_path, "restart": 0}
     assert wolf.sim_pro[0][-1].args == ["python3", executable_path, "-in", mesh_file]
     assert wolf.df_dict[0] == {}
 
