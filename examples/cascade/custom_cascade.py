@@ -69,8 +69,8 @@ class CustomOptimizer(PymooWolfOptimizer):
         - bsl_cog (np.ndarray)
         - bsl_cog_x (float)
         """
-        self.bsl_w_ADP = self.config["optim"].get("baseline_w_ADP", 0.0316)
-        self.bsl_w_OP = self.config["optim"].get("baseline_w_OP", 0.03745)
+        self.bsl_w_ADP = self.config["optim"].get("baseline_w_ADP", 0.03161)
+        self.bsl_w_OP = self.config["optim"].get("baseline_w_OP", 0.03756)
         bsl_pts = self.ffd.pts
         self.bsl_c, self.bsl_c_ax = get_chords(bsl_pts)
         logger.info(f"baseline chord = {self.bsl_c} m, baseline axial chord = {self.bsl_c_ax}")
