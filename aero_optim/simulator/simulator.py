@@ -143,15 +143,15 @@ class WolfSimulator(Simulator):
         """
         **Makes sure** the config file contains the required information and extracts it.
         """
-        logger.info("processing config..")
+        logger.debug("processing config..")
         if "exec_cmd" not in self.config["simulator"]:
             raise Exception(f"ERROR -- no <exec_cmd> entry in {self.config['simulator']}")
         if "ref_input" not in self.config["simulator"]:
             raise Exception(f"ERROR -- no <ref_input> entry in {self.config['simulator']}")
         if "sim_args" not in self.config["simulator"]:
-            logger.warning(f"no <sim_args> entry in {self.config['simulator']}")
+            logger.debug(f"no <sim_args> entry in {self.config['simulator']}")
         if "post_process" not in self.config["simulator"]:
-            logger.warning(f"no <post_process> entry in {self.config['simulator']}")
+            logger.debug(f"no <post_process> entry in {self.config['simulator']}")
 
     def set_solver_name(self):
         """
@@ -294,7 +294,7 @@ class WolfSimulator(Simulator):
         logger.info(
             f"g{dict_id['gid']}, c{dict_id['cid']} converged in {len(df)} it."
         )
-        logger.info(f"last five values:\n{df.tail(n=5).to_string(index=False)}")
+        logger.info(f"last values:\n{df.tail(n=1).to_string(index=False)}")
         return df
 
     def kill_all(self):
