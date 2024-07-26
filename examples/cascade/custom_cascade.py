@@ -38,7 +38,7 @@ class CustomSimulator(WolfSimulator):
         """
         df_sub_dict: dict[str, pd.DataFrame] = {}
         for fname in ["ADP", "OP1", "OP2"]:
-            logger.info(f"post_process g{dict_id['gid']}, c{dict_id['cid']} {fname}..")
+            logger.debug(f"post_process g{dict_id['gid']}, c{dict_id['cid']} {fname}..")
             df_sub_dict[fname] = super().post_process(dict_id, os.path.join(sim_out_dir, fname))
         return df_sub_dict
 
@@ -132,7 +132,7 @@ class CustomOptimizer(PymooWolfOptimizer):
             self.inputs[gid].append(np.array(cand))
             ffd_file, ffd_profile = self.deform(cand, gid, cid)
             self.ffd_profiles[gid].append(ffd_profile)
-            logger.info(f"candidate g{gid}, c{cid} constraint computation")
+            logger.info(f"candidate g{gid}, c{cid} constraint computation..")
             constraint.append(self.apply_candidate_constraints(ffd_profile, gid, cid))
             # only mesh and execute feasible candidates
             if len([v for v in constraint[cid] if v > 0.]) == 0:
