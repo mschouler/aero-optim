@@ -57,11 +57,13 @@ def execute_simulation(
         args: argparse.Namespace,
         t0: float,
         cv_tgt: list[float],
+        hgrad: float = 1.5,
+        cfac: float = 2.,
         subite_restart: int = 3,
         init_ite: int = 1,
         init_res_tgt: float = 0,
         preprocess: bool = True,
-) -> tuple[int, int]:
+) -> tuple[int, int, bool, bool]:
     """
     **Performs** a multi-iteration mesh adaptation run for a given simulation
     and **enforces** robustness at the subiteration level in case of failure.
@@ -70,18 +72,21 @@ def execute_simulation(
 
     - args (Namespace): various input args such as nite, input, cmp, nproc.
     - t0 (float): the script start time used to compute the execution time.
-    - cv_tgt_tab (float): list of QoI convergence targets for each adaptation iteration.
-    - max_restart (int): limits the number of times a subiteration is allowed to restart.
+    - cv_tgt (float): list of QoI convergence targets for each adaptation iteration.
+    - hgrad (float): metrix gradation parameter.
+    - cfac (float): feflo orientation/coarsening parameter.
+    - subite_restart (int): limits the number of times a subiteration is allowed to restart.
     - init_ite (int): adaptation initiation from where to start.
     - init_res_tgt (float): temporary residual target to be used in case of repeated failure.
     - preprocess (bool): whether to coarsen/reorient the initial mesh (True) or not (False).
 
     Note:
-        there are 2 subiteration failure cases:
-        1. when a wolf subprocess fails which may indicate an anomaly in the adaptation,
-        the complexity is hence altered and the subiteration is restarted
-        2. when wolf fails to converge, the subiteration is restarted max_restart times
-        and if it still has not converged, then FAILURE and ite number are returned.
+        deterministic and non-deterministic errors can occur at the iteration or subiteration level:
+        - when a feflo subprocess times out during the periodic adaptation, the adaptation iteration
+        is restarted with a slightly decreased gradation parameter.
+        - when a wolf subprocess fails or if the solution has not converged, the subiteration is
+        restarted up to subite_restart times with an altered complexity. If the problem persists,
+        the adaptation iteration is restarted with a greater residual target or a smaller cfac.
     """
     cwd = os.getcwd()
 
@@ -94,8 +99,9 @@ def execute_simulation(
     default_res_tgt = 1e-4
     m_field = "mach"
     cfl = 0.1
-    cv_tgt_tab = cv_tgt + [cv_tgt[-1]] * max(0, args.nite - len(cv_tgt))
+    cv_tgt_tab = cv_tgt
 
+    # initialization
     if init_ite == 1:
         if preprocess:
             print("** MESH PREPROCESSING **")
@@ -121,11 +127,11 @@ def execute_simulation(
             rm_filelist(["tmp.*"])
             # check orientation and coarsen mesh
             feflo_cmd = [
-                FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh", "-cfac", "2",
-                "-nordg", "-hmax", "0.01", "-out", f"{input}", "-keep-line-ids", "1-4,10,11,21,28"
+                FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh",
+                "-cfac", f"{cfac}", "-nordg", "-hmax", "0.01", "-out", f"{input}"
             ]
-            run(feflo_cmd, "feflo.job")
-            print(">> mesh re-orientation checked\n")
+            run(feflo_cmd + ["-keep-line-ids", "1-4,10,11,21,28"], "feflo.job")
+            print(f">> mesh re-orientation/coarsening succeeded with cfac {cfac}\n")
 
         print("** INITIAL SOLUTION COMPUTATION WITH ~1000 ITERATIONS **")
         print("** -------------------------------------------------- **")
@@ -142,7 +148,7 @@ def execute_simulation(
             run(wolf_cmd + ["-uni"], "wolf.job")
         except CalledProcessError:
             print("ERROR -- 1st order solution computation failed >> retry once")
-            run(wolf_cmd + ["-uni", "-ite", "500"], "wolf.job")
+            run(wolf_cmd + ["-uni"], "wolf.job")
         print(f">> Order 1 - residual: {get_residual()}, "
               f"execution time: {time.time() - t0} seconds.\n")
         # get iter number
@@ -246,11 +252,12 @@ def execute_simulation(
             # metric gradation
             metrix_cmd = [METRIX, "-in", "file.metric", "-met", "file.metric",
                           "-out", "adap.met.solb", "-v", "6", "-nproc", f"{args.nproc}",
-                          "-Cmp", f"{cmp}", "-hgrad", "1.5", "-cofgrad", "1.5"]
+                          "-Cmp", f"{cmp}", "-hgrad", f"{hgrad}", "-cofgrad", "1.5"]
             run(metrix_cmd, "metrix.job")
-            print(">> metric gradation succeeded with -hgrad 1.5")
+            print(f">> metric gradation succeeded with -hgrad {hgrad}")
 
             # mesh adaptation
+            # feflo CycleMet
             shutil.rmtree(f"fefloa_{sub_ite}", ignore_errors=True)
             os.mkdir(f"fefloa_{sub_ite}")
             cp_filelist(["adap.met.meshb", "adap.met.solb"], [f"fefloa_{sub_ite}"] * 2)
@@ -258,72 +265,93 @@ def execute_simulation(
                          "CycleMet.meshb", "-keep-line-ids", "11,28", "-nordg",
                          "-geom", f"{input}.back" , "-itp", "file.back.solb"]
             try:
-                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=1.)
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=2.)
             except TimeoutExpired:
-                print("ERROR -- CycleMet subprocess timed out")
+                print("ERROR -- feflo CycleMet subprocess timed out")
                 os.chdir(cwd)
-                return FAILURE, ite
-            print(">> CycleMet mesh adaptation succeeded")
+                return FAILURE, ite, True, False
+            except CalledProcessError:
+                print("ERROR -- feflo CycleMet subprocess failed")
+                os.chdir(cwd)
+                return FAILURE, ite, False, False
+
+            print(">> feflo CycleMet succeeded")
             mv_filelist(["CycleMet.solb", "file.back.itp.solb"],
                         ["CycleMet.Met.solb", "CycleMet.solb"])
             rm_filelist(["Forth.meshb"])
 
-            # wolf cycle forth
+            # wolf cycleforth
             wolf_cmd = [WOLF, "-in", "CycleMet", "-cycleforth", "-cyclenbl", "4"]
             run(wolf_cmd, "cycleforth.job")
             print(">> wolf cycleforth succeeded")
             assert os.path.isfile("Forth.meshb")
             mv_filelist(["ForthMet.solb"], ["CycleMetForth.solb"])
 
-            # feflo cycle forth
+            # feflo CycleMetForth
             feflo_cmd = [FEFLO, "-in", "Forth", "-met", "CycleMetForth", "-out",
                          "Cycleadap.meshb", "-keep-line-ids", "32125,32126,1,2,3,4"]
             try:
-                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=1.)
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=2.)
             except TimeoutExpired:
-                cp_filelist(backup_files, init_files)
-                cmp *= 1.01
-                print(f"ERROR -- cycleforth subprocess timed out >> sub_ite restart with Cmp {cmp}")
-                continue
-            print(">> feflo cycle adaptation succeeded at per_ite")
+                print("ERROR -- feflo CycleMetForth subprocess timed out")
+                os.chdir(cwd)
+                return FAILURE, ite, True, False
+            print(">> feflo CycleMetForth succeeded")
 
-            # wolf cycle back
+            # wolf cycleback
             wolf_cmd = [WOLF, "-in", "Cycleadap", "-cycleback"]
             try:
                 run(wolf_cmd, "cycleback.job")
             except CalledProcessError:
-                cp_filelist(backup_files, init_files)
-                cmp *= 1.01
-                print(f"ERROR -- cycleback subprocess failed >> sub_ite restart with Cmp {cmp}")
-                continue
-            print(">> wolf cycle adaptation succeeded at per_ite")
+                print("ERROR -- wolf cycleback subprocess failed")
+                if n_restart > subite_restart:
+                    print("ERROR -- maximal subite restart number reached")
+                    os.chdir(cwd)
+                    return FAILURE, ite, False, False
+                else:
+                    cp_filelist(backup_files, init_files)
+                    cmp *= 1.01
+                    n_restart += 1
+                    print(f"ERROR -- sub_ite restart with Cmp {cmp}")
+                    continue
+            print(">> wolf cycleback succeeded")
 
-            # interpolation
             print(f"** INTERPOLATION {sub_ite} **")
             print(f"** --------------{'-' * len(str(sub_ite))} **")
             mv_filelist(["Back.meshb"], ["file.meshb"])
             rm_filelist(["file.solb"])
             interpol_cmd = [INTERPOL, "-O", "1", "-p3", "-in", "file",
                             "-back", "file.back", "-nproc", f"{args.nproc}"]
-            run(interpol_cmd, "interpol.job")
+            try:
+                run(interpol_cmd, "interpol.job")
+            except CalledProcessError:
+                print("ERROR -- interpolation subprocess failed >> sub_ite restart")
+                cp_filelist(backup_files, init_files)
+                continue
             print(">> interpolation succeeded")
 
-            # solution computation
             print(f"** SOLUTION COMPUTATION {sub_ite} **")
             print(f"** ---------------------{'-' * len(str(sub_ite))} **")
             rm_filelist(["file.o.solb", f"wolf.{sub_ite}.job"])
             wolf_cmd = [WOLF, "-in", "file", "-out", "file.o", "-nproc", f"{args.nproc}", "-v", "6"]
-            # robust subprocess execution
             try:
                 run(wolf_cmd + ["-C", f"{cmp}", "-profile", "-cfl", f"{cfl}"],
                     f"wolf.{sub_ite}.job")
             except CalledProcessError:
-                cp_filelist(backup_files, init_files)
-                cmp *= 1.01
-                print(f"ERROR -- wolf subprocess failed >> sub_ite restart with Cmp {cmp}")
-                continue
+                print("ERROR -- wolf subprocess failed")
+                if n_restart > subite_restart:
+                    print("ERROR -- maximal subite restart number reached")
+                    os.chdir(cwd)
+                    return FAILURE, ite, False, True
+                else:
+                    cp_filelist(backup_files, init_files)
+                    cmp *= 1.01
+                    n_restart += 1
+                    print(f"ERROR -- sub_ite restart with Cmp {cmp}")
+                    continue
             rm_filelist(["localCfl.*.solb"])
-            # robust solution computation
+
+            # residual monitoring
             res = get_residual()
             if res < res_tgt:
                 print(f">> WOLF converged: residual {res} < {res_tgt}")
@@ -334,7 +362,7 @@ def execute_simulation(
                 if n_restart > subite_restart:
                     print("ERROR -- maximal subite restart number reached")
                     os.chdir(cwd)
-                    return FAILURE, ite
+                    return FAILURE, ite, False, False
                 else:
                     cp_filelist(backup_files, init_files)
                     cmp *= 1.01
@@ -410,7 +438,7 @@ def execute_simulation(
         ite += 1
         cmp = args.cmp * 2**(ite - 1)
 
-    return SUCCESS, ite
+    return SUCCESS, ite, False, False
 
 
 def robust_execution(
@@ -420,13 +448,22 @@ def robust_execution(
         cv_tgt: list[float],
         ite_restart: int,
         subite_restart: int,
-        preprocess: bool = True
+        preprocess: bool = True,
+        hgrad: float = 1.5,
+        cfac: float = 2.
 ) -> int:
     """
     Wrapper around execute_simulation with enhanced robustness at the iteration level.
     **Returns** the exit_status to prevent infinite loops with ill-conditioned simulations.
+
+    Note:
+        in spite of the robustness measures implemented in execute_simulation, adaptation or
+        convergence issues may still require a full iteration restart.
+        Nondeterminism induced by the parallel execution of wolf and feflo may be enough to solve
+        the problem but sometimes decreasing the gradation parameter, cfac or increasing the
+        residual target may help pass the blocking adaptation step.
     """
-    exit_status, ite = execute_simulation(
+    exit_status, ite, dhgrad, dcfac = execute_simulation(
         args, t0, cv_tgt, subite_restart=subite_restart, preprocess=preprocess
     )
     new_ite, restart = ite, 0
@@ -434,24 +471,28 @@ def robust_execution(
         restart += 1
         print(f"ERROR -- {sim_dir} did not converge >> restart from ite {new_ite} ({restart})\n")
         if restart < ite_restart:
-            exit_status, ite = execute_simulation(
+            exit_status, ite, dhgrad, dcfac = execute_simulation(
                 args,
                 t0,
                 cv_tgt,
                 subite_restart=subite_restart,
                 init_ite=new_ite,
-                preprocess=preprocess
+                preprocess=preprocess,
+                hgrad=hgrad - 0.025 if dhgrad else hgrad,
+                cfac=cfac - 0.2 if dcfac else cfac
             )
         else:
             # if adaptation is stuck the residual target is momentarily increased
-            exit_status, ite = execute_simulation(
+            exit_status, ite, dhgrad, dcfac = execute_simulation(
                 args,
                 t0,
                 cv_tgt,
                 subite_restart=subite_restart,
                 init_ite=new_ite,
                 init_res_tgt=1e-3,
-                preprocess=preprocess
+                preprocess=preprocess,
+                hgrad=hgrad - 0.025 if dhgrad else hgrad,
+                cfac=cfac - 0.2 if dcfac else cfac
             )
             restart = 0
             # abort adaptation if decreasing the residual target did not work
@@ -467,6 +508,8 @@ def robust_execution(
 def main() -> int:
     """
     This program runs a CFD simulation with mesh adaptation i.e. coupling WOLF, METRIX and FEFLO.
+    In multisimulation mode, the OP simulations try to start from the ADP adapted meshes (from
+    highest to lowest complexity).
 
     Note:
         robustness is ensured through a failure reaction protocol at both the iteration
@@ -485,77 +528,95 @@ def main() -> int:
     t0 = time.time()
     print(f"simulations performed with: {args}\n")
 
-    # ADP simulation
     print("** ADP SIMULATION **")
     print("** -------------- **")
-    cv_tgt = [0.01, 0.01, 0.005, 0.003]
+    cv_tgt = [0.01, 0.01, 0.005, 0.003] + [0.003] * max(0, args.nite - 4)
     if not args.multi_sim:
-        exit_status, _ = execute_simulation(args, t0, cv_tgt, subite_restart=3)
+        exit_status, _, _, _ = execute_simulation(args, t0, cv_tgt, subite_restart=3)
         if exit_status == SUCCESS:
             print(f">> simulations finished successfully in {time.time() - t0} seconds.")
         return exit_status
     else:
         sim_dir = "ADP"
+        shutil.rmtree(sim_dir, ignore_errors=True)
         input = args.input.split(".")[0]
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = robust_execution(sim_dir, args, t0, cv_tgt, ite_restart=5, subite_restart=5)
+        exit_status = robust_execution(sim_dir, args, t0, cv_tgt, ite_restart=4, subite_restart=6)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
 
-    # OP1 simulation
     os.chdir(cwd)
     print("** OP1 SIMULATION (+5 deg.) **")
     print("** ------------------------ **")
     sim_dir = "OP1"
-    os.mkdir(sim_dir)
-    # restart from ADP adapted mesh and last complexity
-    cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
-    cp_filelist([f"ADP/adap_{args.nite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
-    cv_tgt = cv_tgt[args.nite - 1:]
-    args.cmp = args.cmp * 2**(args.nite - 1)
-    args.nite = 1
-    os.chdir(sim_dir)
-    # update input velocity
-    u = 199.5 * math.cos((43 + 5) / 180 * math.pi)
-    v = 199.5 * math.sin((43 + 5) / 180 * math.pi)
-    # update input file
-    sim_args = {
-        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
-    }
-    sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = robust_execution(
-        sim_dir, args, t0, cv_tgt, ite_restart=1, subite_restart=2, preprocess=False
-    )
+    adp_ite, adp_cmp = args.nite, args.cmp
+    op_ite = 0
+    # restart from ADP adapted mesh and previous complexity
+    while adp_ite - op_ite >= 1:
+        shutil.rmtree(sim_dir, ignore_errors=True)
+        os.mkdir(sim_dir)
+        cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
+        cp_filelist([f"ADP/adap_{adp_ite - op_ite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
+        cv_tgt_op = cv_tgt[adp_ite - (op_ite + 1):]
+        args.cmp = adp_cmp * 2**(adp_ite - (op_ite + 1))
+        args.nite = op_ite + 1
+        os.chdir(sim_dir)
+        # update input velocity
+        u = 199.5 * math.cos((43 + 5) / 180 * math.pi)
+        v = 199.5 * math.sin((43 + 5) / 180 * math.pi)
+        # update input file
+        sim_args = {
+            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
+        }
+        sed_in_file(f"{input}.wolf", sim_args)
+        exit_status = robust_execution(
+            sim_dir, args, t0, cv_tgt_op, ite_restart=1, subite_restart=2, preprocess=False
+        )
+        if exit_status == FAILURE:
+            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds at cmp {args.cmp}")
+            op_ite += 1
+            os.chdir(cwd)
+        else:
+            break
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
 
-    # OP2 simulation
     os.chdir(cwd)
     print("** OP2 SIMULATION (-5 deg.) **")
     print("** ------------------------ **")
     sim_dir = "OP2"
-    os.mkdir(sim_dir)
-    # restart from ADP adapted mesh and last complexity
-    cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
-    cp_filelist([f"ADP/adap_{args.nite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
-    args.cmp = args.cmp * 2**(args.nite - 1)
-    args.nite = 1
-    os.chdir(sim_dir)
-    # update input velocity
-    u = 199.5 * math.cos((43 - 5) / 180 * math.pi)
-    v = 199.5 * math.sin((43 - 5) / 180 * math.pi)
-    # update input file
-    sim_args = {
-        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
-    }
-    sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = robust_execution(
-        sim_dir, args, t0, cv_tgt, ite_restart=1, subite_restart=2, preprocess=False
-    )
+    op_ite = 0
+    # restart from ADP adapted mesh and previous complexity
+    while adp_ite - op_ite >= 1:
+        shutil.rmtree(sim_dir, ignore_errors=True)
+        os.mkdir(sim_dir)
+        cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
+        cp_filelist([f"ADP/adap_{adp_ite - op_ite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
+        cv_tgt_op = cv_tgt[adp_ite - (op_ite + 1):]
+        args.cmp = adp_cmp * 2**(adp_ite - (op_ite + 1))
+        args.nite = op_ite + 1
+        os.chdir(sim_dir)
+        # update input velocity
+        u = 199.5 * math.cos((43 - 5) / 180 * math.pi)
+        v = 199.5 * math.sin((43 - 5) / 180 * math.pi)
+        # update input file
+        sim_args = {
+            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
+        }
+        sed_in_file(f"{input}.wolf", sim_args)
+        exit_status = robust_execution(
+            sim_dir, args, t0, cv_tgt_op, ite_restart=1, subite_restart=2, preprocess=False
+        )
+        if exit_status == FAILURE:
+            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds at cmp {args.cmp}")
+            op_ite += 1
+            os.chdir(cwd)
+        else:
+            break
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
