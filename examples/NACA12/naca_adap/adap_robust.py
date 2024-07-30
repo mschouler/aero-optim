@@ -49,6 +49,7 @@ def main() -> int:
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
     parser.add_argument("-nite", type=int, help="number of complexities", default=2)
     parser.add_argument("-smax", type=int, help="max. number of adaptations at iso comp", default=3)
+    parser.add_argument("-ntol", type=int, help="max. number of failures before abortion", default=3)
 
     args = parser.parse_args()
     t0 = time.time()
@@ -62,10 +63,10 @@ def main() -> int:
     assert os.path.isfile(f"{input}.mesh")
 
     # adaptation variables
-    res_tgt: float = 1e-6
+    res_tgt_ini: float = 1e-6
     m_field: str = "mach"
     cv_tgt: float = 0.01
-    tol_fail: int = 1
+    tol_fail = args.ntol
 
     # Initialization
     print("** INITIAL SOLUTION COMPUTATION WITH 1000 ITERATIONS **")
@@ -158,6 +159,7 @@ def main() -> int:
             res = get_residual()
             if res < res_tgt:
                 print(f">> WOLF converged: residual {res} < {res_tgt}")
+                res_tgt = res_tgt_ini
             else:
                 print(f"WARNING -- WOLF did not converge: residual {res} > {res_tgt}")
                 n_fail += 1
@@ -167,7 +169,10 @@ def main() -> int:
                 cmp *= 1.01
                 # restart convergence at fixed complexity
                 sub_ite = 1
-                if n_fail > tol_fail:
+                if n_fail == tol_fail:
+                    print("ERROR -- number of tolerated failures almost reached: res_tgt = 1e-3")
+                    res_tgt = 1e-3
+                elif n_fail > tol_fail:
                     print(f"ERROR -- number of tolerated failures exceeded: {n_fail} > {tol_fail}")
                     return FAILURE
                 else:
