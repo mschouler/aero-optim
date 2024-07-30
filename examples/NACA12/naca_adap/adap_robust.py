@@ -86,6 +86,7 @@ def main() -> int:
     # main loop
     cmp = args.cmp
     ite = 1
+    res_tgt = res_tgt_ini
     while ite <= args.nite:
 
         print(f"** ITERATION {ite} - COMPLEXITY {cmp} **")
