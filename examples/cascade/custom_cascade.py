@@ -331,5 +331,6 @@ class CustomEvolution(PymooEvolution):
         self.optimizer.final_observe(res.F)
 
         # output results
-        best = res.F
-        logger.info(f"optimal J_pymoo: {best}")
+        best_QoI, best_cand = res.F, res.X
+        logger.info(f"optimal QoIs:\n{best_QoI}")
+        logger.info(f"optimal candidates:\n{best_cand}")
