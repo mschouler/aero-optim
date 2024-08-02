@@ -262,10 +262,10 @@ def execute_simulation(
             os.mkdir(f"fefloa_{sub_ite}")
             cp_filelist(["adap.met.meshb", "adap.met.solb"], [f"fefloa_{sub_ite}"] * 2)
             feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out",
-                         "CycleMet.meshb", "-keep-line-ids", "11,28", "-nordg",
+                         "CycleMet.meshb", "-keep-line-ids", "11,28,1,2,3,4", "-nordg",
                          "-geom", f"{input}.back" , "-itp", "file.back.solb"]
             try:
-                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=2.)
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=3.)
             except TimeoutExpired:
                 print("ERROR -- feflo CycleMet subprocess timed out")
                 os.chdir(cwd)
@@ -291,7 +291,7 @@ def execute_simulation(
             feflo_cmd = [FEFLO, "-in", "Forth", "-met", "CycleMetForth", "-out",
                          "Cycleadap.meshb", "-keep-line-ids", "32125,32126,1,2,3,4"]
             try:
-                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=2.)
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=3.)
             except TimeoutExpired:
                 print("ERROR -- feflo CycleMetForth subprocess timed out")
                 os.chdir(cwd)
