@@ -173,6 +173,7 @@ def main() -> int:
                 if n_fail == tol_fail:
                     print("ERROR -- number of tolerated failures almost reached: res_tgt = 1e-3")
                     res_tgt = 1e-3
+                    continue
                 elif n_fail > tol_fail:
                     print(f"ERROR -- number of tolerated failures exceeded: {n_fail} > {tol_fail}")
                     return FAILURE
