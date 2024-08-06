@@ -262,7 +262,7 @@ def execute_simulation(
             os.mkdir(f"fefloa_{sub_ite}")
             cp_filelist(["adap.met.meshb", "adap.met.solb"], [f"fefloa_{sub_ite}"] * 2)
             feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out",
-                         "CycleMet.meshb", "-keep-line-ids", "11,28,1,2,3,4", "-nordg",
+                         "CycleMet.meshb", "-keep-line-ids", "11,28", "-nordg",
                          "-geom", f"{input}.back" , "-itp", "file.back.solb"]
             try:
                 run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=3.)
@@ -340,14 +340,14 @@ def execute_simulation(
             except CalledProcessError:
                 print("ERROR -- wolf subprocess failed")
                 if n_restart > subite_restart:
-                    print("ERROR -- maximal subite restart number reached")
+                    print("ERROR -- maximal subite restart number reached\n")
                     os.chdir(cwd)
                     return FAILURE, ite, False, True
                 else:
                     cp_filelist(backup_files, init_files)
                     cmp *= 1.01
                     n_restart += 1
-                    print(f"ERROR -- sub_ite restart with Cmp {cmp}")
+                    print(f"ERROR -- sub_ite restart with Cmp {cmp}\n")
                     continue
             rm_filelist(["localCfl.*.solb"])
 
@@ -360,7 +360,7 @@ def execute_simulation(
             else:
                 print(f"ERROR -- WOLF did not converge: residual {res} > {res_tgt}")
                 if n_restart > subite_restart:
-                    print("ERROR -- maximal subite restart number reached")
+                    print("ERROR -- maximal subite restart number reached\n")
                     os.chdir(cwd)
                     return FAILURE, ite, False, False
                 else:
@@ -368,7 +368,7 @@ def execute_simulation(
                     cmp *= 1.01
                     n_restart += 1
                     print(f"ERROR -- wolf did not converge "
-                          f">> sub_ite restart with Cmp {cmp} res tgt {res_tgt}")
+                          f">> sub_ite restart with Cmp {cmp} res tgt {res_tgt}\n")
                     continue
 
             # save results files
@@ -576,7 +576,7 @@ def main() -> int:
             sim_dir, args, t0, cv_tgt_op, ite_restart=1, subite_restart=2, preprocess=False
         )
         if exit_status == FAILURE:
-            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds at cmp {args.cmp}")
+            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds & cmp {args.cmp}\n")
             op_ite += 1
             os.chdir(cwd)
         else:
@@ -612,7 +612,7 @@ def main() -> int:
             sim_dir, args, t0, cv_tgt_op, ite_restart=1, subite_restart=2, preprocess=False
         )
         if exit_status == FAILURE:
-            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds at cmp {args.cmp}")
+            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds & cmp {args.cmp}\n")
             op_ite += 1
             os.chdir(cwd)
         else:
