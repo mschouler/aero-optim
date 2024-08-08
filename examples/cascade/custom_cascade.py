@@ -332,5 +332,6 @@ class CustomEvolution(PymooEvolution):
 
         # output results
         best_QoI, best_cand = res.F, res.X
+        np.set_printoptions(linewidth=np.nan)
         logger.info(f"optimal QoIs:\n{best_QoI}")
         logger.info(f"optimal candidates:\n{best_cand}")
