@@ -221,7 +221,7 @@ class Mesh(ABC):
         **Adds** Corners at the end of the mesh file.
         """
         c_vert: list[int] = []
-        logger.info(f"non-corner tags: {self.non_corner_tags}")
+        logger.debug(f"non-corner tags: {self.non_corner_tags}")
 
         vert_idx = get_mesh_kwd(mesh, "Vertices")
         n_vert = int(mesh[vert_idx + 1])
@@ -237,8 +237,8 @@ class Mesh(ABC):
         """
         **Merges** the periodic boundaries references on each side of the domain.
         """
-        logger.info(f"top tags: {self.top_tags} merged in ref: {max(self.top_tags)}")
-        logger.info(f"bottom tags: {self.bottom_tags} merged in ref: {min(self.bottom_tags)}")
+        logger.debug(f"top tags: {self.top_tags} merged in ref: {max(self.top_tags)}")
+        logger.debug(f"bottom tags: {self.bottom_tags} merged in ref: {min(self.bottom_tags)}")
 
         vert_idx = get_mesh_kwd(mesh, "Vertices")
         n_vert = int(mesh[vert_idx + 1])

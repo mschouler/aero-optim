@@ -66,21 +66,21 @@ class NACABaseMesh(Mesh):
         self.up: int = self.config["gmsh"]["mesh"].get("up", 70)
 
     def process_config(self):
-        logger.info("processing config..")
+        logger.debug("processing config..")
         if "domain" not in self.config["gmsh"]:
-            logger.warning(f"no <domain> entry in {self.config['gmsh']}, empty entry added")
+            logger.debug(f"no <domain> entry in {self.config['gmsh']}, empty entry added")
             self.config["gmsh"]["domain"] = {}
         if "inlet" not in self.config["gmsh"]["domain"]:
-            logger.warning(f"no <inlet> entry in {self.config['gmsh']['domain']}")
+            logger.debug(f"no <inlet> entry in {self.config['gmsh']['domain']}")
         if "outlet" not in self.config["gmsh"]["domain"]:
-            logger.warning(f"no <outlet> entry in {self.config['gmsh']['domain']}")
+            logger.debug(f"no <outlet> entry in {self.config['gmsh']['domain']}")
 
     def split_naca(self) -> tuple[list[list[float]], list[list[float]]]:
         """
         **Returns** the upper and lower parts of the airfoil as ordered lists (wrt the x axis).
 
         Note:
-            The trailing and leading edges are voluntarily excluded from both parts
+            the trailing and leading edges are voluntarily excluded from both parts
             since the geometry is closed and these points must each have a unique tag.
         """
         start: int = min(self.idx_le, self.idx_te)
@@ -166,15 +166,15 @@ class NACABaseMesh(Mesh):
 
         # define physical groups for boundary conditions
         gmsh.model.geo.addPhysicalGroup(1, [spline_low, spline_le, spline_up], tag=100)
-        logger.info(f"BC: Wall tags are {[spline_low, spline_le, spline_up]}")
+        logger.debug(f"BC: Wall tags are {[spline_low, spline_le, spline_up]}")
         gmsh.model.geo.addPhysicalGroup(1, [arc_inlet], tag=200)
-        logger.info(f"BC: Inlet tags are {[arc_inlet]}")
+        logger.debug(f"BC: Inlet tags are {[arc_inlet]}")
         gmsh.model.geo.addPhysicalGroup(1, [outlet], tag=300)
-        logger.info(f"BC: Outlet tags are {[outlet]}")
+        logger.debug(f"BC: Outlet tags are {[outlet]}")
         gmsh.model.geo.addPhysicalGroup(1, [top_side], tag=400)
-        logger.info(f"BC: Top tags are {[top_side]}")
+        logger.debug(f"BC: Top tags are {[top_side]}")
         gmsh.model.geo.addPhysicalGroup(1, [bottom_side], tag=500)
-        logger.info(f"BC: Bottom tags are {[bottom_side]}")
+        logger.debug(f"BC: Bottom tags are {[bottom_side]}")
         gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=600)
 
         # flow-field nodes defined as non_corner points

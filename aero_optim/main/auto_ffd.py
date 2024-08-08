@@ -10,7 +10,11 @@ from scipy.stats import qmc
 from aero_optim.ffd.ffd import FFD_2D
 from aero_optim.utils import check_file
 
+# set pillow and matplotlib loggers to WARNING mode
+logging.getLogger("PIL").setLevel(logging.WARNING)
 plt.set_loglevel(level='warning')
+
+# get framework logger
 logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 

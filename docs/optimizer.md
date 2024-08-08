@@ -53,7 +53,7 @@ Regardless of the optimization library, it first instantiates a `WolfSimulator` 
 4) post-processing i.e. QoI extraction and constraint application.
 
 !!! Note
-    Design constraints penalizing inadequate geometries both in terms of area and lift coefficient are managed with `apply_constraints` for `inspyred` (see [here](https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection)) and `apply_inequality_constraints` for `pymoo` (see [here](https://pymoo.org/constraints/index.html)).
+    Design constraints penalizing inadequate geometries both in terms of area and lift coefficient are managed with `apply_constraints` for `inspyred` (see [here](https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection)) and for `pymoo` (see [here](https://pymoo.org/constraints/index.html)).
 
 In the end, all simulations QoIs are returned either as a list of floats (with `inspyred`) or as a `numpy` array (with `pymoo`). In addition, after each evaluation the `_observe` method is called (automatically with `inspyred`, explicitly with `pymoo`) to write or display the results of each generation candidates.
 
