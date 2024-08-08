@@ -57,6 +57,7 @@ def execute_simulation(
         args: argparse.Namespace,
         t0: float,
         cv_tgt: list[float],
+        default_res_tgt: float,
         hgrad: float = 1.5,
         cfac: float = 2.,
         subite_restart: int = 3,
@@ -73,6 +74,7 @@ def execute_simulation(
     - args (Namespace): various input args such as nite, input, cmp, nproc.
     - t0 (float): the script start time used to compute the execution time.
     - cv_tgt (float): list of QoI convergence targets for each adaptation iteration.
+    - default_res_tgt (float): threshold residual for a simulation to be considered as converged.
     - hgrad (float): metrix gradation parameter.
     - cfac (float): feflo orientation/coarsening parameter.
     - subite_restart (int): limits the number of times a subiteration is allowed to restart.
@@ -96,7 +98,6 @@ def execute_simulation(
     assert os.path.isfile(f"{input}.mesh") or os.path.isfile(f"{input}.meshb")
 
     # adaptation variables
-    default_res_tgt = 1e-4
     m_field = "mach"
     cfl = 0.1
     cv_tgt_tab = cv_tgt
@@ -179,7 +180,7 @@ def execute_simulation(
                     [f"{input}.solb", f"{input}.metric.solb"])
 
     # adaptation loop
-    n_restart = 1
+    n_restart = 0
     cmp = args.cmp * 2**(init_ite - 1)
     ite = init_ite
     res_tgt = init_res_tgt if init_res_tgt else default_res_tgt
@@ -304,15 +305,15 @@ def execute_simulation(
                 run(wolf_cmd, "cycleback.job")
             except CalledProcessError:
                 print("ERROR -- wolf cycleback subprocess failed")
-                if n_restart > subite_restart:
-                    print("ERROR -- maximal subite restart number reached")
+                if n_restart >= subite_restart:
+                    print(f"ERROR -- maximal subite restart number reached ({n_restart})")
                     os.chdir(cwd)
                     return FAILURE, ite, False, False
                 else:
                     cp_filelist(backup_files, init_files)
                     cmp *= 1.01
                     n_restart += 1
-                    print(f"ERROR -- sub_ite restart with Cmp {cmp}")
+                    print(f"ERROR -- sub_ite restart with Cmp {cmp} ({n_restart})")
                     continue
             print(">> wolf cycleback succeeded")
 
@@ -339,15 +340,15 @@ def execute_simulation(
                     f"wolf.{sub_ite}.job")
             except CalledProcessError:
                 print("ERROR -- wolf subprocess failed")
-                if n_restart > subite_restart:
-                    print("ERROR -- maximal subite restart number reached\n")
+                if n_restart >= subite_restart:
+                    print(f"ERROR -- maximal subite restart number reached ({n_restart})\n")
                     os.chdir(cwd)
                     return FAILURE, ite, False, True
                 else:
                     cp_filelist(backup_files, init_files)
                     cmp *= 1.01
                     n_restart += 1
-                    print(f"ERROR -- sub_ite restart with Cmp {cmp}\n")
+                    print(f"ERROR -- sub_ite restart with Cmp {cmp} ({n_restart})\n")
                     continue
             rm_filelist(["localCfl.*.solb"])
 
@@ -355,12 +356,12 @@ def execute_simulation(
             res = get_residual()
             if res < res_tgt:
                 print(f">> WOLF converged: residual {res} < {res_tgt}")
-                n_restart = 1
+                n_restart = 0
                 res_tgt = default_res_tgt
             else:
                 print(f"ERROR -- WOLF did not converge: residual {res} > {res_tgt}")
-                if n_restart > subite_restart:
-                    print("ERROR -- maximal subite restart number reached\n")
+                if n_restart >= subite_restart:
+                    print(f"ERROR -- maximal subite restart number reached ({n_restart})\n")
                     os.chdir(cwd)
                     return FAILURE, ite, False, False
                 else:
@@ -368,7 +369,7 @@ def execute_simulation(
                     cmp *= 1.01
                     n_restart += 1
                     print(f"ERROR -- wolf did not converge "
-                          f">> sub_ite restart with Cmp {cmp} res tgt {res_tgt}\n")
+                          f">> sub_ite restart with Cmp {cmp} res tgt {res_tgt} ({n_restart})\n")
                     continue
 
             # save results files
@@ -448,6 +449,7 @@ def robust_execution(
         cv_tgt: list[float],
         ite_restart: int,
         subite_restart: int,
+        default_res_tgt: float = 1e-4,
         preprocess: bool = True,
         hgrad: float = 1.5,
         cfac: float = 2.
@@ -464,7 +466,7 @@ def robust_execution(
         residual target may help pass the blocking adaptation step.
     """
     exit_status, ite, dhgrad, dcfac = execute_simulation(
-        args, t0, cv_tgt, subite_restart=subite_restart, preprocess=preprocess
+        args, t0, cv_tgt, default_res_tgt, subite_restart=subite_restart, preprocess=preprocess
     )
     new_ite, restart = ite, 0
     while exit_status == FAILURE:
@@ -475,6 +477,7 @@ def robust_execution(
                 args,
                 t0,
                 cv_tgt,
+                default_res_tgt,
                 subite_restart=subite_restart,
                 init_ite=new_ite,
                 preprocess=preprocess,
@@ -487,9 +490,10 @@ def robust_execution(
                 args,
                 t0,
                 cv_tgt,
+                default_res_tgt,
                 subite_restart=subite_restart,
                 init_ite=new_ite,
-                init_res_tgt=1e-3,
+                init_res_tgt=1e-3 if default_res_tgt < 1e-3 else default_res_tgt,
                 preprocess=preprocess,
                 hgrad=hgrad - 0.025 if dhgrad else hgrad,
                 cfac=cfac - 0.2 if dcfac else cfac
@@ -532,7 +536,9 @@ def main() -> int:
     print("** -------------- **")
     cv_tgt = [0.01, 0.01, 0.005, 0.003] + [0.003] * max(0, args.nite - 4)
     if not args.multi_sim:
-        exit_status, _, _, _ = execute_simulation(args, t0, cv_tgt, subite_restart=3)
+        exit_status, _, _, _ = execute_simulation(
+            args, t0, cv_tgt, default_res_tgt=1e-4, subite_restart=3
+        )
         if exit_status == SUCCESS:
             print(f">> simulations finished successfully in {time.time() - t0} seconds.")
         return exit_status
@@ -573,7 +579,14 @@ def main() -> int:
         }
         sed_in_file(f"{input}.wolf", sim_args)
         exit_status = robust_execution(
-            sim_dir, args, t0, cv_tgt_op, ite_restart=1, subite_restart=2, preprocess=False
+            sim_dir,
+            args,
+            t0,
+            cv_tgt_op,
+            default_res_tgt=1e-2,
+            ite_restart=1,
+            subite_restart=2,
+            preprocess=False
         )
         if exit_status == FAILURE:
             print(f"ERROR -- adaptation failed after {time.time() - t0} seconds & cmp {args.cmp}\n")
