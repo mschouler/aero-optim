@@ -1,13 +1,13 @@
 import inspyred
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 
 from inspyred.ec import Individual
 from random import Random
-from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
 
-plt.set_loglevel(level='warning')
+from aero_optim.geom import get_area
+from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,7 +30,7 @@ class InspyredWolfOptimizer(WolfOptimizer):
     """
     This class implements a Wolf based Optimizer.
     """
-    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
+    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float | list[float]]:
         """
         **Executes** Wolf simulations, **extracts** results
         and **returns** the list of candidates QoIs.
@@ -65,12 +65,14 @@ class InspyredWolfOptimizer(WolfOptimizer):
         **Returns** a penalty value based on some specific constraints</br>
         see https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection
         """
-        area_cond: bool = (shoe_lace(ffd_profile) > (1. + self.area_margin) * self.baseline_area
-                           or shoe_lace(ffd_profile) < (1. - self.area_margin) * self.baseline_area)
+        area_cond: bool = (
+            abs(get_area(ffd_profile)) > (1. + self.area_margin) * self.baseline_area
+            or abs(get_area(ffd_profile)) < (1. - self.area_margin) * self.baseline_area
+        )
         penalty_cond: bool = pen_value < self.penalty[-1]
         if area_cond or penalty_cond:
             logger.info(f"penalized candidate g{gid}, c{cid} "
-                        f"with area {shoe_lace(ffd_profile)} and CL {pen_value}")
+                        f"with area {abs(get_area(ffd_profile))} and CL {pen_value}")
             return 1.
         return 0.
 
@@ -112,7 +114,7 @@ class InspyredWolfOptimizer(WolfOptimizer):
         fig_name = f"inspyred_g{num_generations}.png"
         self.plot_generation(gid, sorted_idx, fitness, fig_name)
 
-    def final_observe(self):
+    def final_observe(self, *args, **kwargs):
         """
         **Plots** convergence progress by plotting the fitness values
         obtained with the successive generations</br>
@@ -123,7 +125,7 @@ class InspyredWolfOptimizer(WolfOptimizer):
 
 
 class InspyredDebugOptimizer(DebugOptimizer):
-    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float]:
+    def _evaluate(self, candidates: list[Individual], args: dict) -> list[float | list[float]]:
         """
         **Executes** dummy simulations, **extracts** results
         and **returns** the list of candidates QoIs.

@@ -3,6 +3,7 @@ import numpy as np
 import operator
 import os
 import pytest
+from typing import cast
 
 from aero_optim.optim.inspyred_optimizer import InspyredWolfOptimizer
 from aero_optim.utils import check_file, check_config
@@ -55,6 +56,6 @@ def test_ins_optimizer(opt: InspyredWolfOptimizer):
     print(opt.J)
     expected_J = [1.11, 0.115, 0.13, 0.12, 0.135, 0.15]
     assert opt.max_generations == opt.gen_ctr - 1
-    assert np.sum([abs(i - j) for i, j in zip(opt.J, expected_J)]) < 1e-10
-    assert min([c.fitness for c in final_pop]) == min(opt.J[-opt.doe_size:])
+    assert np.sum([abs(i - j) for i, j in zip(cast(list[float], opt.J), expected_J)]) < 1e-10
+    assert min([c.fitness for c in final_pop]) == min(opt.J[-opt.doe_size:])  # type: ignore
     assert (gid, cid) == (0, 1)

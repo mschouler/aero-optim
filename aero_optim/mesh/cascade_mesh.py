@@ -70,12 +70,12 @@ class CascadeMesh(Mesh):
         self.nodes_sp7: int = self.config["gmsh"]["mesh"].get("nodes_sp7", 57)
         self.nodes_sp8: int = self.config["gmsh"]["mesh"].get("nodes_sp8", 32)
         self.nodes_ss: int = self.config["gmsh"]["mesh"].get("nodes_ss", 600)
-        self.nodes_ps: int = self.config["gmsh"]["mesh"].get("nodes_ss", 600)
+        self.nodes_ps: int = self.config["gmsh"]["mesh"].get("nodes_ps", 600)
 
     def process_config(self):
-        logger.info("processing config..")
+        logger.debug("processing config..")
         if "domain" not in self.config["gmsh"]:
-            logger.warning(f"no <domain> entry in {self.config['gmsh']}, empty entry added")
+            logger.debug(f"no <domain> entry in {self.config['gmsh']}, empty entry added")
             self.config["gmsh"]["domain"] = {}
 
     def reorder_blade(self) -> list[list[float]]:
@@ -270,15 +270,15 @@ class CascadeMesh(Mesh):
         self.surf_tag = [surf_1, surf_2] if self.dlr_mesh else [surf_2]
         gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=100, name="field")
         gmsh.model.geo.addPhysicalGroup(1, [l_10], tag=10, name="inlet")
-        logger.info(f"BC: Inlet tags are {[l_10]}")
+        logger.debug(f"BC: Inlet tags are {[l_10]}")
         gmsh.model.geo.addPhysicalGroup(1, [l_21], tag=20, name="outlet")
-        logger.info(f"BC: Outlet tags are {[l_21]}")
+        logger.debug(f"BC: Outlet tags are {[l_21]}")
         gmsh.model.geo.addPhysicalGroup(1, spl_list, tag=30, name="wall")
-        logger.info(f"BC: Wall tags are {spl_list}")
+        logger.debug(f"BC: Wall tags are {spl_list}")
         gmsh.model.geo.addPhysicalGroup(1, self.top_tags, tag=40, name="uwall")
-        logger.info(f"BC: Top tags are {self.top_tags}")
+        logger.debug(f"BC: Top tags are {self.top_tags}")
         gmsh.model.geo.addPhysicalGroup(1, self.bottom_tags, tag=50, name="lwall")
-        logger.info(f"BC: Bottom tags are {self.bottom_tags}")
+        logger.debug(f"BC: Bottom tags are {self.bottom_tags}")
 
         # non-corner points defined as flow-field, inner block line and wall nodes
         self.non_corner_tags.extend([abs(s_tag) for s_tag in self.surf_tag])

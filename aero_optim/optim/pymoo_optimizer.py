@@ -1,13 +1,13 @@
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.core.problem import Problem
-from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer, shoe_lace
 
-plt.set_loglevel(level='warning')
+from aero_optim.geom import get_area
+from aero_optim.optim.optimizer import DebugOptimizer, WolfOptimizer
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,15 +53,15 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         # execute all candidates
         self.execute_candidates(X, gid)
 
-        # add penalty to the candidates fitness
+        # update candidates fitness
         self.J.extend([
             self.simulator.df_dict[gid][cid][self.QoI].iloc[-1] for cid in range(len(X))
         ])
 
-        self.gen_ctr += 1
         out["F"] = np.array(self.J[-self.doe_size:])
         out["G"] = self.apply_constraints(gid)
         self._observe(out["F"])
+        self.gen_ctr += 1
 
     def apply_constraints(self, gid: int) -> np.ndarray:
         """
@@ -70,11 +70,13 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         """
         out = []
         for cid, pro in enumerate(self.ffd_profiles[gid]):
-            ieq_1 = abs(shoe_lace(pro) - self.baseline_area) / self.baseline_area - self.area_margin
+            ieq_1 = (
+                abs(abs(get_area(pro)) - self.baseline_area) / self.baseline_area - self.area_margin
+            )
             ieq_2 = self.penalty[-1] - self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]
             if ieq_1 > 0 or ieq_2 > 0:
                 logger.info(f"penalized candidate g{gid}, c{cid} "
-                            f"with area {shoe_lace(pro)} "
+                            f"with area {abs(get_area(pro))} "
                             f"and CL {self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]}")
             out.append([ieq_1, ieq_2])
         return np.row_stack(out)
@@ -87,7 +89,7 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         > the candidates fitness,</br>
         > the baseline and deformed profiles.
         """
-        gid = self.gen_ctr - 1
+        gid = self.gen_ctr
 
         # extract generation best profiles
         sorted_idx = np.argsort(pop_fitness, kind="stable")[:self.n_plt]
@@ -102,7 +104,7 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         fig_name = f"pymoo_g{gid}.png"
         self.plot_generation(gid, sorted_idx, pop_fitness, fig_name)
 
-    def final_observe(self):
+    def final_observe(self, *args, **kwargs):
         """
         **Plots** convergence progress by plotting the fitness values
         obtained with the successive generations
@@ -134,16 +136,16 @@ class PymooDebugOptimizer(DebugOptimizer, Problem):
         for cid, _ in enumerate(X):
             self.J.append(self.simulator.df_dict[gid][cid]["result"].iloc[-1])
 
-        self.gen_ctr += 1
         out["F"] = np.array(self.J[-self.doe_size:])
         self._observe(out["F"])
+        self.gen_ctr += 1
 
     def _observe(self, pop_fitness: np.ndarray):
         """
         Dummy _observe function.
         """
         # extract best profiles
-        gid = self.gen_ctr - 1
+        gid = self.gen_ctr
         sorted_idx = np.argsort(pop_fitness, kind="stable")[:self.n_plt]
         logger.info(f"extracting {self.n_plt} best profiles in g{gid}: {sorted_idx}..")
         logger.debug(f"g{gid} J-fitnesses (candidates): {pop_fitness}")
