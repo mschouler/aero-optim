@@ -439,17 +439,20 @@ def execute_simulation(
         ite += 1
         cmp = args.cmp * 2**(ite - 1)
 
+    cp_filelist(
+        [f"{cdir}/final.meshb", f"{cdir}/final.solb", f"{cdir}/mach.solb", f"{cdir}/pres.solb"],
+        [f"{cwd}"] * 4
+    )
     return SUCCESS, ite, False, False
 
 
 def robust_execution(
-        sim_dir: str,
         args: argparse.Namespace,
         t0: float,
         cv_tgt: list[float],
         ite_restart: int,
         subite_restart: int,
-        default_res_tgt: float = 1e-4,
+        default_res_tgt: float = 1e-3,
         preprocess: bool = True,
         hgrad: float = 1.5,
         cfac: float = 2.
@@ -462,22 +465,19 @@ def robust_execution(
         in spite of the robustness measures implemented in execute_simulation, adaptation or
         convergence issues may still require a full iteration restart.
         Nondeterminism induced by the parallel execution of wolf and feflo may be enough to solve
-        the problem but sometimes decreasing the gradation parameter, cfac or increasing the
-        residual target may help pass the blocking adaptation step.
+        the problem but sometimes decreasing the gradation parameter or cfac may help pass the
+        blocking adaptation iteration.
     """
     exit_status, ite, dhgrad, dcfac = execute_simulation(
         args, t0, cv_tgt, default_res_tgt, subite_restart=subite_restart, preprocess=preprocess
     )
     new_ite, restart = ite, 0
     while exit_status == FAILURE:
-        restart += 1
-        print(f"ERROR -- {sim_dir} did not converge >> restart from ite {new_ite} ({restart})\n")
         if restart < ite_restart:
+            restart += 1
+            print(f"ERROR -- sim. did not converge >> restart from ite {new_ite} ({restart})\n")
             exit_status, ite, dhgrad, dcfac = execute_simulation(
-                args,
-                t0,
-                cv_tgt,
-                default_res_tgt,
+                args, t0, cv_tgt, default_res_tgt,
                 subite_restart=subite_restart,
                 init_ite=new_ite,
                 preprocess=preprocess,
@@ -485,27 +485,7 @@ def robust_execution(
                 cfac=cfac - 0.2 if dcfac else cfac
             )
         else:
-            # if adaptation is stuck the residual target is momentarily increased
-            exit_status, ite, dhgrad, dcfac = execute_simulation(
-                args,
-                t0,
-                cv_tgt,
-                default_res_tgt,
-                subite_restart=subite_restart,
-                init_ite=new_ite,
-                init_res_tgt=1e-3 if default_res_tgt < 1e-3 else default_res_tgt,
-                preprocess=preprocess,
-                hgrad=hgrad - 0.025 if dhgrad else hgrad,
-                cfac=cfac - 0.2 if dcfac else cfac
-            )
-            restart = 0
-            # abort adaptation if decreasing the residual target did not work
-            if ite == new_ite and exit_status == FAILURE:
-                return FAILURE
-        if exit_status == SUCCESS:
-            break
-        else:
-            new_ite = new_ite - 1 if new_ite > 1 else ite
+            return exit_status
     return exit_status
 
 
@@ -549,7 +529,7 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = robust_execution(sim_dir, args, t0, cv_tgt, ite_restart=4, subite_restart=6)
+        exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=6)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
@@ -579,10 +559,7 @@ def main() -> int:
         }
         sed_in_file(f"{input}.wolf", sim_args)
         exit_status = robust_execution(
-            sim_dir,
-            args,
-            t0,
-            cv_tgt_op,
+            args, t0, cv_tgt_op,
             default_res_tgt=1e-2,
             ite_restart=1,
             subite_restart=2,
@@ -622,7 +599,7 @@ def main() -> int:
         }
         sed_in_file(f"{input}.wolf", sim_args)
         exit_status = robust_execution(
-            sim_dir, args, t0, cv_tgt_op, ite_restart=1, subite_restart=2, preprocess=False
+            args, t0, cv_tgt_op, ite_restart=1, subite_restart=2, preprocess=False
         )
         if exit_status == FAILURE:
             print(f"ERROR -- adaptation failed after {time.time() - t0} seconds & cmp {args.cmp}\n")
