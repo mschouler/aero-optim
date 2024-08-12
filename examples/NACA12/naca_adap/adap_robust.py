@@ -49,6 +49,7 @@ def main() -> int:
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
     parser.add_argument("-nite", type=int, help="number of complexities", default=2)
     parser.add_argument("-smax", type=int, help="max. number of adaptations at iso comp", default=3)
+    parser.add_argument("-ntol", type=int, help="max. number of failures before abort", default=3)
 
     args = parser.parse_args()
     t0 = time.time()
@@ -62,10 +63,10 @@ def main() -> int:
     assert os.path.isfile(f"{input}.mesh")
 
     # adaptation variables
-    res_tgt: float = 1e-6
+    res_tgt: float = 1e-3
     m_field: str = "mach"
-    cv_tgt: float = 0.01
-    tol_fail: int = 1
+    cv_tgt_tab: list[float] = [0.01, 0.005, 0.001] + [0.001] * (args.nite - 3)
+    tol_fail = args.ntol
 
     # Initialization
     print("** INITIAL SOLUTION COMPUTATION WITH 1000 ITERATIONS **")
@@ -197,8 +198,8 @@ def main() -> int:
             cl3 = aerocoef[6]
             print(f">> Cl: {cl3}\n")
             # convergence check
-            cd_cv, cd_d2, cd_d1 = check_cv(cd3, cd2, cd1, cv_tgt)
-            cl_cv, cl_d2, cl_d1 = check_cv(cl3, cl2, cl1, cv_tgt)
+            cd_cv, cd_d2, cd_d1 = check_cv(cd3, cd2, cd1, cv_tgt_tab[ite - 1])
+            cl_cv, cl_d2, cl_d1 = check_cv(cl3, cl2, cl1, cv_tgt_tab[ite - 1])
             if sub_ite >= 3:
                 print(f">> Cd {'converged' if cd_cv else 'did not converge'}, "
                       f"E2={cd_d2}, E1={cd_d1}")
@@ -214,6 +215,10 @@ def main() -> int:
         ite += 1
         cmp *= 2.
 
+    cp_filelist(
+        [f"{cdir}/final.mesh", f"{cdir}/final.solb", f"{cdir}/mach.solb", f"{cdir}/pres.solb"],
+        [f"{cwd}"] * 4
+    )
     return SUCCESS
 
 
