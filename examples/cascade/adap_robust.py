@@ -529,7 +529,7 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=7)
+        exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=5)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
