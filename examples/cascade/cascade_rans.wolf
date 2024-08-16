@@ -141,6 +141,8 @@ BCInletPressureTotCoef
 1.2782
 BCInletTemperatureTotCoef
 1.0726
+BCInletVelocityDirection
+0.7313537016 0.6819983601 0.
 
 SubsonicOutletPs
 1
@@ -182,3 +184,4 @@ SteadyFeatureBasedAdaptation
   RANSHessianBdryCorrection
   4.
 
+ # -------------------

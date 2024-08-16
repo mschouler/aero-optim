@@ -12,11 +12,11 @@ from aero_optim.utils import cp_filelist, ln_filelist, mv_filelist, rm_filelist,
 FAILURE: int = 1
 SUCCESS: int = 0
 
-WOLF: str = "/home/mschouler/bin/wolf"
-METRIX: str = "/home/mschouler/bin/metrix2"
+WOLF: str = "/home/mschouler/bin/wolf_fix_bc"
+METRIX: str = "/home/mschouler/bin/metrix"
 FEFLO: str = "/home/mschouler/bin/fefloa_margaret"
-INTERPOL: str = "/home/mschouler/bin/interpol2"
-SPYDER: str = "/home/mschouler/bin/spyder2"
+INTERPOL: str = "/home/mschouler/bin/interpol"
+SPYDER: str = "/home/mschouler/bin/spyder"
 
 print = functools.partial(print, flush=True)
 
@@ -128,10 +128,10 @@ def execute_simulation(
             rm_filelist(["tmp.*"])
             # check orientation and coarsen mesh
             feflo_cmd = [
-                FEFLO, "-in", f"{input}_fine", "-geom", f"{input}.back", "-hmsh",
+                FEFLO, "-in", f"{input}_fine", "-back", f"{input}.back", "-hmsh",
                 "-cfac", f"{cfac}", "-nordg", "-hmax", "0.01", "-out", f"{input}"
             ]
-            run(feflo_cmd + ["-keep-line-ids", "1-4,10,11,21,28"], "feflo.job")
+            run(feflo_cmd + ["-keep-line-ids", "10,11,21,28"], "feflo.job")
             print(f">> mesh re-orientation/coarsening succeeded with cfac {cfac}\n")
 
         print("** INITIAL SOLUTION COMPUTATION WITH ~1000 ITERATIONS **")
@@ -264,7 +264,7 @@ def execute_simulation(
             cp_filelist(["adap.met.meshb", "adap.met.solb"], [f"fefloa_{sub_ite}"] * 2)
             feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out",
                          "CycleMet.meshb", "-keep-line-ids", "11,28", "-nordg",
-                         "-geom", f"{input}.back" , "-itp", "file.back.solb"]
+                         "-back", f"{input}.back" , "-itp", "file.back.solb"]
             try:
                 run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=3.)
             except TimeoutExpired:
@@ -529,7 +529,7 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=6)
+        exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=5)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
@@ -546,16 +546,20 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
         cp_filelist([f"ADP/adap_{adp_ite - op_ite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
+        cp_filelist([f"ADP/{input}.back.meshb", f"ADP/{input}.back.solb"], [f"{sim_dir}"] * 2)
         cv_tgt_op = cv_tgt[adp_ite - (op_ite + 1):]
         args.cmp = adp_cmp * 2**(adp_ite - (op_ite + 1))
         args.nite = op_ite + 1
         os.chdir(sim_dir)
         # update input velocity
-        u = 199.5 * math.cos((43 + 5) / 180 * math.pi)
-        v = 199.5 * math.sin((43 + 5) / 180 * math.pi)
+        cos = math.cos((43 + 5) / 180 * math.pi)
+        sin = math.sin((43 + 5) / 180 * math.pi)
+        u = 199.5 * cos
+        v = 199.5 * sin
         # update input file
         sim_args = {
-            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
+            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
+            "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
         }
         sed_in_file(f"{input}.wolf", sim_args)
         exit_status = robust_execution(
@@ -586,16 +590,20 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
         cp_filelist([f"ADP/adap_{adp_ite - op_ite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
+        cp_filelist([f"ADP/{input}.back.meshb", f"ADP/{input}.back.solb"], [f"{sim_dir}"] * 2)
         cv_tgt_op = cv_tgt[adp_ite - (op_ite + 1):]
         args.cmp = adp_cmp * 2**(adp_ite - (op_ite + 1))
         args.nite = op_ite + 1
         os.chdir(sim_dir)
         # update input velocity
-        u = 199.5 * math.cos((43 - 5) / 180 * math.pi)
-        v = 199.5 * math.sin((43 - 5) / 180 * math.pi)
+        cos = math.cos((43 - 5) / 180 * math.pi)
+        sin = math.sin((43 - 5) / 180 * math.pi)
+        u = 199.5 * cos
+        v = 199.5 * sin
         # update input file
         sim_args = {
-            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]}
+            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
+            "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
         }
         sed_in_file(f"{input}.wolf", sim_args)
         exit_status = robust_execution(
