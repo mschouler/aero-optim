@@ -1,7 +1,7 @@
 {
     "study": {
         "study_type": "cascade",
-        "file": "blade.dat",
+        "file": "../data/lrn_cascade.dat",
         "outdir": "output"
     },
     "gmsh": {
@@ -29,6 +29,6 @@
             "turbocoef.dat": ["LossCoef"],
             "wall.dat": ["x", "y", "Mis"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/cascade/adap_robust.py -in @.mesh -cmp 2000 -nproc 8 -nite 4 -smax 10"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_adap/adap_robust.py -in @.mesh -cmp 2000 -nproc 8 -nite 4 -smax 10"
     }
 }
