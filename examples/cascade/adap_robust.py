@@ -12,7 +12,7 @@ from aero_optim.utils import cp_filelist, ln_filelist, mv_filelist, rm_filelist,
 FAILURE: int = 1
 SUCCESS: int = 0
 
-WOLF: str = "/home/mschouler/bin/wolf_fix_bc"
+WOLF: str = "/home/mschouler/bin/wolf_sabcm"
 METRIX: str = "/home/mschouler/bin/metrix"
 FEFLO: str = "/home/mschouler/bin/fefloa_margaret"
 INTERPOL: str = "/home/mschouler/bin/interpol"
@@ -219,7 +219,8 @@ def execute_simulation(
             [f"{input}.wolf", f"{input}.wolf", f"{input}.solb", f"{input}.solb", f"{input}.meshb"],
             ["file.wolf", "DEFAULT.wolf", "file.solb", "file.o.solb", "file.meshb"]
         )
-        ln_filelist(["file.meshb", "file.back.meshb"], ["file.metric.meshb", "logCfl.back.meshb"])
+        ln_filelist(["file.meshb", "file.meshb", "file.back.meshb"],
+                    ["file.metric.meshb", "logCfl.meshb", "logCfl.back.meshb"])
 
         # compute metric from initial condition
         wolf_cmd = [WOLF, "-in", "file", "-out", "file.o", "-nproc", f"{args.nproc}", "-v", "6"]
@@ -266,7 +267,7 @@ def execute_simulation(
                          "CycleMet.meshb", "-keep-line-ids", "11,28", "-nordg",
                          "-back", f"{input}.back" , "-itp", "file.back.solb"]
             try:
-                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=3.)
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=30.)
             except TimeoutExpired:
                 print("ERROR -- feflo CycleMet subprocess timed out")
                 os.chdir(cwd)
@@ -292,7 +293,7 @@ def execute_simulation(
             feflo_cmd = [FEFLO, "-in", "Forth", "-met", "CycleMetForth", "-out",
                          "Cycleadap.meshb", "-keep-line-ids", "32125,32126,1,2,3,4"]
             try:
-                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=3.)
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=30.)
             except TimeoutExpired:
                 print("ERROR -- feflo CycleMetForth subprocess timed out")
                 os.chdir(cwd)
@@ -538,43 +539,22 @@ def main() -> int:
     print("** OP1 SIMULATION (+5 deg.) **")
     print("** ------------------------ **")
     sim_dir = "OP1"
-    adp_ite, adp_cmp = args.nite, args.cmp
-    op_ite = 0
-    # restart from ADP adapted mesh and previous complexity
-    while adp_ite - op_ite >= 1:
-        shutil.rmtree(sim_dir, ignore_errors=True)
-        os.mkdir(sim_dir)
-        cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
-        cp_filelist([f"ADP/adap_{adp_ite - op_ite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
-        cp_filelist([f"ADP/{input}.back.meshb", f"ADP/{input}.back.solb"], [f"{sim_dir}"] * 2)
-        cv_tgt_op = cv_tgt[adp_ite - (op_ite + 1):]
-        args.cmp = adp_cmp * 2**(adp_ite - (op_ite + 1))
-        args.nite = op_ite + 1
-        os.chdir(sim_dir)
-        # update input velocity
-        cos = math.cos((43 + 5) / 180 * math.pi)
-        sin = math.sin((43 + 5) / 180 * math.pi)
-        u = 199.5 * cos
-        v = 199.5 * sin
-        # update input file
-        sim_args = {
-            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
-            "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
-        }
-        sed_in_file(f"{input}.wolf", sim_args)
-        exit_status = robust_execution(
-            args, t0, cv_tgt_op,
-            default_res_tgt=1e-2,
-            ite_restart=1,
-            subite_restart=2,
-            preprocess=False
-        )
-        if exit_status == FAILURE:
-            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds & cmp {args.cmp}\n")
-            op_ite += 1
-            os.chdir(cwd)
-        else:
-            break
+    shutil.rmtree(sim_dir, ignore_errors=True)
+    os.mkdir(sim_dir)
+    cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
+    os.chdir(sim_dir)
+    # update input velocity
+    cos = math.cos((43 + 5) / 180 * math.pi)
+    sin = math.sin((43 + 5) / 180 * math.pi)
+    u = 199.5 * cos
+    v = 199.5 * sin
+    # update input file
+    sim_args = {
+        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
+        "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
+    }
+    sed_in_file(f"{input}.wolf", sim_args)
+    exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=5)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
@@ -583,38 +563,21 @@ def main() -> int:
     print("** OP2 SIMULATION (-5 deg.) **")
     print("** ------------------------ **")
     sim_dir = "OP2"
-    op_ite = 0
-    # restart from ADP adapted mesh and previous complexity
-    while adp_ite - op_ite >= 1:
-        shutil.rmtree(sim_dir, ignore_errors=True)
-        os.mkdir(sim_dir)
-        cp_filelist([f"{input}.wolf"], [f"{sim_dir}"])
-        cp_filelist([f"ADP/adap_{adp_ite - op_ite}/final.meshb"], [f"{sim_dir}/{input}.meshb"])
-        cp_filelist([f"ADP/{input}.back.meshb", f"ADP/{input}.back.solb"], [f"{sim_dir}"] * 2)
-        cv_tgt_op = cv_tgt[adp_ite - (op_ite + 1):]
-        args.cmp = adp_cmp * 2**(adp_ite - (op_ite + 1))
-        args.nite = op_ite + 1
-        os.chdir(sim_dir)
-        # update input velocity
-        cos = math.cos((43 - 5) / 180 * math.pi)
-        sin = math.sin((43 - 5) / 180 * math.pi)
-        u = 199.5 * cos
-        v = 199.5 * sin
-        # update input file
-        sim_args = {
-            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
-            "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
-        }
-        sed_in_file(f"{input}.wolf", sim_args)
-        exit_status = robust_execution(
-            args, t0, cv_tgt_op, ite_restart=1, subite_restart=2, preprocess=False
-        )
-        if exit_status == FAILURE:
-            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds & cmp {args.cmp}\n")
-            op_ite += 1
-            os.chdir(cwd)
-        else:
-            break
+    os.mkdir(sim_dir)
+    cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
+    os.chdir(sim_dir)
+    # update input velocity
+    cos = math.cos((43 - 5) / 180 * math.pi)
+    sin = math.sin((43 - 5) / 180 * math.pi)
+    u = 199.5 * cos
+    v = 199.5 * sin
+    # update input file
+    sim_args = {
+        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
+        "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
+    }
+    sed_in_file(f"{input}.wolf", sim_args)
+    exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=5)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
