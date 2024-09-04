@@ -39,6 +39,10 @@ class CascadeMesh(Mesh):
         - nodes_sp8 (int): the number of nodes to mesh the 2nd section of the blade pressure side.
         - nodes_ss (int): the number of nodes to mesh the suction side (dlr_mesh set to False).
         - nodes_ps (int): the number of nodes to mesh the pressure side (dlr_mesh set to False).
+        - cyl_vin (float): cylinder field parameter Vin.
+        - cyl_vout (float): cylinder field parameter Vout.
+        - cyl_xaxis (float): cylinder field parameter Xaxis.
+        - cyl_xcenter (float): cylinder field parameter Xcenter.
 
         Note:
             for the DLR configuration, the blade is split into 9 splines (clockwise from the tip):
@@ -71,6 +75,10 @@ class CascadeMesh(Mesh):
         self.nodes_sp8: int = self.config["gmsh"]["mesh"].get("nodes_sp8", 32)
         self.nodes_ss: int = self.config["gmsh"]["mesh"].get("nodes_ss", 600)
         self.nodes_ps: int = self.config["gmsh"]["mesh"].get("nodes_ps", 600)
+        self.cyl_vin: float = self.config["gmsh"]["mesh"].get("cyl_vin", 8e-4)
+        self.cyl_vout: float = self.config["gmsh"]["mesh"].get("cyl_vout", 5e-3)
+        self.cyl_xaxis: float = self.config["gmsh"]["mesh"].get("cyl_xaxis", 1.675e-2)
+        self.cyl_xcenter: float = self.config["gmsh"]["mesh"].get("cyl_xcenter", 8.364e-2)
 
     def process_config(self):
         logger.debug("processing config..")
@@ -257,7 +265,13 @@ class CascadeMesh(Mesh):
         self.build_bl(spl_list) if self.bl else 0
         # Cylinder #1
         f_cyl1 = self.build_cylinder_field(
-            9e-3, 8e-4, 5e-3, 1.675e-2, 8.364e-2, -1.171e-3, 1.9754e-2
+            9e-3,
+            self.cyl_vin,
+            self.cyl_vout,
+            self.cyl_xaxis,
+            self.cyl_xcenter,
+            -1.171e-3,
+            1.9754e-2
         )
         # Cylinder #2
         f_cyl2 = self.build_cylinder_field(
