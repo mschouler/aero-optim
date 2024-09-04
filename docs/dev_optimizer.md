@@ -37,6 +37,14 @@
       show_root_toc_entry: true
 <hr style="border:1px light grey">
 
+::: optim.optimizer.WolfOptimizer
+    options:
+      filters: []
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
 ::: optim.optimizer.DebugOptimizer
     options:
       filters: []
