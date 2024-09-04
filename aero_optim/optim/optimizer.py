@@ -318,7 +318,7 @@ class Optimizer(ABC):
         ax.set_title(f"Optimization evolution ({gen_nbr} g. x {psize} c.)")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax.set_xlabel('generation #')
-        ax.set_ylabel('penalized fitness')
+        ax.set_ylabel('fitness')
 
         # save figure as png
         logger.info(f"saving {fig_name} to {self.outdir}")
@@ -449,7 +449,7 @@ class WolfOptimizer(Optimizer, ABC):
         ax3.set_xlabel('it. #')
         ax3.set_ylabel('aerodynamic coeff.')
         # bottom right
-        ax4.set_title(f"fitness: penalized {self.QoI}", weight="bold")
+        ax4.set_title(f"fitness: {self.QoI}", weight="bold")
         ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax4.set_xlabel('candidate #')
         ax4.set_ylabel("fitness")
