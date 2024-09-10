@@ -1,0 +1,65 @@
+import dill as pickle
+import logging
+import numpy as np
+import pandas as pd
+from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
+from aero_optim.simulator.simulator import Simulator
+from aero_optim.utils import check_file
+
+logger = logging.getLogger()
+
+
+class CustomSimulator(Simulator):
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self.set_model(config["simulator"]["model_file"])
+        self.Gpy = config["simulator"]["Gpy"]
+
+    def process_config(self):
+        logger.info("processing config..")
+        if "model_file" not in self.config["simulator"]:
+            raise Exception(f"ERROR -- no <model_file> entry in {self.config['simulator']}")
+
+    def set_solver_name(self):
+        self.solver_name = "smt_model"
+
+    def set_model(self, model_file: str):
+        check_file(model_file)
+        with open(model_file, "rb") as handle:
+            self.model = pickle.load(handle)
+    
+    def config_candidate(self, candidates):
+        if(self.Gpy == 1):
+            candidates2 = candidates.T
+            candidates2 = np.append(candidates2, [np.ones(len(candidates2[0]))], axis = 0)
+            candidates2 = candidates2.T
+        else:
+            candidates2 = candidates
+        print("candidates2 =", candidates2)
+        return candidates2
+
+    def execute_sim(self, candidates: list[float] | np.ndarray, gid: int = 0):
+        logger.info(f"execute simulations g{gid} with {self.solver_name}")
+        candidates_conf = self.config_candidate(candidates)
+        cd, cl = self.model.predict(np.array(candidates_conf))
+        self.df_dict[gid] = {
+            cid: pd.DataFrame({"ResTot": 1., "CD": cd[cid], "CL": cl[cid]})
+            for cid in range(len(candidates))
+        }
+
+
+class CustomOptimizer(PymooWolfOptimizer):
+    def set_gmsh_mesh_class(self):
+        self.MeshClass = None
+
+    def execute_candidates(self, candidates, gid):
+        logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
+        self.ffd_profiles.append([])
+        self.inputs.append([])
+
+        for cid, cand in enumerate(candidates):
+            self.inputs[gid].append(np.array(cand))
+            _, ffd_profile = self.deform(cand, gid, cid)
+            self.ffd_profiles[gid].append(ffd_profile)
+
+        self.simulator.execute_sim(candidates, gid)
