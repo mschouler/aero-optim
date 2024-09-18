@@ -33,6 +33,7 @@ class NACABlockMesh(NACABaseMesh):
         - offset (int): offset from leading edge.
         - b_width (float): block_width.
         - n_inlet (int): nbr of lead edge & inlet nodes.
+        - r_inlet (float): bump ratio of lead edge & inlet nodes.
         - n_vertical (int) : nbr of out & verti nodes.
         - r_vertical (float): out & vert growth.
         - n_airfoil (int): nbr of nodes on each sides.
@@ -45,6 +46,7 @@ class NACABlockMesh(NACABaseMesh):
         offset = self.config["gmsh"]["domain"].get("le_offset", 10)
         b_width = self.config["gmsh"]["domain"].get("block_width", 10)
         n_inlet = self.config["gmsh"]["mesh"].get("n_inlet", 60)
+        r_inlet = self.config["gmsh"]["mesh"].get("r_inlet", 1.)
         n_vertical = self.config["gmsh"]["mesh"].get("n_vertical", 90)
         r_vertical = self.config["gmsh"]["mesh"].get("r_vertical", 1 / 0.95)
         n_airfoil = self.config["gmsh"]["mesh"].get("n_airfoil", 50)
@@ -94,17 +96,17 @@ class NACABlockMesh(NACABaseMesh):
         line_15 = gmsh.model.geo.addLine(te_tag, pt_235)
 
         # meshing parameters
-        gmsh.model.geo.mesh.setTransfiniteCurve(circle_4, n_inlet, "Progression", 1)
-        gmsh.model.geo.mesh.setTransfiniteCurve(spline_le, n_inlet, "Progression", 1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(circle_4, n_inlet, "Bump", r_inlet)
+        gmsh.model.geo.mesh.setTransfiniteCurve(spline_le, n_inlet, "Bump", r_inlet)
         _ = [gmsh.model.geo.mesh.setTransfiniteCurve(lid, n_vertical, "Progression", r_vertical)
              for lid in [line_5, line_6, line_11, line_12, line_13, line_14]]
         gmsh.model.geo.mesh.setTransfiniteCurve(spline_low, n_airfoil, "Bump", r_airfoil)
         gmsh.model.geo.mesh.setTransfiniteCurve(spline_up, n_airfoil, "Bump", r_airfoil)
-        gmsh.model.geo.mesh.setTransfiniteCurve(line_7, n_airfoil, "Bump", 2)
-        gmsh.model.geo.mesh.setTransfiniteCurve(line_8, n_airfoil, "Bump", 2)
+        gmsh.model.geo.mesh.setTransfiniteCurve(line_7, n_airfoil, "Bump", r_airfoil)
+        gmsh.model.geo.mesh.setTransfiniteCurve(line_8, n_airfoil, "Bump", r_airfoil)
         gmsh.model.geo.mesh.setTransfiniteCurve(line_15, n_wake, "Progression", r_wake)
-        gmsh.model.geo.mesh.setTransfiniteCurve(line_9, n_wake, "Bump", 0.2)
-        gmsh.model.geo.mesh.setTransfiniteCurve(line_10, n_wake, "Bump", 0.2)
+        gmsh.model.geo.mesh.setTransfiniteCurve(line_9, n_wake, "Progression", r_wake)
+        gmsh.model.geo.mesh.setTransfiniteCurve(line_10, n_wake, "Progression", r_wake)
 
         # domain and block surfaces
         cloop_1 = gmsh.model.geo.addCurveLoop([circle_4, -line_5, spline_le, line_6])
