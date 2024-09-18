@@ -36,9 +36,9 @@ def main():
 
     MeshClass = get_custom_class(custom_file, "CustomMesh") if custom_file else None
     if not MeshClass:
-        if study_type == "base":
+        if study_type == "naca_base":
             MeshClass = NACABaseMesh
-        elif study_type == "block":
+        elif study_type == "naca_block":
             MeshClass = NACABlockMesh
         elif study_type == "cascade":
             MeshClass = CascadeMesh

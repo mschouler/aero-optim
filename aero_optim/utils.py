@@ -9,7 +9,7 @@ import subprocess
 
 from types import FrameType
 
-STUDY_TYPE = ["base", "block", "cascade", "debug"]
+STUDY_TYPE = ["naca_base", "naca_block", "cascade", "debug"]
 logger = logging.getLogger(__name__)
 
 

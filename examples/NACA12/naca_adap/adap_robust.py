@@ -4,15 +4,16 @@ import os
 import sys
 import time
 
-from aero_optim.utils import cp_filelist, ln_filelist, rm_filelist, run, sed_in_file
+from aero_optim.utils import cp_filelist, ln_filelist, mv_filelist, rm_filelist, run, sed_in_file
 
 FAILURE: int = 1
 SUCCESS: int = 0
 
 WOLF: str = "/home/mschouler/bin/wolf"
-METRIX: str = "/home/mschouler/bin/metrix2"
+METRIX: str = "/home/mschouler/bin/metrix"
 FEFLO: str = "/home/mschouler/bin/fefloa_margaret"
-INTERPOL: str = "/home/mschouler/bin/interpol2"
+INTERPOL: str = "/home/mschouler/bin/interpol"
+SPYDER: str = "/home/mschouler/bin/spyder"
 
 print = functools.partial(print, flush=True)
 
@@ -47,7 +48,7 @@ def main() -> int:
     parser.add_argument("-in", "--input", type=str, help="input mesh file i.e. input.mesh")
     parser.add_argument("-cmp", type=int, help="targetted complexity")
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
-    parser.add_argument("-nite", type=int, help="number of complexities", default=2)
+    parser.add_argument("-nite", type=int, help="number of complexities", default=3)
     parser.add_argument("-smax", type=int, help="max. number of adaptations at iso comp", default=3)
     parser.add_argument("-ntol", type=int, help="max. number of failures before abort", default=3)
 
@@ -68,11 +69,39 @@ def main() -> int:
     cv_tgt_tab: list[float] = [0.01, 0.005, 0.001] + [0.001] * (args.nite - 3)
     tol_fail = args.ntol
 
+    print("** MESH PREPROCESSING **")
+    print("** ------------------ **")
+    # re-orient mesh
+    cp_filelist([f"{input}.mesh"], [f"{input}_ORI.mesh"])
+    spyder_cmd = [SPYDER, "-in", f"{input}_ORI", "-out", f"{input}", "-v", "6"]
+    run(spyder_cmd, "spyder.job")
+    print(">> mesh re-oriented by spyder")
+    feflo_cmd = [
+        FEFLO, "-in", f"{input}", "-out", f"{input}_fine", "-novol", "-nosurf", "-nordg"
+    ]
+    run(feflo_cmd, "feflo.job")
+    print(">> mesh re-oriented by feflo")
+    # create background mesh
+    feflo_cmd = [FEFLO, "-in", f"{input}_fine", "-prepro", "-nordg", "-out", "tmp"]
+    run(feflo_cmd, "feflo.job")
+    print(">> background mesh created")
+    mv_filelist(
+        ["tmp.back.meshb", "tmp.back.solb"], [f"{input}.back.meshb", f"{input}.back.solb"]
+    )
+    rm_filelist(["tmp.*"])
+    # check orientation and coarsen mesh
+    feflo_cmd = [
+        FEFLO, "-in", f"{input}_fine", "-back", f"{input}.back", "-hmsh",
+        "-cfac", "2.", "-nordg", "-hmax", "10", "-out", f"{input}"
+    ]
+    run(feflo_cmd, "feflo.job")
+    print(">> mesh re-orientation/coarsening succeeded with cfac 2.\n")
+
     # Initialization
     print("** INITIAL SOLUTION COMPUTATION WITH 1000 ITERATIONS **")
     print("** ------------------------------------------------- **")
     os.makedirs("SolIni", exist_ok=True)
-    cp_filelist([f"{input}.mesh", f"{input}.wolf", f"{input}.metrix"], ["SolIni"] * 3)
+    cp_filelist([f"{input}.meshb", f"{input}.wolf", f"{input}.metrix"], ["SolIni"] * 3)
     os.chdir("SolIni")
     wolf_cmd = [WOLF, "-in", f"{input}", "-out", f"{input}", "-nproc", f"{args.nproc}"]
     run(wolf_cmd + ["-ite", "1000"], "wolf.job")
@@ -94,13 +123,16 @@ def main() -> int:
         pdir = f"adap_{ite - 1}" if ite > 1 else "SolIni"
         cdir = f"adap_{ite}"
         os.mkdir(cdir)
+        # copy background mesh
+        cp_filelist([f"{input}.back.meshb", f"{input}.back.solb"], [f"{cdir}"] * 2)
+
         # copy mesh and initial sol to cdir
         if ite == 1:
             cp_filelist(
                 [f"{pdir}/{input}.wolf", f"{pdir}/{input}.solb", f"{pdir}/{input}.solb",
-                 f"{pdir}/{input}.mesh", f"{pdir}/{input}.metrix", f"{pdir}/{m_field}.solb"],
+                 f"{pdir}/{input}.meshb", f"{pdir}/{input}.metrix", f"{pdir}/{m_field}.solb"],
                 [f"{cdir}/file.wolf", f"{cdir}/file.solb", f"{cdir}/file.o.solb",
-                 f"{cdir}/file.mesh", f"{cdir}/adap.metrix", f"{cdir}/{m_field}.solb"]
+                 f"{cdir}/file.meshb", f"{cdir}/adap.metrix", f"{cdir}/{m_field}.solb"]
             )
             # update wolf file from Uniform to InitialSol
             sim_args = {"UniformSol": {"inplace": True, "param": ["InitialSol"]}}
@@ -108,16 +140,15 @@ def main() -> int:
         else:
             cp_filelist(
                 [f"{pdir}/file.wolf", f"{pdir}/final.solb", f"{pdir}/final.solb",
-                 f"{pdir}/final.mesh", f"{pdir}/adap.metrix", f"{pdir}/{m_field}.solb"],
+                 f"{pdir}/final.meshb", f"{pdir}/adap.metrix", f"{pdir}/{m_field}.solb"],
                 [f"{cdir}/file.wolf", f"{cdir}/file.solb", f"{cdir}/file.o.solb",
-                 f"{cdir}/file.mesh", f"{cdir}/adap.metrix", f"{cdir}/{m_field}.solb"]
+                 f"{cdir}/file.meshb", f"{cdir}/adap.metrix", f"{cdir}/{m_field}.solb"]
             )
         # sync latest mesh as metrix input mesh
-        os.symlink(f"{cwd}/{cdir}/file.mesh", f"{cwd}/{cdir}/adap.mesh")
+        os.symlink(f"{cwd}/{cdir}/file.meshb", f"{cwd}/{cdir}/adap.meshb")
         # copy residual files
         cp_filelist([f"{pdir}/residual.{sim_iter}.dat", f"{pdir}/res.{sim_iter}.dat",
-                     f"{pdir}/aerocoef.{sim_iter}.dat"],
-                    [f"{cdir}"] * 3)
+                     f"{pdir}/aerocoef.{sim_iter}.dat"], [f"{cdir}"] * 3)
         os.chdir(cdir)
 
         # convergence at fixed complexity
@@ -129,8 +160,8 @@ def main() -> int:
             print(f"** SUBITERATION {sub_ite} - ISOCMP {cmp} **")
             print(f"** -------------{'-' * len(str(sub_ite))}----------{'-' * len(str(cmp))} **")
             # create backup files
-            init_files = ["file.mesh", "file.o.solb", f"{m_field}.solb"]
-            backup_files = ["file.back.mesh", "file.back.solb", f"{m_field}.back.solb"]
+            init_files = ["file.meshb", "file.o.solb", f"{m_field}.solb"]
+            backup_files = ["file.back.meshb", "file.back.solb", f"{m_field}.back.solb"]
             cp_filelist(init_files, backup_files)
 
             print("** METRIC CONSTRUCTION **")
@@ -140,9 +171,9 @@ def main() -> int:
             run(metrix_cmd, "metrix.job")
 
             print("** MESH ADAPTATION **")
-            cp_filelist(["file.mesh"], ["adap.met.mesh"])
-            feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out", "file.mesh",
-                         "-noref", "-nordg", "-hgrad", "1.5", "-keep-line-ids", "1, 2, 3"]
+            cp_filelist(["file.meshb"], ["adap.met.meshb"])
+            feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out", "file.meshb",
+                         "-noref", "-nordg", "-hgrad", "1.5", "-back", f"{input}.back"]
             run(feflo_cmd, "feflo.job")
 
             print("** SOLUTION INTERPOLATION **")
@@ -174,15 +205,15 @@ def main() -> int:
                 else:
                     print(f">> restart mesh convergence at fixed complexity {cmp}\n")
                     continue
-            cp_filelist(["file.o.solb", "file.mesh"],
-                        [f"fin.{sub_ite}.solb", f"fin.{sub_ite}.mesh"])
+            cp_filelist(["file.o.solb", "file.meshb"],
+                        [f"fin.{sub_ite}.solb", f"fin.{sub_ite}.meshb"])
             cp_filelist([f"{m_field}.solb"], [f"fin.{m_field}.{sub_ite}.solb"])
-            ln_filelist([f"fin.{sub_ite}.mesh"], [f"fin.{m_field}.{sub_ite}.mesh"])
-            cp_filelist(["file.o.solb", "file.mesh"], ["final.solb", "final.mesh"])
-            ln_filelist(["final.mesh", "final.mesh"], ["final.metric.mesh", "final.norot.mesh"])
+            ln_filelist([f"fin.{sub_ite}.meshb"], [f"fin.{m_field}.{sub_ite}.meshb"])
+            cp_filelist(["file.o.solb", "file.meshb"], ["final.solb", "final.meshb"])
+            ln_filelist(["final.meshb", "final.meshb"], ["final.metric.meshb", "final.norot.meshb"])
             cp_filelist(["logCfl.o.solb", "logCfl.o.solb"],
                         [f"fin.logCfl.{sub_ite}.solb", "final.logCfl.solb"])
-            print(f">> fin.{sub_ite}.mesh & fin.{sub_ite}.solb created")
+            print(f">> fin.{sub_ite}.meshb & fin.{sub_ite}.solb created")
             print(f">> execution time: {time.time() - t0} seconds.\n")
 
             # aerocoef extraction
@@ -210,13 +241,13 @@ def main() -> int:
                 sub_ite += 1
 
         sim_iter = int(aerocoef[0])
-        cp_filelist(["aerocoef.dat", "wall.dat", "residual.dat"], [f"{cwd}"] * 4)
+        cp_filelist(["aerocoef.dat", "wall.dat", "residual.dat"], [f"{cwd}"] * 3)
         os.chdir(cwd)
         ite += 1
         cmp *= 2.
 
     cp_filelist(
-        [f"{cdir}/final.mesh", f"{cdir}/final.solb", f"{cdir}/mach.solb", f"{cdir}/pres.solb"],
+        [f"{cdir}/final.meshb", f"{cdir}/final.solb", f"{cdir}/mach.solb", f"{cdir}/pres.solb"],
         [f"{cwd}"] * 4
     )
     return SUCCESS
