@@ -1,6 +1,6 @@
 {
     "study": {
-        "study_type": "block",
+        "study_type": "naca_block",
         "file": "../data/naca12.dat",
         "outfile": "naca_block",
         "outdir": "output"

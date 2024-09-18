@@ -1,6 +1,6 @@
 {
     "study": {
-        "study_type": "base",
+        "study_type": "naca_base",
         "file": "../data/naca12.dat",
         "outfile": "naca_base",
         "outdir": "output_hf_doe"
