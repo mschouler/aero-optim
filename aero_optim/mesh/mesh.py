@@ -66,6 +66,7 @@ class Mesh(ABC):
         - bl_thickness (float): the BL meshing cumulated thickness.
         - bl_ratio (float): the BL meshing growth ratio.
         - bl_size (float): the BL first element size.
+        - bl_fan_elements (int): the number of BL fan elements.
         - structured (bool): whether to recombine triangles (True) or not (False).
         - extrusion_layers (int): the number of extrusion layers when generating a 3D mesh.
         - GUI (bool): whether to launch gmsh GUI (True) or not (False).
@@ -91,6 +92,7 @@ class Mesh(ABC):
         self.bl_thickness: float = config["gmsh"]["mesh"].get("bl_thickness", 1e-3)
         self.bl_ratio: float = config["gmsh"]["mesh"].get("bl_ratio", 1.1)
         self.bl_size: float = config["gmsh"]["mesh"].get("bl_size", 1e-5)
+        self.bl_fan_elements: int = config["gmsh"]["mesh"].get("bl_fan_elements", 10)
         # mesh params (3d extrusion)
         self.structured: bool = config["gmsh"]["mesh"].get("structured", False)
         self.extrusion_layers: int = config["gmsh"]["mesh"].get("extrusion_layers", 0)

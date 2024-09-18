@@ -108,7 +108,7 @@ class NACABaseMesh(Mesh):
         gmsh.model.mesh.field.setNumber(self.f, 'Ratio', self.bl_ratio)
         gmsh.model.mesh.field.setNumber(self.f, 'Quads', int(self.structured))
         gmsh.model.mesh.field.setNumber(self.f, 'Thickness', self.bl_thickness)
-        gmsh.option.setNumber('Mesh.BoundaryLayerFanElements', 10)
+        gmsh.option.setNumber('Mesh.BoundaryLayerFanElements', self.bl_fan_elements)
         gmsh.model.mesh.field.setNumbers(self.f, 'FanPointsList', [te_tag])
         gmsh.model.mesh.field.setAsBoundaryLayer(self.f)
 
@@ -176,7 +176,3 @@ class NACABaseMesh(Mesh):
         gmsh.model.geo.addPhysicalGroup(1, [bottom_side], tag=500)
         logger.debug(f"BC: Bottom tags are {[bottom_side]}")
         gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=600)
-
-        # flow-field nodes defined as non_corner points
-        self.non_corner_tags = self.surf_tag
-        self.non_corner_tags.extend([abs(spl) for spl in [spline_low, spline_le, spline_up]])
