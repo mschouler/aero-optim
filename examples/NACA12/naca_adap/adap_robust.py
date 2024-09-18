@@ -116,8 +116,7 @@ def main() -> int:
         os.symlink(f"{cwd}/{cdir}/file.mesh", f"{cwd}/{cdir}/adap.mesh")
         # copy residual files
         cp_filelist([f"{pdir}/residual.{sim_iter}.dat", f"{pdir}/res.{sim_iter}.dat",
-                     f"{pdir}/aerocoef.{sim_iter}.dat"],
-                    [f"{cdir}"] * 3)
+                     f"{pdir}/aerocoef.{sim_iter}.dat"], [f"{cdir}"] * 3)
         os.chdir(cdir)
 
         # convergence at fixed complexity
@@ -210,7 +209,7 @@ def main() -> int:
                 sub_ite += 1
 
         sim_iter = int(aerocoef[0])
-        cp_filelist(["aerocoef.dat", "wall.dat", "residual.dat"], [f"{cwd}"] * 4)
+        cp_filelist(["aerocoef.dat", "wall.dat", "residual.dat"], [f"{cwd}"] * 3)
         os.chdir(cwd)
         ite += 1
         cmp *= 2.
