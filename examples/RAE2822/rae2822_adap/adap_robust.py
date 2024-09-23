@@ -266,7 +266,7 @@ def execute_simulation(
             feflo_cmd = [FEFLO, "-in", "adap.met", "-met", "adap.met", "-out", "file.meshb",
                          "-nordg", "-back", f"{input}.back" , "-itp", "file.back.solb"]
             try:
-                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=10.)
+                run(feflo_cmd, f"feflo.{sub_ite}.job", timeout=15.)
             except TimeoutExpired:
                 print("ERROR -- feflo subprocess timed out")
                 os.chdir(cwd)
