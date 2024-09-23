@@ -9,6 +9,7 @@ import time
 
 from abc import ABC, abstractmethod
 from inspyred.ec import Individual
+from matplotlib.ticker import MaxNLocator
 from random import Random
 from typing import Any
 
@@ -313,11 +314,11 @@ class Optimizer(ABC):
         ymax = max([max(d) for d in data])
         yrange = ymax - ymin
         plt.ylim((ymin - 0.1 * yrange, ymax + 0.1 * yrange))
-
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         # legend and title
         ax.set_title(f"Optimization evolution ({gen_nbr} g. x {psize} c.)")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax.set_xlabel('generation #')
+        ax.set_xlabel('generation $[\\cdot]$')
         ax.set_ylabel('fitness')
 
         # save figure as png
@@ -437,21 +438,22 @@ class WolfOptimizer(Optimizer, ABC):
         # top
         ax1.set_title("FFD profiles", weight="bold")
         ax1.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax1.set_xlabel('x')
-        ax1.set_ylabel('y')
+        ax1.set_xlabel('$x$ $[m]$')
+        ax1.set_ylabel('$y$ $[m]$')
         # bottom left
         ax2.set_title(f"{df_key[0]}", weight="bold")
         ax2.set_yscale("log")
-        ax2.set_xlabel('it. #')
-        ax2.set_ylabel('residual')
+        ax2.set_xlabel('iteration $[\\cdot]$')
+        ax2.set_ylabel('residual $[\\cdot]$')
         # bottom center
         ax3.set_title(f"{df_key[1]} & {df_key[2]}", weight="bold")
-        ax3.set_xlabel('it. #')
-        ax3.set_ylabel('aerodynamic coeff.')
+        ax3.set_xlabel('iteration $[\\cdot]$')
+        ax3.set_ylabel('aerodynamic coefficients $[\\cdot]$')
         # bottom right
+        ax4.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax4.set_title(f"fitness: {self.QoI}", weight="bold")
         ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax4.set_xlabel('candidate #')
+        ax4.set_xlabel('candidate $[\\cdot]$')
         ax4.set_ylabel("fitness")
         # save figure as png
         logger.info(f"saving {fig_name} to {self.outdir}")
