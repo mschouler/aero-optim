@@ -19,7 +19,7 @@ from aero_optim.mesh.naca_block_mesh import NACABlockMesh
 from aero_optim.mesh.cascade_mesh import CascadeMesh
 from aero_optim.optim.generator import Generator
 from aero_optim.simulator.simulator import DebugSimulator, WolfSimulator
-from aero_optim.utils import check_dir, get_custom_class
+from aero_optim.utils import check_dir, get_custom_class, STUDY_TYPE
 
 # set pillow and matplotlib loggers to WARNING mode
 logging.getLogger("PIL").setLevel(logging.WARNING)
@@ -183,11 +183,11 @@ class Optimizer(ABC):
             get_custom_class(self.custom_file, "CustomMesh") if self.custom_file else None
         )
         if not self.MeshClass:
-            if self.study_type == "base":
+            if self.study_type == STUDY_TYPE[0]:
                 self.MeshClass = NACABaseMesh
-            elif self.study_type == "block":
+            elif self.study_type == STUDY_TYPE[1]:
                 self.MeshClass = NACABlockMesh
-            elif self.study_type == "cascade":
+            elif self.study_type == STUDY_TYPE[2]:
                 self.MeshClass = CascadeMesh
             else:
                 raise Exception(f"ERROR -- incorrect study_type <{self.study_type}>")
