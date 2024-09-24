@@ -171,3 +171,9 @@ def save_model(model: torch.nn.Module, path: str):
 
 def load_model(path: str) -> torch.nn.Module:
     return torch.load(path, weights_only=False)
+
+
+def weights_init(m):
+    if isinstance(m, (torch.nn.Conv2d, torch.nn.Linear)):
+        torch.nn.init.xavier_normal_(m.weight)
+        torch.nn.init.constant_(m.bias, 0.0)
