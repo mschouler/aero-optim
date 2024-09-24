@@ -1,0 +1,45 @@
+{
+    "study": {
+        "study_type": "naca_base",
+        "file": "../data/rae2822.dat",
+        "outfile": "rae2822",
+        "outdir": "@output"
+    },
+    "optim": {
+        "n_design": @n_design,
+        "doe_size": @doe_size,
+        "max_generations": 1,
+        "bound": [-0.2, 0.2],
+        "budget": 10,
+        "custom_doe": "@custom_doe"
+    },
+    "gmsh": {
+        "domain": {
+            "inlet": 100,
+            "outlet": 100,
+            "le_offset": 10
+        },
+        "mesh": {
+            "nodes_inlet": 40,
+            "nodes_outlet": 20,
+            "side_nodes": 10,
+            "le": 100,
+            "low": 350,
+            "up": 350
+        },
+        "view": {
+            "GUI": false,
+            "quality": false,
+            "nview": 1
+        }
+    },
+    "simulator": {
+        "ref_input": "../rae2822_adap/rae2822_adap.wolf",
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
+            "wall.dat": ["x", "y", "Cp"]
+        },
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/RAE2822/rae2822_adap/adap_robust.py -in @.mesh -nproc 8 -cmp 2000 -smax 15 -nite 3"
+    }
+}

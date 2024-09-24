@@ -1,0 +1,50 @@
+{
+    "study": {
+        "study_type": "naca_base",
+        "file": "../data/rae2822.dat",
+        "outfile": "rae2822",
+        "outdir": "@output"
+    },
+    "optim": {
+        "n_design": @n_design,
+        "doe_size": @doe_size,
+        "max_generations": 1,
+        "bound": [-0.2, 0.2],
+        "budget": 10,
+        "custom_doe": "@custom_doe"
+    },
+    "gmsh": {
+        "domain": {
+            "inlet": 100,
+            "outlet": 100,
+            "le_offset": 10
+        },
+        "mesh": {
+            "bl": true,
+            "bl_thickness": 2e-2,
+            "bl_size": 1.5e-5,
+            "bl_ratio": 1.1,
+            "bl_fan_elements": 20,
+            "nodes_inlet": 40,
+            "nodes_outlet": 40,
+            "side_nodes": 20,
+            "le": 40,
+            "low": 80,
+            "up": 80
+        },
+        "view": {
+            "GUI": false,
+            "quality": false,
+            "nview": 1
+        }
+    },
+    "simulator": {
+        "ref_input": "../rae2822_base/rae2822_base.wolf",
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
+            "wall.dat": ["x", "y", "Cp"]
+        },
+        "exec_cmd": "/home/mschouler/bin/wolf -in @.mesh -nproc 8"
+    }
+}
