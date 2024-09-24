@@ -11,7 +11,8 @@
         "max_generations": 1,
         "bound": [-0.2, 0.2],
         "budget": 10,
-        "custom_doe": "@custom_doe"
+        "custom_doe": "@custom_doe",
+        "constraint": false
     },
     "gmsh": {
         "domain": {

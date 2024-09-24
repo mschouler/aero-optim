@@ -65,6 +65,8 @@ class InspyredWolfOptimizer(WolfOptimizer):
         **Returns** a penalty value based on some specific constraints</br>
         see https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection
         """
+        if not self.constraint:
+            return 0.
         area_cond: bool = (
             abs(get_area(ffd_profile)) > (1. + self.area_margin) * self.baseline_area
             or abs(get_area(ffd_profile)) < (1. - self.area_margin) * self.baseline_area
