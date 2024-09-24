@@ -64,11 +64,11 @@ def main():
         # lf_DOE
         lf_cl = np.array([lf_dict[0][cid]["CL"].iloc[-1] for cid in range(len(lf_dict[0]))])
         lf_cd = np.array([lf_dict[0][cid]["CD"].iloc[-1] for cid in range(len(lf_dict[0]))])
-        lf_cl_over_cd = lf_cl / lf_cd
+        lf_cl_over_cd = -lf_cl / lf_cd
         # hf_DOE
         hf_cl = np.array([hf_dict[0][cid]["CL"].iloc[-1] for cid in range(len(hf_dict[0]))])
         hf_cd = np.array([hf_dict[0][cid]["CD"].iloc[-1] for cid in range(len(hf_dict[0]))])
-        hf_cl_over_cd = hf_cl / hf_cd
+        hf_cl_over_cd = -hf_cl / hf_cd
         print("MFSM: training model..")
         model.set_DOE(x_lf=x_lf, y_lf=lf_cl_over_cd, x_hf=x_hf, y_hf=hf_cl_over_cd)
         model.train()

@@ -94,7 +94,7 @@ class CustomOptimizer(PymooWolfOptimizer):
 
         # update candidates fitness
         self.J.extend([
-            -self.simulator.df_dict[gid][cid][self.QoI].iloc[-1] for cid in range(len(X))
+            self.simulator.df_dict[gid][cid][self.QoI].iloc[-1] for cid in range(len(X))
         ])
 
         out["F"] = np.array(self.J[-self.doe_size:])
@@ -114,7 +114,11 @@ class CustomOptimizer(PymooWolfOptimizer):
             y_hf = self.execute_infill(gid, self.hf_config, infill_hf, "hf")
             logger.info(f"hf infill fitnesses of generation {gid}:\n {y_hf}")
             self.simulator.model.set_DOE(x_lf=infill_lf, y_lf=y_lf, x_hf=infill_hf, y_hf=y_hf)
+            logger.info(f"model infill_hf prediction before update: "
+                        f"{self.simulator.model.evaluate(infill_hf)}")
             self.simulator.model.train()
+            logger.info(f"model infill_hf prediction after update: "
+                        f"{self.simulator.model.evaluate(infill_hf)}")
             self.infill_ctr += 1
 
         logger.info(f"evaluating candidates of generation {gid}..")
@@ -192,7 +196,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         Cl = np.array([df_dict[0][cid]["CL"].iloc[-1] for cid in range(len(df_dict[0]))])
         Cd = np.array([df_dict[0][cid]["CD"].iloc[-1] for cid in range(len(df_dict[0]))])
         assert len(Cl) == len(np.atleast_2d(X))
-        return Cl / Cd
+        return -Cl / Cd
 
     def _observe(self, pop_fitness: np.ndarray):
         """
@@ -205,6 +209,7 @@ class CustomOptimizer(PymooWolfOptimizer):
 
         # compute population statistics
         self.compute_statistics(pop_fitness)
+        logger.debug(f"g{gid} J-fitnesses (candidates): {pop_fitness}")
 
         # plot settings
         baseline: np.ndarray = self.ffd.pts
@@ -225,7 +230,7 @@ class CustomOptimizer(PymooWolfOptimizer):
                 profiles[cid][:, 0], profiles[cid][:, 1], color=colors[col_id], label=f"c{cid}"
             )
             ax2.scatter(
-                cid, -res_dict[cid][df_key[1]], color=colors[col_id], label=f"c{cid}"
+                cid, res_dict[cid][df_key[1]], color=colors[col_id], label=f"c{cid}"
             )
             xmin, xmax = ax2.get_xlim()
         ax2.hlines(
