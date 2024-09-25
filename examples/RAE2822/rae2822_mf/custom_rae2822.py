@@ -115,10 +115,10 @@ class CustomOptimizer(PymooWolfOptimizer):
             logger.info(f"hf infill fitnesses of generation {gid}:\n {y_hf}")
             self.simulator.model.set_DOE(x_lf=infill_lf, y_lf=y_lf, x_hf=infill_hf, y_hf=y_hf)
             logger.info(f"model infill_hf prediction before update: "
-                        f"{self.simulator.model.evaluate(infill_hf)}")
+                        f"{self.simulator.model.evaluate(np.atleast_2d(infill_hf))}")
             self.simulator.model.train()
             logger.info(f"model infill_hf prediction after update: "
-                        f"{self.simulator.model.evaluate(infill_hf)}")
+                        f"{self.simulator.model.evaluate(np.atleast_2d(infill_hf))}")
             self.infill_ctr += 1
 
         logger.info(f"evaluating candidates of generation {gid}..")
@@ -254,7 +254,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         # save figure as png
         fig_name = f"pymoo_g{gid}.png"
         logger.info(f"saving {fig_name} to {self.outdir}")
-        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
+        plt.savefig(os.path.join(self.figdir, fig_name), bbox_inches='tight')
         plt.close()
 
     def final_observe(self, *args, **kwargs):
