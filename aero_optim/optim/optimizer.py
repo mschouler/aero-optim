@@ -56,6 +56,7 @@ class Optimizer(ABC):
             ```
             outdir
             |__ FFD (contains <geom>_gXX_cYY.dat)
+            |__ Figs (contains the figures generated during the optimization)
             |__ MESH (contains <geom>_gXX_cYY.mesh, .log, .geo_unrolled)
             |__ SOLVER
                 |__ solver_gXX_cYY (contains the results of each simulation)
@@ -141,6 +142,9 @@ class Optimizer(ABC):
         self.n_plt: int = self.config["optim"].get("n_plt", 5)
         self.cmap: str = self.config["optim"].get("cmap", "viridis")
         self.set_inner()
+        # figure directory
+        self.figdir: str = os.path.join(self.outdir, "Figs")
+        check_dir(self.figdir)
 
     def process_config(self):
         """
