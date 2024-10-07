@@ -489,7 +489,7 @@ class WolfOptimizer(Optimizer, ABC):
         ax4.set_ylabel("fitness")
         # save figure as png
         logger.info(f"saving {fig_name} to {self.outdir}")
-        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
+        plt.savefig(os.path.join(self.figdir, fig_name), bbox_inches='tight')
         plt.close()
 
     def save_results(self):
