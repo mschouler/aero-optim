@@ -41,6 +41,7 @@
     },
     "simulator": {
         "ref_input": "../rae2822_base/rae2822_base.wolf",
+        "restart": 1,
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
