@@ -195,11 +195,13 @@ class Optimizer(ABC):
                 self.ffd = self.FFDClass(self.dat_file, self.n_design // 2)
             elif self.ffd_type == FFD_TYPE[1]:
                 self.FFDClass = FFD_POD_2D
-                self.config["ffd"]["ffd_bound"] = self.bound
                 self.config["ffd"]["ffd_ncontrol"] = self.n_design
+                self.config["ffd"]["ffd_bound"] = self.bound
+                logger.info(f"ffd bound: {self.bound}")
                 self.ffd = self.FFDClass(self.dat_file, **self.config["ffd"])
                 self.n_design = self.config["ffd"]["pod_ncontrol"]
-                self.bound = self.ffd.get_bound()
+                self.bound = self.config["ffd"].get("pod_bound", self.ffd.get_bound())
+                logger.info(f"pod bound: {self.bound}")
             else:
                 raise Exception(f"ERROR -- incorrect ffd_type <{self.ffd_type}>")
         else:
