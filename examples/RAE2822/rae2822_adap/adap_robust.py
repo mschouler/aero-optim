@@ -314,7 +314,6 @@ def execute_simulation(
             res = get_residual()
             if res < res_tgt:
                 print(f">> WOLF converged: residual {res} < {res_tgt}")
-                n_restart = 0
                 res_tgt = default_res_tgt
             else:
                 print(f"ERROR -- WOLF did not converge: residual {res} > {res_tgt}")
@@ -374,6 +373,7 @@ def execute_simulation(
         os.chdir(cwd)
         ite += 1
         cmp = args.cmp * 2**(ite - 1)
+        n_restart = 0
 
     cp_filelist(
         [f"{cdir}/final.meshb", f"{cdir}/final.solb", f"{cdir}/mach.solb", f"{cdir}/pres.solb"],
