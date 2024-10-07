@@ -10,6 +10,7 @@ import subprocess
 from types import FrameType
 
 STUDY_TYPE = ["naca_base", "naca_block", "cascade"]
+FFD_TYPE = ["ffd_2d", "ffd_pod_2d"]
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +58,8 @@ def check_config(
         raise Exception(f"ERROR -- no <simulator>  upper entry in {config}")
 
     # look for mandatory entries
+    if optim and "ffd_type" not in config_dict["study"]:
+        raise Exception(f"ERROR -- no <ffd_type> entry in {config}[study]")
     if (optim or gmsh) and "study_type" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <study_type> entry in {config}[study]")
     if (optim or gmsh) and "file" not in config_dict["study"]:

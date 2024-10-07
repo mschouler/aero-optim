@@ -3,12 +3,70 @@ import math
 import numpy as np
 import os
 
+from abc import ABC, abstractmethod
+from scipy.stats import qmc
+from typing import Any
+
 from aero_optim.utils import from_dat, check_dir
 
 logger = logging.getLogger(__name__)
 
 
-class FFD_2D:
+class Deform(ABC):
+    """
+    This class implements an abstract Deform class.
+    """
+    def __init__(self, dat_file: str, ncontrol: int, header: int = 2):
+        """
+        Instantiates the abstract Deform object.
+
+        **Input**
+
+        - dat_file (str): path to input_geometry.dat.
+        - ncontrol (int): the number of control points.
+        - header (int): the number of header lines in dat_file.
+
+        **Inner**
+
+        - pts (np.ndarray): the geometry coordinates in the original referential.
+
+            pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
+            where N is the number of points describing the geometry and (z0, ..., zN)
+            are null or identical.
+        """
+        self.dat_file: str = dat_file
+        self.pts: np.ndarray = np.array(from_dat(self.dat_file, header))
+        self.ncontrol = ncontrol
+
+    def write_ffd(
+            self,
+            profile: np.ndarray,
+            Delta: np.ndarray,
+            outdir: str,
+            gid: int = 0, cid: int = 0
+    ) -> str:
+        """
+        **Writes** the deformed geometry to file and **returns** /path/to/outdir/outfile.
+
+        - profile (np.ndarray): the deformed geometry coordinates to be written to outfile.
+        - Delta (np.ndarray): the deformation vector.
+        - outdir (str): the output directory (it is to be combined with outfile).
+        """
+        outfile = f"{self.dat_file.split('/')[-1][:-4]}_g{gid}_c{cid}.dat"
+        check_dir(outdir)
+        logger.info(f"write profile g{gid} c{cid} as {outfile} to {outdir}")
+        np.savetxt(os.path.join(outdir, outfile), profile,
+                   header=f"Deformed profile {outfile}\nDelta={[d for d in Delta]}")
+        return os.path.join(outdir, outfile)
+
+    @abstractmethod
+    def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
+        """
+        Returns a deformed profile.
+        """
+
+
+class FFD_2D(Deform):
     """
     This class implements a simple 2D FFD algorithm with deformation /y only.
 
@@ -32,7 +90,7 @@ class FFD_2D:
 
         - dat_file (str): path to input_geometry.dat.
         - ncontrol (int): the number of control points on each side of the lattice.
-        - header (int): the number of header lines in file.
+        - header (int): the number of header lines in dat_file.
 
         **Inner**
 
@@ -46,9 +104,7 @@ class FFD_2D:
         - M (int): the number of control points in the y direction of each side of the lattice.
         - lat_pts (np.ndarray): the geometry coordinates in the lattice referential.
         """
-        self.dat_file: str = dat_file
-        self.pts: np.ndarray = np.array(from_dat(self.dat_file, header))
-        self.ncontrol = ncontrol
+        super().__init__(dat_file, ncontrol, header)
         self.L: int = ncontrol + 1
         self.M: int = 1
         self.build_lattice()
@@ -105,8 +161,7 @@ class FFD_2D:
 
     def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
         """
-        **Returns** a new naca profile resulting from a perturbation Delta
-        in the original referential.
+        **Returns** a new profile resulting from a perturbation Delta in the original referential.
 
         - Delta (np.ndarray): the deformation vector.</br>
           Delta = [dP10, dP20, ..., dP{nc}0, dP11, dP21, ..., dP{nc}1] with nc = ncontrol.
@@ -124,18 +179,77 @@ class FFD_2D:
             new_profile.append([x_new])
         return self.from_lat(np.reshape(new_profile, (-1, 2)))
 
-    def write_ffd(self, profile: np.ndarray, Delta: np.ndarray, outdir: str,
-                  gid: int = 0, cid: int = 0) -> str:
-        """
-        **Writes** the deformed geometry to file and **returns** /path/to/outdir/outfile.
 
-        - profile (np.ndarray): the deformed geometry coordinates to be written to outfile.
-        - Delta (np.ndarray): the deformation vector.
-        - outdir (str): the output directory (it is to be combined with outfile).
+class FFD_POD_2D(Deform):
+    """
+    This class implements a 2D FFD-POD coupled class.
+    """
+    def __init__(
+            self,
+            dat_file: str,
+            pod_ncontrol: int,
+            ffd_ncontrol: int,
+            ffd_dataset_size: int,
+            ffd_bound: tuple[Any],
+            header: int = 2,
+            seed: int = 123
+    ):
         """
-        outfile = f"{self.dat_file.split('/')[-1][:-4]}_g{gid}_c{cid}.dat"
-        check_dir(outdir)
-        logger.info(f"write profile g{gid} c{cid} as {outfile} to {outdir}")
-        np.savetxt(os.path.join(outdir, outfile), profile,
-                   header=f"Deformed profile {outfile}\nDelta={[d for d in Delta]}")
-        return os.path.join(outdir, outfile)
+        Instantiates the FFD_POD_2D object.
+
+        **Input**
+
+        - dat_file (str): path to input_geometry.dat.
+        - pod_ncontrol (int): the number of POD control points.
+        - ffd_ncontrol (int): the number of FFD control points.
+        - ffd_dataset_size (int): the number of ffd profiles in the POD dataset.
+        - ffd_bound (tuple[Any]): the ffd dataset deformation boundaries.
+        - header (int): the number of header lines in dat_file.
+        - seed (int): seed for the POD dataset sampling.
+
+        **Inner**
+
+        - pts (np.ndarray): the geometry coordinates in the original referential.
+
+            pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
+            where N is the number of points describing the geometry and (z0, ..., zN)
+            are null or identical.
+
+        - ffd (FFD_2D): the ffd object used to build the POD dataset.
+        """
+        super().__init__(dat_file, ffd_ncontrol, header)
+        self.pod_ncontrol = pod_ncontrol
+        self.ffd_dataset_size = ffd_dataset_size
+        self.ffd = FFD_2D(dat_file, ffd_ncontrol, header)
+        self.ffd_bound = ffd_bound
+        self.seed = seed
+        self.build_pod_dataset()
+
+    def build_pod_dataset(self):
+        sampler = qmc.LatinHypercube(d=self.pod_ncontrol, seed=self.seed)
+        sample = sampler.random(n=self.ffd_dataset_size)
+        scaled_sample = qmc.scale(sample, *self.ffd_bound)
+
+        profiles = []
+        for Delta in scaled_sample:
+            profiles.append(self.ffd.apply_ffd(Delta))
+
+        self.S = np.stack([p[:, -1] for p in profiles] , axis=1)
+        self.S_mean = 1 / len(profiles) * np.sum(self.S, axis=1)
+        self.F = self.S[:, :] - self.S_mean[:, None]
+        self.C = np.matmul(np.transpose(self.F), self.F)
+        self.eigenvalues, self.eigenvectors = np.linalg.eigh(self.C)
+        self.phi = np.matmul(self.F, self.eigenvectors)
+
+        nmode = self.pod_ncontrol
+        self.phi_tilde = self.phi[:, -nmode:]
+        self.V_tilde_inv = np.linalg.inv(self.eigenvectors)[-nmode:, :]
+        self.D_tilde = self.S_mean[:, None] + np.matmul(self.phi_tilde, self.V_tilde_inv)
+
+    def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
+        return self.S_mean + np.sum(self.phi_tilde * Delta, axis=1)
+
+    def get_bound(self) -> tuple[list[float], list[float]]:
+        l_bound = [min(v) for v in self.V_tilde_inv]
+        u_bound = [max(v) for v in self.V_tilde_inv]
+        return l_bound, u_bound

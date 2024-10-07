@@ -14,13 +14,13 @@ from random import Random
 from typing import Any
 
 from aero_optim.geom import get_area
-from aero_optim.ffd.ffd import FFD_2D
+from aero_optim.ffd.ffd import FFD_2D, FFD_POD_2D
 from aero_optim.mesh.naca_base_mesh import NACABaseMesh
 from aero_optim.mesh.naca_block_mesh import NACABlockMesh
 from aero_optim.mesh.cascade_mesh import CascadeMesh
 from aero_optim.optim.generator import Generator
 from aero_optim.simulator.simulator import DebugSimulator, WolfSimulator
-from aero_optim.utils import check_dir, get_custom_class, STUDY_TYPE
+from aero_optim.utils import check_dir, get_custom_class, FFD_TYPE, STUDY_TYPE
 
 # set pillow and matplotlib loggers to WARNING mode
 logging.getLogger("PIL").setLevel(logging.WARNING)
@@ -63,6 +63,7 @@ class Optimizer(ABC):
             ```
 
         - study_type (str): use-case/meshing routine.
+        - ffd_type (str): deformation method.
         - strategy (str): the optimization algorithm amongst inspyred's [ES, PSO]
             and pymoo's [GA, PSO]</br>
             see https://pythonhosted.org/inspyred/examples.html#standard-algorithms</br>
@@ -105,6 +106,7 @@ class Optimizer(ABC):
         self.outdir: str = config["study"]["outdir"]
         self.study_type: str = config["study"]["study_type"]
         # optional entries
+        self.ffd_type: str = config["study"].gety("ffd_type", "")
         self.custom_file: str = config["study"].get("custom_file", "")
         self.strategy: str = config["optim"].get("strategy", "PSO")
         self.maximize: bool = config["optim"].get("maximize", False)
@@ -121,12 +123,12 @@ class Optimizer(ABC):
         # generation counter
         self.gen_ctr: int = 0
         # optimization objects
+        if not debug:
+            self.set_ffd_class()
+            self.set_gmsh_mesh_class()
         self.generator: Generator = Generator(
             self.seed, self.n_design, self.doe_size, self.sampler_name, self.bound, self.custom_doe
         )
-        if not debug:
-            self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
-            self.set_gmsh_mesh_class()
         self.set_simulator_class()
         self.simulator = self.SimulatorClass(self.config)
         # population statistics
@@ -178,6 +180,30 @@ class Optimizer(ABC):
                 f"<GUI> entry in {self.config['gmsh']['view']} forced to False"
             )
             self.config["gmsh"]["view"]["GUI"] = False
+
+    def set_ffd_class(self):
+        """
+        **Instantiates** the deformation class and object as custom if found,
+        as one of the default classes otherwise.
+        """
+        self.FFDClass = (
+            get_custom_class(self.custom_file, "CustomFFD") if self.custom_file else None
+        )
+        if not self.FFDClass:
+            if self.study_type == FFD_TYPE[0]:
+                self.FFDClass = FFD_2D
+                self.ffd = self.FFDClass(self.dat_file, self.n_design // 2)
+            elif self.study_type == FFD_TYPE[1]:
+                self.FFDClass = FFD_POD_2D
+                self.config["ffd"]["ffd_bound"] = self.bound
+                self.config["ffd"]["ffd_ncontrol"] = self.n_design
+                self.ffd = self.FFDClass(self.dat_file, **self.config["ffd"])
+                self.n_design = self.config["ffd"]["pod_ncontrol"]
+                self.bound = self.ffd.get_bound()
+            else:
+                raise Exception(f"ERROR -- incorrect ffd_type <{self.ffd_type}>")
+        else:
+            self.ffd = self.FFDClass(self.dat_file, self.n_design, **self.config["ffd"])
 
     def set_gmsh_mesh_class(self):
         """
