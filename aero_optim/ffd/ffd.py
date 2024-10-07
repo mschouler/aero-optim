@@ -219,14 +219,15 @@ class FFD_POD_2D(Deform):
         """
         super().__init__(dat_file, ffd_ncontrol, header)
         self.pod_ncontrol = pod_ncontrol
+        self.ffd_ncontrol = ffd_ncontrol
         self.ffd_dataset_size = ffd_dataset_size
-        self.ffd = FFD_2D(dat_file, ffd_ncontrol, header)
+        self.ffd = FFD_2D(dat_file, ffd_ncontrol // 2, header)
         self.ffd_bound = ffd_bound
         self.seed = seed
         self.build_pod_dataset()
 
     def build_pod_dataset(self):
-        sampler = qmc.LatinHypercube(d=self.pod_ncontrol, seed=self.seed)
+        sampler = qmc.LatinHypercube(d=self.ffd_ncontrol, seed=self.seed)
         sample = sampler.random(n=self.ffd_dataset_size)
         scaled_sample = qmc.scale(sample, *self.ffd_bound)
 
@@ -247,7 +248,9 @@ class FFD_POD_2D(Deform):
         self.D_tilde = self.S_mean[:, None] + np.matmul(self.phi_tilde, self.V_tilde_inv)
 
     def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
-        return self.S_mean + np.sum(self.phi_tilde * Delta, axis=1)
+        return np.column_stack(
+            (self.ffd.pts[:, 0], self.S_mean + np.sum(self.phi_tilde * Delta, axis=1))
+        )
 
     def get_bound(self) -> tuple[list[float], list[float]]:
         l_bound = [min(v) for v in self.V_tilde_inv]
