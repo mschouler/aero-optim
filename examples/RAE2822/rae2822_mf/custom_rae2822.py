@@ -191,7 +191,11 @@ class CustomOptimizer(PymooWolfOptimizer):
         """
         name = f"{fidelity}_infill_{gid}"
         df_dict = execute_single_gen(
-            outdir=os.path.join(self.outdir, name), config=config, X=X, name=name
+            outdir=os.path.join(self.outdir, name),
+            config=config,
+            X=X,
+            name=name,
+            n_design=self.config["ffd"].get("ffd_ncontrol", self.n_design)
         )
         Cl = np.array([df_dict[0][cid]["CL"].iloc[-1] for cid in range(len(df_dict[0]))])
         Cd = np.array([df_dict[0][cid]["CD"].iloc[-1] for cid in range(len(df_dict[0]))])
@@ -267,7 +271,7 @@ class CustomOptimizer(PymooWolfOptimizer):
 
 
 def execute_single_gen(
-        outdir: str, config: str, X: np.ndarray, name: str
+        outdir: str, config: str, X: np.ndarray, name: str, n_design: int = 0
 ) -> dict[int, dict[int, pd.DataFrame]]:
     """
     **Executes** a single generation of candidates.
@@ -279,9 +283,10 @@ def execute_single_gen(
     custom_doe = os.path.join(outdir, f"{name}.txt")
     np.savetxt(custom_doe, np.atleast_2d(X))
     # updates @outdir, @n_design, @doe_size, @custom_doe
+    # Note: @n_design is the number of FFD control points even when using POD
     config_args = {
         "@output": outdir,
-        "@n_design": f"{np.atleast_2d(X).shape[1]}",
+        "@n_design": f"{n_design if n_design else np.atleast_2d(X).shape[1]}",
         "@doe_size": f"{np.atleast_2d(X).shape[0]}",
         "@custom_doe": f"{custom_doe}"
     }

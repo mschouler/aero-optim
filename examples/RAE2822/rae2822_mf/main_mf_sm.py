@@ -5,6 +5,7 @@ import os
 import subprocess
 import time
 
+from aero_optim.ffd.ffd import FFD_POD_2D
 from aero_optim.mf_sm.mf_models import get_model, get_sampler
 from aero_optim.utils import check_config
 from custom_rae2822 import execute_single_gen
@@ -16,29 +17,46 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--config", type=str, help="/path/to/lconfig.json")
     parser.add_argument("-l", "--load", action="store_true", help="load trained model")
+    parser.add_argument("-p", "--pod", action="store_true", help="perform POD data reduction")
     parser.add_argument("-v", "--verbose", type=int, help="logger verbosity level", default=3)
     args = parser.parse_args()
 
     t0 = time.time()
 
     if not args.load:
+        sm_config, _, _ = check_config(args.config, optim=True)
+        seed = sm_config["optim"].get("seed", 123)
+        # data reduction
+        if args.pod:
+            ffd_pod = FFD_POD_2D(
+                dat_file=sm_config["study"]["file"],
+                pod_ncontrol=sm_config["ffd"]["pod_ncontrol"],
+                ffd_ncontrol=sm_config["optim"]["n_design"],
+                ffd_dataset_size=sm_config["ffd"]["ffd_dataset_size"],
+                ffd_bound=sm_config["optim"]["bound"],
+                seed=seed
+            )
+            n_design = ffd_pod.pod_ncontrol
+            bound = ffd_pod.get_bound()
+        else:
+            n_design = sm_config["optim"]["n_design"]
+            bound = sm_config["optim"]["bound"]
         # get model
         print("MFSM: model selection..")
-        sm_config, _, _ = check_config(args.config, optim=True)
         model_name = sm_config["optim"]["model_name"]
         model = get_model(
             model_name=model_name,
-            dim=sm_config["optim"]["n_design"],
+            dim=n_design,
             config_dict=sm_config.get(model_name, {}),
             outdir=sm_config["study"]["outdir"],
-            seed=sm_config["optim"].get("seed", 123)
+            seed=seed
         )
         # get sampler and lf / hf DOEs
         print("MFSM: sampler selection..")
         mf_sampler = get_sampler(
-            dim=sm_config["optim"]["n_design"],
-            bounds=sm_config["optim"]["bound"],
-            seed=sm_config["optim"].get("seed", 123),
+            dim=n_design,
+            bounds=bound,
+            seed=seed,
             nested_doe=model.requires_nested_doe
         )
         x_lf, x_hf = mf_sampler.sample_mf(
@@ -49,14 +67,22 @@ def main():
         print("MFSM: LF DOE computation..")
         lf_dir = os.path.join(sm_config["study"]["outdir"], "lf_doe")
         lf_dict = execute_single_gen(
-            outdir=lf_dir, config=sm_config["optim"]["lf_config"], X=x_lf, name="lf_doe"
+            outdir=lf_dir,
+            config=sm_config["optim"]["lf_config"],
+            X=x_lf,
+            name="lf_doe",
+            n_design=sm_config["optim"]["n_design"]
         )
         print(f"MFSM: LF DOE computation finished after {time.time() - t0} seconds")
         # generate hf_DOE
         print("MFSM: HF DOE computation..")
         hf_dir = os.path.join(sm_config["study"]["outdir"], "hf_doe")
         hf_dict = execute_single_gen(
-            outdir=hf_dir, config=sm_config["optim"]["hf_config"], X=x_hf, name="hf_doe"
+            outdir=hf_dir,
+            config=sm_config["optim"]["hf_config"],
+            X=x_hf,
+            name="hf_doe",
+            n_design=sm_config["optim"]["n_design"]
         )
         print(f"MFSM: HF DOE computation finished after {time.time() - t0} seconds")
 
