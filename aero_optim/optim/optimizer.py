@@ -106,7 +106,7 @@ class Optimizer(ABC):
         self.outdir: str = config["study"]["outdir"]
         self.study_type: str = config["study"]["study_type"]
         # optional entries
-        self.ffd_type: str = config["study"].gety("ffd_type", "")
+        self.ffd_type: str = config["study"].get("ffd_type", "")
         self.custom_file: str = config["study"].get("custom_file", "")
         self.strategy: str = config["optim"].get("strategy", "PSO")
         self.maximize: bool = config["optim"].get("maximize", False)
@@ -190,10 +190,10 @@ class Optimizer(ABC):
             get_custom_class(self.custom_file, "CustomFFD") if self.custom_file else None
         )
         if not self.FFDClass:
-            if self.study_type == FFD_TYPE[0]:
+            if self.ffd_type == FFD_TYPE[0]:
                 self.FFDClass = FFD_2D
                 self.ffd = self.FFDClass(self.dat_file, self.n_design // 2)
-            elif self.study_type == FFD_TYPE[1]:
+            elif self.ffd_type == FFD_TYPE[1]:
                 self.FFDClass = FFD_POD_2D
                 self.config["ffd"]["ffd_bound"] = self.bound
                 self.config["ffd"]["ffd_ncontrol"] = self.n_design
