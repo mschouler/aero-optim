@@ -1,6 +1,7 @@
 {
     "study": {
         "study_type": "naca_base",
+        "ffd_type": "ffd_2d",
         "file": "../data/rae2822.dat",
         "outfile": "rae2822",
         "outdir": "@output"
