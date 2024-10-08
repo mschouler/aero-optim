@@ -25,6 +25,10 @@
         "lf_config": "lf_config.json",
         "hf_config": "hf_config.json"
     },
+    "ffd": {
+        "pod_ncontrol": 5,
+        "ffd_dataset_size": 1000
+    },
     "gmsh": {},
     "simulator": {
         "model_file": "output_mf/model.pkl",

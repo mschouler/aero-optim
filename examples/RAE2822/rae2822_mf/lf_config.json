@@ -15,6 +15,10 @@
         "custom_doe": "@custom_doe",
         "constraint": false
     },
+    "ffd": {
+        "pod_ncontrol": 5,
+        "ffd_dataset_size": 1000
+    },
     "gmsh": {
         "domain": {
             "inlet": 100,
