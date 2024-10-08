@@ -1,6 +1,7 @@
 {
     "study": {
         "study_type": "naca_block",
+        "ffd_type": "ffd_2d",
         "file": "../data/naca12.dat",
         "outfile": "naca_block",
         "outdir": "output"

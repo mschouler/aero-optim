@@ -4,15 +4,20 @@
         "ffd_type": "ffd_2d",
         "file": "../data/rae2822.dat",
         "outfile": "rae2822",
-        "outdir": "output"
+        "outdir": "@output"
     },
     "optim": {
-        "n_design": 8,
-        "doe_size": 5,
-        "max_generations": 0,
-        "bound": [-0.5, 0.5],
-        "budget": 20,
-        "QoI": "CD"
+        "n_design": @n_design,
+        "doe_size": @doe_size,
+        "max_generations": 1,
+        "bound": [-0.2, 0.2],
+        "budget": 10,
+        "custom_doe": "@custom_doe",
+        "constraint": false
+    },
+    "ffd": {
+        "pod_ncontrol": 5,
+        "ffd_dataset_size": 1000
     },
     "gmsh": {
         "domain": {
@@ -34,13 +39,14 @@
             "up": 60
         },
         "view": {
-            "GUI": true,
+            "GUI": false,
             "quality": false,
             "nview": 1
         }
     },
     "simulator": {
-        "ref_input": "rae2822_base.wolf",
+        "ref_input": "../rae2822_base/rae2822_base.wolf",
+        "restart": 1,
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],

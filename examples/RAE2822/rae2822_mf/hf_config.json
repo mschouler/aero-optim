@@ -4,15 +4,20 @@
         "ffd_type": "ffd_2d",
         "file": "../data/rae2822.dat",
         "outfile": "rae2822",
-        "outdir": "output"
+        "outdir": "@output"
     },
     "optim": {
-        "n_design": 8,
-        "doe_size": 5,
-        "max_generations": 0,
-        "bound": [-0.5, 0.5],
-        "budget": 20,
-        "QoI": "CD"
+        "n_design": @n_design,
+        "doe_size": @doe_size,
+        "max_generations": 1,
+        "bound": [-0.2, 0.2],
+        "budget": 10,
+        "custom_doe": "@custom_doe",
+        "constraint": false
+    },
+    "ffd": {
+        "pod_ncontrol": 5,
+        "ffd_dataset_size": 1000
     },
     "gmsh": {
         "domain": {
@@ -29,18 +34,19 @@
             "up": 350
         },
         "view": {
-            "GUI": true,
+            "GUI": false,
             "quality": false,
             "nview": 1
         }
     },
     "simulator": {
-        "ref_input": "rae2822_adap.wolf",
+        "ref_input": "../rae2822_adap/rae2822_adap.wolf",
+        "restart": 1,
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/RAE2822/rae2822_adap/adap_robust.py -in @.mesh -nproc 8 -cmp 2000 -nite 6"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/RAE2822/rae2822_adap/adap_robust.py -in @.mesh -nproc 8 -cmp 2000 -nite 5"
     }
 }

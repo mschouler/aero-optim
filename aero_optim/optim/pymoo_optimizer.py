@@ -69,6 +69,8 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         see https://pymoo.org/constraints/index.html
         """
         out = []
+        if not self.constraint:
+            return np.row_stack([[-1, -1] for _ in range(len(self.ffd_profiles[gid]))])
         for cid, pro in enumerate(self.ffd_profiles[gid]):
             ieq_1 = (
                 abs(abs(get_area(pro)) - self.baseline_area) / self.baseline_area - self.area_margin
@@ -98,7 +100,7 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         self.compute_statistics(pop_fitness)
 
         logger.info(f"extracting {self.n_plt} best profiles in g{gid}: {sorted_idx}..")
-        logger.debug(f"g{gid} J-fitnesses (candidates): {pop_fitness}")
+        logger.debug(f"g{gid} J-fitnesses: {pop_fitness}")
 
         # plot settings
         fig_name = f"pymoo_g{gid}.png"

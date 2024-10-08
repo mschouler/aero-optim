@@ -9,17 +9,18 @@ import time
 
 from abc import ABC, abstractmethod
 from inspyred.ec import Individual
+from matplotlib.ticker import MaxNLocator
 from random import Random
 from typing import Any
 
 from aero_optim.geom import get_area
-from aero_optim.ffd.ffd import FFD_2D
+from aero_optim.ffd.ffd import FFD_2D, FFD_POD_2D
 from aero_optim.mesh.naca_base_mesh import NACABaseMesh
 from aero_optim.mesh.naca_block_mesh import NACABlockMesh
 from aero_optim.mesh.cascade_mesh import CascadeMesh
 from aero_optim.optim.generator import Generator
 from aero_optim.simulator.simulator import DebugSimulator, WolfSimulator
-from aero_optim.utils import check_dir, get_custom_class
+from aero_optim.utils import check_dir, get_custom_class, FFD_TYPE, STUDY_TYPE
 
 # set pillow and matplotlib loggers to WARNING mode
 logging.getLogger("PIL").setLevel(logging.WARNING)
@@ -55,12 +56,14 @@ class Optimizer(ABC):
             ```
             outdir
             |__ FFD (contains <geom>_gXX_cYY.dat)
+            |__ Figs (contains the figures generated during the optimization)
             |__ MESH (contains <geom>_gXX_cYY.mesh, .log, .geo_unrolled)
             |__ SOLVER
                 |__ solver_gXX_cYY (contains the results of each simulation)
             ```
 
         - study_type (str): use-case/meshing routine.
+        - ffd_type (str): deformation method.
         - strategy (str): the optimization algorithm amongst inspyred's [ES, PSO]
             and pymoo's [GA, PSO]</br>
             see https://pythonhosted.org/inspyred/examples.html#standard-algorithms</br>
@@ -103,6 +106,7 @@ class Optimizer(ABC):
         self.outdir: str = config["study"]["outdir"]
         self.study_type: str = config["study"]["study_type"]
         # optional entries
+        self.ffd_type: str = config["study"].get("ffd_type", "")
         self.custom_file: str = config["study"].get("custom_file", "")
         self.strategy: str = config["optim"].get("strategy", "PSO")
         self.maximize: bool = config["optim"].get("maximize", False)
@@ -119,12 +123,12 @@ class Optimizer(ABC):
         # generation counter
         self.gen_ctr: int = 0
         # optimization objects
+        if not debug:
+            self.set_ffd_class()
+            self.set_gmsh_mesh_class()
         self.generator: Generator = Generator(
             self.seed, self.n_design, self.doe_size, self.sampler_name, self.bound, self.custom_doe
         )
-        if not debug:
-            self.ffd: FFD_2D = FFD_2D(self.dat_file, self.n_design // 2)
-            self.set_gmsh_mesh_class()
         self.set_simulator_class()
         self.simulator = self.SimulatorClass(self.config)
         # population statistics
@@ -140,6 +144,9 @@ class Optimizer(ABC):
         self.n_plt: int = self.config["optim"].get("n_plt", 5)
         self.cmap: str = self.config["optim"].get("cmap", "viridis")
         self.set_inner()
+        # figure directory
+        self.figdir: str = os.path.join(self.outdir, "Figs")
+        check_dir(self.figdir)
 
     def process_config(self):
         """
@@ -174,6 +181,32 @@ class Optimizer(ABC):
             )
             self.config["gmsh"]["view"]["GUI"] = False
 
+    def set_ffd_class(self):
+        """
+        **Instantiates** the deformation class and object as custom if found,
+        as one of the default classes otherwise.
+        """
+        self.FFDClass = (
+            get_custom_class(self.custom_file, "CustomFFD") if self.custom_file else None
+        )
+        if not self.FFDClass:
+            if self.ffd_type == FFD_TYPE[0]:
+                self.FFDClass = FFD_2D
+                self.ffd = self.FFDClass(self.dat_file, self.n_design // 2)
+            elif self.ffd_type == FFD_TYPE[1]:
+                self.FFDClass = FFD_POD_2D
+                self.config["ffd"]["ffd_ncontrol"] = self.n_design
+                self.config["ffd"]["ffd_bound"] = self.bound
+                logger.info(f"ffd bound: {self.bound}")
+                self.ffd = self.FFDClass(self.dat_file, **self.config["ffd"])
+                self.n_design = self.config["ffd"]["pod_ncontrol"]
+                self.bound = self.config["ffd"].get("pod_bound", self.ffd.get_bound())
+                logger.info(f"pod bound: {self.bound}")
+            else:
+                raise Exception(f"ERROR -- incorrect ffd_type <{self.ffd_type}>")
+        else:
+            self.ffd = self.FFDClass(self.dat_file, self.n_design, **self.config["ffd"])
+
     def set_gmsh_mesh_class(self):
         """
         **Instantiates** the mesher class as custom if found,
@@ -183,11 +216,11 @@ class Optimizer(ABC):
             get_custom_class(self.custom_file, "CustomMesh") if self.custom_file else None
         )
         if not self.MeshClass:
-            if self.study_type == "base":
+            if self.study_type == STUDY_TYPE[0]:
                 self.MeshClass = NACABaseMesh
-            elif self.study_type == "block":
+            elif self.study_type == STUDY_TYPE[1]:
                 self.MeshClass = NACABlockMesh
-            elif self.study_type == "cascade":
+            elif self.study_type == STUDY_TYPE[2]:
                 self.MeshClass = CascadeMesh
             else:
                 raise Exception(f"ERROR -- incorrect study_type <{self.study_type}>")
@@ -313,11 +346,11 @@ class Optimizer(ABC):
         ymax = max([max(d) for d in data])
         yrange = ymax - ymin
         plt.ylim((ymin - 0.1 * yrange, ymax + 0.1 * yrange))
-
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         # legend and title
         ax.set_title(f"Optimization evolution ({gen_nbr} g. x {psize} c.)")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax.set_xlabel('generation #')
+        ax.set_xlabel('generation $[\\cdot]$')
         ax.set_ylabel('fitness')
 
         # save figure as png
@@ -385,12 +418,14 @@ class WolfOptimizer(Optimizer, ABC):
             i.e. a candidate with an area greater/smaller than +/- area_margin % of the
             baseline_area will be penalized.
         - penalty (list): a [key, value] constraint not to be worsen by the optimization.
+        - constraint (bool): constraints are applied (True) or not (False)
         """
         self.baseline_CD: float = self.config["optim"].get("baseline_CD", 0.15)
         self.baseline_CL: float = self.config["optim"].get("baseline_CL", 0.36)
         self.baseline_area: float = abs(get_area(self.ffd.pts))
         self.area_margin: float = self.config["optim"].get("area_margin", 40.) / 100.
         self.penalty: list = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
+        self.constraint: bool = self.config["optim"].get("constraint", True)
 
     def plot_generation(
             self,
@@ -437,25 +472,26 @@ class WolfOptimizer(Optimizer, ABC):
         # top
         ax1.set_title("FFD profiles", weight="bold")
         ax1.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax1.set_xlabel('x')
-        ax1.set_ylabel('y')
+        ax1.set_xlabel('$x$ $[m]$')
+        ax1.set_ylabel('$y$ $[m]$')
         # bottom left
         ax2.set_title(f"{df_key[0]}", weight="bold")
         ax2.set_yscale("log")
-        ax2.set_xlabel('it. #')
-        ax2.set_ylabel('residual')
+        ax2.set_xlabel('iteration $[\\cdot]$')
+        ax2.set_ylabel('residual $[\\cdot]$')
         # bottom center
         ax3.set_title(f"{df_key[1]} & {df_key[2]}", weight="bold")
-        ax3.set_xlabel('it. #')
-        ax3.set_ylabel('aerodynamic coeff.')
+        ax3.set_xlabel('iteration $[\\cdot]$')
+        ax3.set_ylabel('aerodynamic coefficients $[\\cdot]$')
         # bottom right
+        ax4.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax4.set_title(f"fitness: {self.QoI}", weight="bold")
         ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax4.set_xlabel('candidate #')
+        ax4.set_xlabel('candidate $[\\cdot]$')
         ax4.set_ylabel("fitness")
         # save figure as png
         logger.info(f"saving {fig_name} to {self.outdir}")
-        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
+        plt.savefig(os.path.join(self.figdir, fig_name), bbox_inches='tight')
         plt.close()
 
     def save_results(self):
