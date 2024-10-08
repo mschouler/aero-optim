@@ -1,0 +1,38 @@
+{
+    "study": {
+        "study_type": "",
+        "ffd_type": "ffd_2d",
+        "file": "../data/rae2822.dat",
+        "outdir": "output_mf",
+        "custom_file": "custom_rae2822.py"
+    },
+    "optim": {
+        "n_design": 10,
+        "doe_size": 20,
+        "max_generations": 150,
+        "bound": [-0.2, 0.2],
+        "QoI": "CL/CD",
+        "baseline_CL_over_CD": 58.78,
+        "model_name": "mfsmt",
+        "n_lf": 100,
+        "n_hf": 10,
+        "infill_freq": 10,
+        "infill_nb": 10,
+        "infill_lf_size": 10,
+        "infill_hf_size": 1,
+        "infill_nb_gen": 100,
+        "bayesian_infill": true,
+        "lf_config": "lf_config.json",
+        "hf_config": "hf_config.json"
+    },
+    "ffd": {
+        "pod_ncontrol": 5,
+        "ffd_dataset_size": 1000
+    },
+    "gmsh": {},
+    "simulator": {
+        "model_file": "output_mf/model.pkl",
+        "exec_cmd": "",
+        "ref_input": ""
+    }
+}

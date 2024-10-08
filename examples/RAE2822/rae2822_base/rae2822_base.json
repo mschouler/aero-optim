@@ -2,46 +2,50 @@
     "study": {
         "study_type": "naca_base",
         "ffd_type": "ffd_2d",
-        "file": "../data/naca12.dat",
-        "outfile": "naca_base",
-        "outdir": "output_lf_doe"
+        "file": "../data/rae2822.dat",
+        "outfile": "rae2822",
+        "outdir": "output"
     },
     "optim": {
         "n_design": 8,
-        "doe_size": 80,
-        "max_generations": 1,
+        "doe_size": 5,
+        "max_generations": 0,
         "bound": [-0.5, 0.5],
-        "budget": 80,
-        "QoI": "CD",
-        "penalty": ["CL", 0.36]
+        "budget": 20,
+        "QoI": "CD"
     },
     "gmsh": {
         "domain": {
-            "inlet": 20,
-            "outlet": 20,
+            "inlet": 100,
+            "outlet": 100,
             "le_offset": 10
         },
         "mesh": {
+            "bl": true,
+            "bl_thickness": 2e-2,
+            "bl_size": 1.5e-5,
+            "bl_ratio": 1.1,
+            "bl_fan_elements": 20,
             "nodes_inlet": 40,
             "nodes_outlet": 40,
             "side_nodes": 20,
-            "le": 20,
-            "low": 35,
-            "up": 35
+            "le": 30,
+            "low": 60,
+            "up": 60
         },
         "view": {
-            "GUI": false,
+            "GUI": true,
             "quality": false,
             "nview": 1
         }
     },
     "simulator": {
-        "ref_input": "../naca_base/naca_base.wolf",
+        "ref_input": "rae2822_base.wolf",
         "post_process": {
             "residual.dat": ["ResTot"],
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "/home/mschouler/bin/wolf -in @.mesh"
+        "exec_cmd": "/home/mschouler/bin/wolf -in @.mesh -nproc 8"
     }
 }

@@ -9,7 +9,8 @@ import subprocess
 
 from types import FrameType
 
-STUDY_TYPE = ["base", "block", "cascade", "debug"]
+STUDY_TYPE = ["naca_base", "naca_block", "cascade"]
+FFD_TYPE = ["ffd_2d", "ffd_pod_2d"]
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +58,8 @@ def check_config(
         raise Exception(f"ERROR -- no <simulator>  upper entry in {config}")
 
     # look for mandatory entries
+    if optim and "ffd_type" not in config_dict["study"]:
+        raise Exception(f"ERROR -- no <ffd_type> entry in {config}[study]")
     if (optim or gmsh) and "study_type" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <study_type> entry in {config}[study]")
     if (optim or gmsh) and "file" not in config_dict["study"]:
@@ -65,7 +68,7 @@ def check_config(
         raise Exception(f"ERROR -- no <outdir>  entry in {config}[study]")
     if optim:
         check_dir(config_dict["study"]["outdir"])
-        shutil.copy(config, config_dict["study"]["outdir"])
+        cp_filelist([config], [config_dict["study"]["outdir"]])
 
     # check path and study_type correctness
     if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
@@ -197,6 +200,20 @@ def sed_in_file(fname: str, sim_args: dict):
         ftw.write("\n".join(file_content))
 
 
+def replace_in_file(fname: str, sim_args: dict):
+    """
+    Updates the file fname by replacing specific strings with others.
+    """
+    with open(fname, 'r') as file:
+        filedata = file.read()
+    # Replace the target string
+    for key, value in sim_args.items():
+        filedata = filedata.replace(key, value)
+    # Write the file out again
+    with open(fname, 'w') as file:
+        file.write(filedata)
+
+
 def rm_filelist(deletion_list: list[str]):
     """
     Wrapper around os.remove that deletes all files specified in deletion_list.
@@ -215,6 +232,8 @@ def cp_filelist(in_files: list[str], out_files: list[str], move: bool = False):
             shutil.copy(in_f, out_f) if not move else shutil.move(in_f, out_f)
         except FileNotFoundError:
             print(f"WARNING -- {in_f} not found")
+        except shutil.SameFileError:
+            print(f"WARNING -- {in_f} same file as {out_f}")
 
 
 def mv_filelist(*args):

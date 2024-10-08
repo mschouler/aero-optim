@@ -1,6 +1,7 @@
 {
     "study": {
-        "study_type": "base",
+        "study_type": "naca_base",
+        "ffd_type": "ffd_2d",
         "file": "../data/naca12.dat",
         "outfile": "naca_base",
         "outdir": "output_hf_doe"
@@ -25,9 +26,9 @@
             "nodes_inlet": 40,
             "nodes_outlet": 40,
             "side_nodes": 20,
-            "le": 20,
-            "low": 35,
-            "up": 35
+            "le": 60,
+            "low": 200,
+            "up": 200
         },
         "view": {
             "GUI": false,
@@ -43,6 +44,6 @@
             "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
             "wall.dat": ["x", "y", "Cp"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/NACA12/naca_adap/adap_robust.py -in @.mesh -cmp 4000 -cmax 5000"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/NACA12/naca_adap/adap_robust.py -in @.mesh  -cmp 2000 -smax 5 -nite 3"
     }
 }
