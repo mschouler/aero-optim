@@ -57,6 +57,7 @@ def execute_simulation(
         args: argparse.Namespace,
         t0: float,
         cv_tgt: list[float],
+        ite_tgt: list[int],
         default_res_tgt: float,
         hgrad: float = 1.5,
         cfac: float = 2.,
@@ -73,7 +74,8 @@ def execute_simulation(
 
     - args (Namespace): various input args such as nite, input, cmp, nproc.
     - t0 (float): the script start time used to compute the execution time.
-    - cv_tgt (float): list of QoI convergence targets for each adaptation iteration.
+    - cv_tgt (list[float]): list of QoI convergence targets for each adaptation iteration.
+    - ite_tgt (list[int]): max number of subiteration for each complexity.
     - default_res_tgt (float): threshold residual for a simulation to be considered as converged.
     - hgrad (float): metrix gradation parameter.
     - cfac (float): feflo orientation/coarsening parameter.
@@ -238,7 +240,7 @@ def execute_simulation(
         ttot_ratio3 = ttot_ratio1 = ttot_ratio2 = 1.
         loss_coef3 = loss_coef1 = loss_coef2 = 1.
         iseff3 = iseff1 = iseff2 = 1.
-        while sub_ite <= args.smax:
+        while sub_ite <= ite_tgt[ite - 1]:
             print(f"** SUBITERATION {sub_ite} - ISOCMP {cmp} **")
             print(f"** -------------{'-' * len(str(sub_ite))}----------{'-' * len(str(cmp))} **")
             # create backup files
@@ -357,7 +359,6 @@ def execute_simulation(
             res = get_residual()
             if res < res_tgt:
                 print(f">> WOLF converged: residual {res} < {res_tgt}")
-                n_restart = 0
                 res_tgt = default_res_tgt
             else:
                 print(f"ERROR -- WOLF did not converge: residual {res} > {res_tgt}")
@@ -430,7 +431,7 @@ def execute_simulation(
                       f"E2={lcd2}, E1={lcd1}")
                 print(f">> isentropic efficiency relative differences: E2={ied2}, E1={ied1}")
                 print(f">> Ttot ratio relative differences: E2={td2}, E1={td1}\n")
-                sub_ite = args.smax + 1 if debit_cv and ptot_cv and loss_cv else sub_ite + 1
+                sub_ite = ite_tgt[ite - 1] + 1 if debit_cv and ptot_cv and loss_cv else sub_ite + 1
             else:
                 sub_ite += 1
 
@@ -439,6 +440,7 @@ def execute_simulation(
         os.chdir(cwd)
         ite += 1
         cmp = args.cmp * 2**(ite - 1)
+        n_restart = 0
 
     cp_filelist(
         [f"{cdir}/final.meshb", f"{cdir}/final.solb", f"{cdir}/mach.solb", f"{cdir}/pres.solb"],
@@ -451,6 +453,7 @@ def robust_execution(
         args: argparse.Namespace,
         t0: float,
         cv_tgt: list[float],
+        ite_tgt: list[int],
         ite_restart: int,
         subite_restart: int,
         default_res_tgt: float = 1e-3,
@@ -470,7 +473,9 @@ def robust_execution(
         blocking adaptation iteration.
     """
     exit_status, ite, dhgrad, dcfac = execute_simulation(
-        args, t0, cv_tgt, default_res_tgt, subite_restart=subite_restart, preprocess=preprocess
+        args, t0, cv_tgt, ite_tgt, default_res_tgt,
+        subite_restart=subite_restart,
+        preprocess=preprocess
     )
     new_ite, restart = ite, 0
     while exit_status == FAILURE:
@@ -478,7 +483,7 @@ def robust_execution(
             restart += 1
             print(f"ERROR -- sim. did not converge >> restart from ite {new_ite} ({restart})\n")
             exit_status, ite, dhgrad, dcfac = execute_simulation(
-                args, t0, cv_tgt, default_res_tgt,
+                args, t0, cv_tgt, ite_tgt, default_res_tgt,
                 subite_restart=subite_restart,
                 init_ite=new_ite,
                 preprocess=preprocess,
@@ -505,7 +510,6 @@ def main() -> int:
     parser.add_argument("-cmp", type=int, help="targetted complexity")
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
     parser.add_argument("-nite", type=int, help="number of complexities", default=2)
-    parser.add_argument("-smax", type=int, help="max. number of adaptations at iso comp", default=3)
     parser.add_argument("-ms", "--multi-sim", action="store_true", help="simulate ADP, OP1 and OP2")
 
     args = parser.parse_args()
@@ -516,9 +520,10 @@ def main() -> int:
     print("** ADP SIMULATION **")
     print("** -------------- **")
     cv_tgt = [0.01, 0.01, 0.005, 0.003] + [0.003] * max(0, args.nite - 4)
+    ite_tgt = [15, 15, 10, 5] + [5] * max(0, args.nite - 4)
     if not args.multi_sim:
         exit_status, _, _, _ = execute_simulation(
-            args, t0, cv_tgt, default_res_tgt=1e-4, subite_restart=3
+            args, t0, cv_tgt, ite_tgt, default_res_tgt=1e-4, subite_restart=3
         )
         if exit_status == SUCCESS:
             print(f">> simulations finished successfully in {time.time() - t0} seconds.")
@@ -530,7 +535,7 @@ def main() -> int:
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
-        exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=5)
+        exit_status = robust_execution(args, t0, cv_tgt, ite_tgt, ite_restart=3, subite_restart=5)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
@@ -554,7 +559,7 @@ def main() -> int:
         "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
     }
     sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=5)
+    exit_status = robust_execution(args, t0, cv_tgt, ite_tgt, ite_restart=3, subite_restart=5)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
@@ -577,7 +582,7 @@ def main() -> int:
         "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
     }
     sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = robust_execution(args, t0, cv_tgt, ite_restart=3, subite_restart=5)
+    exit_status = robust_execution(args, t0, cv_tgt, ite_tgt, ite_restart=3, subite_restart=5)
     if exit_status == FAILURE:
         print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
         return FAILURE
