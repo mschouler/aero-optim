@@ -25,14 +25,10 @@ def main():
     parser.add_argument("-c", "--config", type=str, help="config: --config=/path/to/config.json")
     parser.add_argument("-f", "--file", type=str,
                         help="input dat file: --file=/path/to/file.dat", default="")
-    parser.add_argument("-o", "--outdir", type=str, help="simulation output directory", default="")
+    parser.add_argument("-o", "--outdir", type=str, help="mesh output directory", default="")
     args = parser.parse_args()
 
-    config, custom_file, study_type = check_config(args.config, gmsh=True)
-
-    if args.outdir:
-        print(f">> output directory superseded with {args.outdir}")
-        config["study"]["outdir"] = args.outdir
+    config, custom_file, study_type = check_config(args.config, outdir=args.outdir, gmsh=True)
 
     MeshClass = get_custom_class(custom_file, "CustomMesh") if custom_file else None
     if not MeshClass:
