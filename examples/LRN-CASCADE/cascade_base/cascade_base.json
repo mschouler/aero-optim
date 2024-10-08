@@ -6,14 +6,11 @@
     },
     "gmsh": {
         "mesh": {
-            "bl": false,
-            "nodes_inlet": 20,
-            "nodes_outlet": 20,
-            "side_nodes_inlet": 20,
-            "side_nodes_outlet": 50,
-            "curved_side_nodes": 10,
-            "le": 64,
-            "te": 64,
+            "DLR_mesh": true,
+            "bl": true,
+            "bl_size": 5e-5,
+            "bl_ratio": 1.15,
+            "bl_thickness": 4e-3,
             "structured": false
         },
         "view": {
