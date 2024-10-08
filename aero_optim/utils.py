@@ -35,7 +35,8 @@ def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[floa
 
 
 def check_config(
-        config: str, custom_file: str = "",
+        config: str,
+        custom_file: str = "", outdir: str = "",
         optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str, str]:
     """
     Ensures the presence of all required entries in config,
@@ -46,6 +47,10 @@ def check_config(
     with open(config) as jfile:
         config_dict = json.load(jfile)
     print("AERO-Optim: general check config..")
+
+    # supersed outdir if given
+    if outdir:
+        config_dict["study"]["outdir"] = outdir
 
     # look for upper level categories
     if "study" not in config_dict:
