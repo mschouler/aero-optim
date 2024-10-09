@@ -22,11 +22,7 @@ def main():
     parser.add_argument("-o", "--outdir", type=str, help="simulation output directory", default="")
     args = parser.parse_args()
 
-    config, custom_file, _ = check_config(args.config, sim=True)
-
-    if args.outdir:
-        print(f">> output directory superseded with {args.outdir}")
-        config["study"]["outdir"] = args.outdir
+    config, custom_file, _ = check_config(args.config, outdir=args.outdir, sim=True)
 
     t0 = time.time()
 

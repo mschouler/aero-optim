@@ -13,18 +13,21 @@ def main():
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--config", type=str, help="/path/to/config.json")
-    parser.add_argument("-p", "--pymoo", action="store_true", help="use the pymoo library")
-    parser.add_argument("-i", "--inspyred", action="store_true", help="use the inspyred library")
+    parser.add_argument("-o", "--outdir", type=str, help="optim output directory", default="")
     parser.add_argument("-f", "--custom-file", type=str, help="/path/to/custom_file.py", default="")
     parser.add_argument("-d", "--debug", action="store_true", help="use DEBUG mode")
     parser.add_argument("-v", "--verbose", type=int, help="logger verbosity level", default=3)
+    parser.add_argument("-p", "--pymoo", action="store_true", help="use the pymoo library")
+    parser.add_argument("-i", "--inspyred", action="store_true", help="use the inspyred library")
     args = parser.parse_args()
 
     t0 = time.time()
     print("AERO-Optim: starts execution..")
 
     # check config and copy to outdir
-    config, custom_file, _ = check_config(args.config, args.custom_file, optim=True)
+    config, custom_file, _ = check_config(
+        args.config, custom_file=args.custom_file, outdir=args.outdir, optim=True
+    )
 
     # set logger
     logger = set_logger(
