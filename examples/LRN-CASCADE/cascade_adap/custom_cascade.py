@@ -68,6 +68,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         - bsl_c_ax (float)
         - bsl_cog (np.ndarray)
         - bsl_cog_x (float)
+        - constraint (bool): whether to apply constraints (True) or not (False).
         """
         self.bsl_w_ADP = self.config["optim"].get("baseline_w_ADP", 0.03161)
         self.bsl_w_OP = self.config["optim"].get("baseline_w_OP", 0.03756)
@@ -89,6 +90,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         self.bsl_cog = get_cog(bsl_pts)
         self.bsl_Xcg_over_cax = self.bsl_cog[0] / self.bsl_c_ax
         logger.info(f"baseline X_cg over c_ax = {self.bsl_Xcg_over_cax}")
+        self.constraint: bool = self.config["optim"].get("constraint", True)
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """
@@ -161,6 +163,8 @@ class CustomOptimizer(PymooWolfOptimizer):
         Note:
             when some constraint is violated, a graph is also generated.
         """
+        if not self.constraint:
+            return [-1.] * 4
         # relative constraints
         # thmax / c:        +/- 30%
         # Xthmax / c_ax:    +/- 20%
@@ -198,10 +202,10 @@ class CustomOptimizer(PymooWolfOptimizer):
         logger.debug(f"te radius: {'violated' if te_radius_cond > 0 else 'not violated'} "
                      f"({te_radius_cond})")
         if cog_cond > 0:
-            fig_name = os.path.join(self.outdir, f"profile_g{gid}_c{cid}.png")
+            fig_name = os.path.join(self.figdir, f"profile_g{gid}_c{cid}.png")
             plot_profile(profile, cog, fig_name)
         if th_cond > 0 or Xth_cond > 0 or area_cond > 0:
-            fig_name = os.path.join(self.outdir, f"sides_g{gid}_c{cid}.png")
+            fig_name = os.path.join(self.figdir, f"sides_g{gid}_c{cid}.png")
             plot_sides(upper, lower, camber_line, le_circle, te_circle, th_vec, fig_name)
         return [th_cond, Xth_cond, area_cond, cog_cond]
 
@@ -268,8 +272,8 @@ class CustomOptimizer(PymooWolfOptimizer):
         ax4.set_ylabel('$w_\\text{OP}$')
         # save figure as png
         fig_name = f"pymoo_g{gid}.png"
-        logger.info(f"saving {fig_name} to {self.outdir}")
-        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
+        logger.info(f"saving {fig_name} to {self.figdir}")
+        plt.savefig(os.path.join(self.figdir, fig_name), bbox_inches='tight')
         plt.close()
 
     def final_observe(self, best_candidates: np.ndarray):
