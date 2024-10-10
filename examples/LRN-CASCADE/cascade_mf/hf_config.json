@@ -1,0 +1,52 @@
+{
+    "study": {
+        "study_type": "cascade",
+        "ffd_type": "ffd_2d",
+        "file": "../data/lrn_cascade.dat",
+        "outdir": "@output",
+        "custom_file": "../cascade_adap/custom_cascade.py"
+    },
+    "optim": {
+        "n_design": @n_design,
+        "doe_size": @doe_size,
+        "max_generations": 1,
+        "bound": [-0.2, 0.2],
+        "QoI": "LossCoef",
+        "budget": 10,
+        "custom_doe": "@custom_doe",
+        "constraint": false
+    },
+    "ffd": {
+        "pod_ncontrol": 5,
+        "ffd_dataset_size": 1000
+    },
+    "gmsh": {
+        "mesh": {
+            "bl": false,
+            "nodes_inlet": 20,
+            "nodes_outlet": 20,
+            "side_nodes_inlet": 20,
+            "side_nodes_outlet": 50,
+            "curved_side_nodes": 10,
+            "le": 64,
+            "te": 64,
+            "nodes_ss": 400,
+            "nodes_ps": 400,
+            "structured": false
+        },
+        "view": {
+            "GUI": false,
+            "quality": false,
+            "nview": 1
+        }
+    },
+    "simulator": {
+        "ref_input": "../cascade_adap/cascade_adap.wolf",
+        "restart": 1,
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "turbocoef.dat": ["LossCoef"]
+        },
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_adap/adap_robust.py -in @.mesh -cmp 2000 -nproc 8 -nite 4 -ms"
+    }
+}
