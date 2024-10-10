@@ -1,6 +1,7 @@
 {
     "study": {
         "study_type": "cascade",
+        "ffd_type": "ffd_2d",
         "file": "../data/lrn_cascade.dat",
         "outdir": "output"
     },

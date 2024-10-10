@@ -456,7 +456,7 @@ def robust_execution(
         ite_tgt: list[int],
         ite_restart: int,
         subite_restart: int,
-        default_res_tgt: float = 1e-3,
+        default_res_tgt: float = 1e-2,
         preprocess: bool = True,
         hgrad: float = 1.5,
         cfac: float = 2.
