@@ -51,10 +51,13 @@ class MfModel(ABC):
         """
 
     @abstractmethod
-    def evaluate(self, x: np.ndarray) -> np.ndarray:
+    def evaluate(self, x: np.ndarray):
         """
         Returns a model prediction for a given input x.
         """
+
+    def evaluate_std(self, x: np.ndarray):
+        raise Exception("Not implemented")
 
     def get_DOE(self) -> np.ndarray:
         """
@@ -93,25 +96,11 @@ class MfModel(ABC):
 
     def get_y_star(self) -> float | np.ndarray:
         """
-        Returns the current best lf fitness (SO) or pareto front (MO).
+        Returns the current best lf fitness (SOO) or pareto front (MOO).
         """
         # single objective, y_star is simply the min value
-        if isinstance(self.y_lf_DOE, np.ndarray) and self.y_lf_DOE[0].size == 1:
-            return min(self.y_lf_DOE)
-        # multi objective, y_star corresponds to the pareto front
-        else:
-            assert (
-                isinstance(self.y_lf_DOE, np.ndarray) and isinstance(self.y_lf_DOE[0], np.ndarray)
-            )
-            return self.compute_pareto(self.y_lf_DOE)
-
-    def compute_pareto(self, y_lf: np.ndarray) -> np.ndarray:
-        """
-        Returns the current lf fitness pareto front.
-        see implementation from the stackoverflow thread below:
-        https://stackoverflow.com/questions/32791911/fast-calculation-of-pareto-front-in-python/40239615#40239615 # noqa
-        """
-        raise Exception("Not implemented")
+        assert self.y_lf_DOE is not None
+        return min(self.y_lf_DOE)
 
 
 class MfDNN(MfModel):
@@ -308,6 +297,58 @@ class MfLGP(MfModel):
 
     def evaluate_std(self, x: np.ndarray) -> np.ndarray:
         return self.predict(x)[-1]
+
+
+class MultiObjectiveModel(MfModel):
+    """
+    Multi-objective surrogate model.
+    """
+    def __init__(self, list_of_models: list[MfSMT | MfDNN | SfSMT | MfLGP]):
+        self.models: list[MfSMT | MfDNN | SfSMT | MfLGP] = list_of_models
+
+    def train(self):
+        for model in self.models:
+            model.train()
+
+    def evaluate(self, x: np.ndarray) -> list[np.ndarray]:
+        return [model.evaluate(x) for model in self.models]
+
+    def evaluate_std(self, x: np.ndarray) -> list[np.ndarray]:
+        return [model.evaluate_std(x) for model in self.models]
+
+    def get_DOE(self) -> np.ndarray:
+        return self.models[0].get_DOE()
+
+    def set_DOE(
+            self,
+            x_lf: np.ndarray, x_hf: np.ndarray,
+            y_lf: np.ndarray | list[np.ndarray], y_hf: np.ndarray | list[np.ndarray]
+    ):
+        for model, yy_lf, yy_hf in zip(self.models, y_lf, y_hf):
+            model.set_DOE(x_lf, x_hf, yy_lf, yy_hf)
+
+    def get_y_star(self) -> float | np.ndarray:
+        """
+        Returns the current best lf fitness (SO) or pareto front (MO).
+        """
+        raise Exception("Not implemented")
+
+    def compute_pareto(self) -> np.ndarray:
+        """
+        Returns the current lf fitness pareto front.
+        see implementation from the stackoverflow thread below:
+        https://stackoverflow.com/questions/32791911/fast-calculation-of-pareto-front-in-python/40239615#40239615 # noqa
+        """
+        assert self.models[0].y_lf_DOE is not None and self.models[1].y_lf_DOE is not None
+        costs = np.column_stack((self.models[0].y_lf_DOE, self.models[1].y_lf_DOE))
+        is_efficient = np.ones(costs.shape[0], dtype=bool)
+        for i, c in enumerate(costs):
+            if is_efficient[i]:
+                is_efficient[is_efficient] = np.any(costs[is_efficient] < c, axis=1)
+                is_efficient[i] = True
+        costs = costs[is_efficient]
+        sorted_idx = np.argsort(costs, axis=0)[:, 0]
+        return costs[sorted_idx]
 
 
 def get_model(
