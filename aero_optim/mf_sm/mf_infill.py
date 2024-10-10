@@ -9,7 +9,7 @@ from pymoo.termination import get_termination
 from scipy.spatial.distance import cdist
 from scipy.stats import norm
 
-from aero_optim.mf_sm.mf_models import MfSMT
+from aero_optim.mf_sm.mf_models import MfSMT, MultiObjectiveModel
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +47,48 @@ class EIProblem(LCBProblem):
         out["F"] = - f1
 
 
+class PIBOProblem(Problem):
+    """
+    Bi-objective Probability Improvement problem.
+    """
+    epsilon: float = 1e-6
+
+    def __init__(self, model: MultiObjectiveModel, n_var: int, bound: tuple[float]):
+        super().__init__(n_var=n_var, n_obj=1, xl=bound[0], xu=bound[-1])
+        self.model = model
+
+    def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
+        pareto = self.model.compute_pareto()
+        model1 = self.model.models[0]
+        model2 = self.model.models[1]
+
+        u1 = model1.evaluate(x)
+        u2 = model2.evaluate(x)
+        std1 = model1.evaluate_std(x) + self.epsilon
+        std2 = model2.evaluate_std(x) + self.epsilon
+
+        PI_aug = norm.cdf((pareto[0, 0] - u1) / std1)
+        for i in range(len(pareto) - 1):
+            PI_aug += (
+                norm.cdf((pareto[i + 1, 0] - u1) / std1)
+                - norm.cdf((pareto[i, 0] - u1) / std1) * norm.cdf((pareto[i, 1] - u2) / std2)
+                + (1 - norm.cdf((pareto[-1, 0] - u1) / std1))
+                * norm.cdf((pareto[-1, 1] - u2) / std2)
+            )
+        out["F"] = - PI_aug
+
+
 class EDProblem(Problem):
     """
     Euclidean Distance problem.
     """
-    def __init__(self, DOE: np.ndarray, model: MfSMT, n_var: int, bound: tuple[float]):
+    def __init__(
+            self,
+            DOE: np.ndarray,
+            n_var: int,
+            bound: tuple[float]
+    ):
         super().__init__(n_var=n_var, n_obj=1, xl=bound[0], xu=bound[-1])
-        self.model = model
         self.DOE = DOE
 
     def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
@@ -87,9 +122,6 @@ def maximize_EI(
 ) -> np.ndarray:
     """
     Expected Improvement maximization function.
-
-    Inputs:
-        y_star (float): the current best fitness value.
     """
     problem = EIProblem(model, n_var=n_var, bound=bound)
     algorithm = PSO()
@@ -104,16 +136,35 @@ def maximize_EI(
     return res.X
 
 
-def maximize_ED(
-        model: MfSMT, DOE: np.ndarray, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
+def maximize_PI_BO(
+        model: MultiObjectiveModel, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
 ) -> np.ndarray:
     """
-    Expected Improvement maximization function.
+    Bi-objective Probability of Improvement maximization
+    """
+    problem = PIBOProblem(model, n_var=n_var, bound=bound)
+    algorithm = PSO()
+    res = minimize(
+        problem,
+        algorithm,
+        termination=get_termination("n_gen", n_gen),
+        seed=seed,
+        verbose=False
+    )
+    logger.info(f"PIBO adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
+    return res.X
+
+
+def maximize_ED(
+        DOE: np.ndarray, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
+) -> np.ndarray:
+    """
+    Euclidean distance maximization function.
 
     Inputs:
         DOE (np.ndarray): the full low- and high-fidelity DOE.
     """
-    problem = EDProblem(DOE, model, n_var=n_var, bound=bound)
+    problem = EDProblem(DOE, n_var=n_var, bound=bound)
     algorithm = PSO()
     res = minimize(
         problem,
