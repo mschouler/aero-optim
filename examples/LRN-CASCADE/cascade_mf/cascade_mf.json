@@ -26,6 +26,10 @@
         "lf_config": "lf_config.json",
         "hf_config": "hf_config.json"
     },
+    "ffd": {
+        "pod_ncontrol": 5,
+        "ffd_dataset_size": 1000
+    },
     "gmsh": {
         "mesh": {
             "bl": false,

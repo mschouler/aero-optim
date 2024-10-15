@@ -12,7 +12,7 @@
         "max_generations": 1,
         "bound": [-0.2, 0.2],
         "QoI": "LossCoef",
-        "budget": 10,
+        "budget": 40,
         "custom_doe": "@custom_doe",
         "constraint": false
     },
@@ -41,6 +41,6 @@
             "residual.dat": ["ResTot"],
             "turbocoef.dat": ["LossCoef"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_base/execute.py -in @.mesh -nproc 8 -ms"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_base/execute.py -in @.mesh -nproc 2 -ms"
     }
 }
