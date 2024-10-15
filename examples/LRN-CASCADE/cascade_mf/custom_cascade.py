@@ -7,11 +7,16 @@ import os
 import pandas as pd
 import subprocess
 
+from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.core.problem import Problem
+from pymoo.optimize import minimize
+from pymoo.termination import get_termination
 
 from aero_optim.geom import (get_area, get_camber_th, get_chords, get_circle, get_circle_centers,
                              get_cog, get_radius_violation, split_profile, plot_profile, plot_sides)
-from aero_optim.mf_sm.mf_infill import maximize_ED, minimize_LCB, maximize_PI_BO
+from aero_optim.mf_sm.mf_infill import (maximize_ED, minimize_LCB, maximize_PI_BO,
+                                        compute_dominated_idx)
+from aero_optim.optim.evolution import PymooEvolution
 from aero_optim.optim.optimizer import WolfOptimizer
 from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
 from aero_optim.simulator.simulator import Simulator
@@ -128,21 +133,35 @@ class CustomOptimizer(PymooWolfOptimizer):
         gid = self.gen_ctr
         self.feasible_cid[gid] = []
 
-        # compute candidates constraints and execute feasible candidates only
+        # compute candidates constraints
         out["G"] = self.execute_constrained_candidates(X, gid)
 
         # update candidates fitness
+        idx = -1
         for cid in range(len(X)):
-            if cid in self.feasible_cid[gid]:
-                loss_ADP = self.simulator.df_dict[gid][cid]["loss_ADP"]
-                loss_OP = self.simulator.df_dict[gid][cid]["loss_OP"]
-                logger.info(f"g{gid}, c{cid}: "
-                            f"w_ADP = {loss_ADP}, w_OP = {loss_OP}")
-                self.J.append([loss_ADP, loss_OP])
-            else:
-                self.J.append([float("nan"), float("nan")])
-
+            loss_ADP = self.simulator.df_dict[gid][cid]["loss_ADP"].iloc[-1]
+            loss_OP = self.simulator.df_dict[gid][cid]["loss_OP"].iloc[-1]
+            logger.info(f"g{gid}, c{cid}: "
+                        f"w_ADP = {loss_ADP}, w_OP = {loss_OP}")
+            self.J.append([loss_ADP, loss_OP])
+            if cid not in self.feasible_cid[gid]:
+                idx = cid
         out["F"] = np.row_stack(self.J[-self.doe_size:])
+
+        # if hf infill computed and feasible replace any dominated candidate by hf sample
+        if self.infill(gid):
+            infill_hf = self.simulator.model.models[0].x_hf_DOE[-1]
+            y_hf = [self.simulator.model.models[0].y_hf_DOE[-1],
+                    self.simulator.model.models[1].y_hf_DOE[-1]]
+            hf_profile = self.ffd.apply_ffd(infill_hf)
+            hf_constraint = self.apply_candidate_constraints(hf_profile, "hf", self.infill_ctr)
+            if len([v for v in hf_constraint if v > 0]) == 0:
+                idx = idx if idx > 0 else compute_dominated_idx(out["F"][:, 0], out["F"][:, 1])
+                logger.info(f"replace candidate c{idx} = {X[idx]} with {infill_hf}")
+                X[idx] = infill_hf
+                out["G"][idx] = np.array(hf_constraint)
+                out["F"][idx] = np.array(y_hf)
+
         self._observe(out["F"])
         self.gen_ctr += 1
 
@@ -164,10 +183,14 @@ class CustomOptimizer(PymooWolfOptimizer):
             if len([v for v in constraint[cid] if v > 0.]) == 0:
                 self.feasible_cid[gid].append(cid)
             else:
-                logger.info(f"unfeasible candidate g{gid}, c{cid} not simulated")
+                logger.info(f"unfeasible candidate g{gid}, c{cid}")
+
+        self.execute_candidates(candidates, gid)
         return np.row_stack(constraint)
 
-    def apply_candidate_constraints(self, profile: np.ndarray, gid: int, cid: int) -> list[float]:
+    def apply_candidate_constraints(
+            self, profile: np.ndarray, gid: int | str, cid: int
+    ) -> list[float]:
         """
         **Computes** various relative and absolute constraints of a given candidate
         and **returns** their values as a list of floats.
@@ -219,15 +242,18 @@ class CustomOptimizer(PymooWolfOptimizer):
             plot_sides(upper, lower, camber_line, le_circle, te_circle, th_vec, fig_name)
         return [th_cond, Xth_cond, area_cond, cog_cond]
 
+    def infill(self, gid):
+        return gid > 0 and (gid + 1) % self.infill_freq == 0 and self.infill_ctr < self.infill_nb
+
     def execute_candidates(self, candidates, gid):
         logger.info(f"execute candidates of generation {gid}..")
-        if gid > 0 and (gid + 1) % self.infill_freq == 0 and self.infill_ctr < self.infill_nb:
+        if self.infill(gid):
             logger.info(f"infill computation ({self.infill_ctr + 1})")
             infill_lf = self.compute_lf_infill()
             logger.info(f"lf infill candidates of generation {gid}:\n {infill_lf}")
             y_lf = self.execute_infill(gid, self.lf_config, infill_lf, "lf")
             logger.info(f"lf infill fitnesses of generation {gid}:\n {y_lf}")
-            infill_hf = y_lf[0]
+            infill_hf = infill_lf[0]
             logger.info(f"hf infill candidates of generation {gid}:\n {infill_hf}")
             y_hf = self.execute_infill(gid, self.hf_config, infill_hf, "hf")
             logger.info(f"hf infill fitnesses of generation {gid}:\n {y_hf}")
@@ -239,7 +265,7 @@ class CustomOptimizer(PymooWolfOptimizer):
                         f"{self.simulator.model.evaluate(np.atleast_2d(infill_hf))}")
             self.infill_ctr += 1
 
-        logger.info(f"evaluating feasible candidates of generation {gid}..")
+        logger.info(f"evaluating candidates of generation {gid}..")
         self.ffd_profiles.append([])
         self.inputs.append([])
         for cid, cand in enumerate(candidates):
@@ -345,33 +371,21 @@ class CustomOptimizer(PymooWolfOptimizer):
         # plot settings
         baseline: np.ndarray = self.ffd.pts
         profiles: list[np.ndarray] = self.ffd_profiles[gid]
-        res_dict = self.simulator.df_dict[gid]
-        df_key = res_dict[self.feasible_cid[gid][0]]["ADP"].columns  # ResTot, LossCoef, x, y, Mis
         cmap = mpl.colormaps[self.cmap].resampled(self.doe_size)
         colors = cmap(np.linspace(0, 1, self.doe_size))
         # subplot construction
         fig = plt.figure(figsize=(16, 16))
         ax1 = plt.subplot(2, 1, 1)  # profiles
-        ax2 = plt.subplot(2, 3, 4)  # loss_ADP
-        ax3 = plt.subplot(2, 3, 5)  # loss_OP
-        ax4 = plt.subplot(2, 3, 6)  # fitness (loss_ADP vs loss_OP)
+        ax2 = plt.subplot(2, 1, 2)  # fitness (loss_ADP vs loss_OP)
         plt.subplots_adjust(wspace=0.25)
         ax1.plot(baseline[:, 0], baseline[:, 1], color="k", lw=2, ls="--", label="baseline")
         # loop over candidates through the last generated profiles
+        logger.debug(f"pop fitness: {pop_fitness} and shape {pop_fitness.shape}")
         for cid in self.feasible_cid[gid]:
             ax1.plot(profiles[cid][:, 0], profiles[cid][:, 1], color=colors[cid], label=f"c{cid}")
-            res_dict[cid]["ADP"][df_key[1]].plot(ax=ax2, color=colors[cid], label=f"c{cid}")
-            vsize = min(len(res_dict[cid]["OP1"][df_key[1]]), len(res_dict[cid]["OP2"][df_key[1]]))
-            ax3.plot(
-                range(vsize),
-                0.5 * (res_dict[cid]["OP1"][df_key[1]].values[-vsize:]
-                       + res_dict[cid]["OP2"][df_key[1]].values[-vsize:]),
-                color=colors[cid],
-                label=f"c{cid}"
-            )
-            ax4.scatter(pop_fitness[cid, 0], pop_fitness[cid, 1],
+            ax2.scatter(pop_fitness[cid, 0], pop_fitness[cid, 1],
                         color=colors[cid], label=f"c{cid}")
-        ax4.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="red", label="baseline")
+        ax2.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="red", label="baseline")
         # legend and title
         fig.suptitle(
             f"Generation {gid} results", size="x-large", weight="bold", y=0.93
@@ -381,19 +395,11 @@ class CustomOptimizer(PymooWolfOptimizer):
         ax1.legend(loc="center left", bbox_to_anchor=(1, 0.5))
         ax1.set_xlabel('x')
         ax1.set_ylabel('y')
-        # bottom left
-        ax2.set_title(f"{df_key[1]} ADP", weight="bold")
-        ax2.set_xlabel('it. #')
-        ax2.set_ylabel('$w_\\text{ADP}$')
-        # bottom center
-        ax3.set_title(f"{df_key[1]} OP", weight="bold")
-        ax3.set_xlabel('it. #')
-        ax3.set_ylabel('$w_\\text{OP}$')
-        # bottom right
-        ax4.set_title(f"{self.QoI} ADP vs {self.QoI} OP", weight="bold")
-        ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax4.set_xlabel('$w_\\text{ADP}$')
-        ax4.set_ylabel('$w_\\text{OP}$')
+        # bottom
+        ax2.set_title(f"{self.QoI} ADP vs {self.QoI} OP", weight="bold")
+        ax2.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax2.set_xlabel('$w_\\text{ADP}$')
+        ax2.set_ylabel('$w_\\text{OP}$')
         # save figure as png
         fig_name = f"pymoo_g{gid}.png"
         logger.info(f"saving {fig_name} to {self.figdir}")
@@ -469,3 +475,29 @@ def execute_single_gen(
     with open(os.path.join(outdir, "df_dict.pkl"), "rb") as handle:
         df_dict = pickle.load(handle)
     return df_dict
+
+
+class CustomEvolution(PymooEvolution):
+    def set_ea(self):
+        logger.info("SET CUSTOM EA")
+        self.ea = NSGA2(
+            pop_size=self.optimizer.doe_size,
+            sampling=self.optimizer.generator._pymoo_generator(),
+            **self.optimizer.ea_kwargs
+        )
+
+    def evolve(self):
+        logger.info("EXECUTE CUSTOM EVOLVE")
+        res = minimize(problem=self.optimizer,
+                       algorithm=self.ea,
+                       termination=get_termination("n_gen", self.optimizer.max_generations),
+                       seed=self.optimizer.seed,
+                       verbose=True)
+
+        self.optimizer.final_observe(res.F)
+
+        # output results
+        best_QoI, best_cand = res.F, res.X
+        np.set_printoptions(linewidth=np.nan)
+        logger.info(f"optimal QoIs:\n{best_QoI}")
+        logger.info(f"optimal candidates:\n{best_cand}")
