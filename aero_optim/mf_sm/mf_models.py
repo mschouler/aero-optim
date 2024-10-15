@@ -333,23 +333,6 @@ class MultiObjectiveModel(MfModel):
         """
         raise Exception("Not implemented")
 
-    def compute_pareto(self) -> np.ndarray:
-        """
-        Returns the current lf fitness pareto front.
-        see implementation from the stackoverflow thread below:
-        https://stackoverflow.com/questions/32791911/fast-calculation-of-pareto-front-in-python/40239615#40239615 # noqa
-        """
-        assert self.models[0].y_lf_DOE is not None and self.models[1].y_lf_DOE is not None
-        costs = np.column_stack((self.models[0].y_lf_DOE, self.models[1].y_lf_DOE))
-        is_efficient = np.ones(costs.shape[0], dtype=bool)
-        for i, c in enumerate(costs):
-            if is_efficient[i]:
-                is_efficient[is_efficient] = np.any(costs[is_efficient] < c, axis=1)
-                is_efficient[i] = True
-        costs = costs[is_efficient]
-        sorted_idx = np.argsort(costs, axis=0)[:, 0]
-        return costs[sorted_idx]
-
 
 def get_model(
         model_name: str, dim: int, config_dict: dict, outdir: str, seed: int

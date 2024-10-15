@@ -58,7 +58,9 @@ class PIBOProblem(Problem):
         self.model = model
 
     def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
-        pareto = self.model.compute_pareto()
+        assert self.model.models[0].y_lf_DOE is not None
+        assert self.model.models[1].y_lf_DOE is not None
+        pareto = compute_pareto(self.model.models[0].y_lf_DOE, self.model.models[1].y_lf_DOE)
         model1 = self.model.models[0]
         model2 = self.model.models[1]
 
@@ -175,3 +177,32 @@ def maximize_ED(
     )
     logger.info(f"ED adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
     return res.X
+
+
+def compute_pareto(J1: np.ndarray, J2: np.ndarray) -> np.ndarray:
+    """
+    Returns the current fitness pareto front.
+    see implementation from the stackoverflow thread below:
+    https://stackoverflow.com/questions/32791911/fast-calculation-of-pareto-front-in-python/40239615#40239615 # noqa
+    """
+    costs = np.column_stack((J1, J2))
+    is_efficient = np.ones(costs.shape[0], dtype=bool)
+    for i, c in enumerate(costs):
+        if is_efficient[i]:
+            is_efficient[is_efficient] = np.any(costs[is_efficient] < c, axis=1)
+            is_efficient[i] = True
+    costs = costs[is_efficient]
+    sorted_idx = np.argsort(costs, axis=0)[:, 0]
+    return costs[sorted_idx]
+
+
+def compute_dominated_idx(J1: np.ndarray, J2: np.ndarray) -> int:
+    """
+    Returns the index of a dominated objective couple.
+    """
+    pareto = compute_pareto(J1, J2)
+    assert len(pareto) < len(J1)
+    for idx, j1 in enumerate(J1):
+        if j1 not in pareto[:, 0]:
+            return idx
+    return -1
