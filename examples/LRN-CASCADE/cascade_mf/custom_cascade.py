@@ -15,7 +15,7 @@ from pymoo.termination import get_termination
 from aero_optim.geom import (get_area, get_camber_th, get_chords, get_circle, get_circle_centers,
                              get_cog, get_radius_violation, split_profile, plot_profile, plot_sides)
 from aero_optim.mf_sm.mf_infill import (maximize_ED, minimize_LCB, maximize_PI_BO,
-                                        compute_dominated_idx)
+                                        compute_dominated_idx, compute_pareto)
 from aero_optim.optim.evolution import PymooEvolution
 from aero_optim.optim.optimizer import WolfOptimizer
 from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
@@ -266,13 +266,6 @@ class CustomOptimizer(PymooWolfOptimizer):
             self.infill_ctr += 1
 
         logger.info(f"evaluating candidates of generation {gid}..")
-        self.ffd_profiles.append([])
-        self.inputs.append([])
-        for cid, cand in enumerate(candidates):
-            self.inputs[gid].append(np.array(cand))
-            _, ffd_profile = self.deform(cand, gid, cid)
-            self.ffd_profiles[gid].append(ffd_profile)
-
         self.simulator.execute_sim(candidates, gid)
 
     def compute_lf_infill(self) -> np.ndarray:
@@ -417,17 +410,15 @@ class CustomOptimizer(PymooWolfOptimizer):
         _, ax = plt.subplots(figsize=(8, 8))
         gen_fitness = np.row_stack(self.J)
 
-        # plotting data
-        cmap = mpl.colormaps[self.cmap].resampled(self.max_generations)
-        colors = cmap(np.linspace(0, 1, self.max_generations))
-        for gid in range(self.max_generations):
-            ax.scatter(gen_fitness[gid * self.doe_size: (gid + 1) * self.doe_size][:, 0],
-                       gen_fitness[gid * self.doe_size: (gid + 1) * self.doe_size][:, 1],
-                       color=colors[gid], label=f"g{gid}")
-        ax.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="red", label="baseline")
-        sorted_idx = np.argsort(best_candidates, axis=0)[:, 0]
-        ax.plot(best_candidates[sorted_idx, 0], best_candidates[sorted_idx, 1],
-                color="black", linestyle="dashed", label="pareto estimate")
+        # plotting data: last gen. pareto, y_hf infill, hf baseline
+        nsga = compute_pareto(gen_fitness[-self.doe_size:, 0], gen_fitness[-self.doe_size:, 1])
+        ax.plot(nsga[:, 0], nsga[:, 1], color="forestgreen", label=f"g{len(gen_fitness) - 1}")
+        w_ADP_hf = self.simulator.model.models[0].y_hf_DOE
+        w_OP_hf = self.simulator.model.models[1].y_hf_DOE
+        ax.scatter(w_ADP_hf[-self.infill_nb * self.infill_hf_size:],
+                   w_OP_hf[-self.infill_nb * self.infill_hf_size:],
+                   marker="s", color="k", facecolors="none", label="hf DOE & infill")
+        ax.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="red", label="hf baseline")
         ax.plot()
         ax.set_axisbelow(True)
         plt.grid(True, color="grey", linestyle="dashed")
@@ -466,11 +457,9 @@ def execute_single_gen(
         "@custom_doe": f"{custom_doe}"
     }
     replace_in_file(config_path, config_args)
-    print(f"{name} computation..")
     # execute single generation
     exec_cmd = ["optim", "-c", f"{config_path}", "-v", "3", "--pymoo"]
     subprocess.run(exec_cmd, env=os.environ, stdin=subprocess.DEVNULL, check=True)
-    print(f"{name} computation finished")
     # load results
     with open(os.path.join(outdir, "df_dict.pkl"), "rb") as handle:
         df_dict = pickle.load(handle)
