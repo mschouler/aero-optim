@@ -158,7 +158,6 @@ class CustomOptimizer(PymooWolfOptimizer):
             current_DOE = np.vstack((current_DOE, infill_lf))
             for _ in range(self.infill_lf_size - 2):
                 infill_lf_ED = maximize_ED(
-                    model=self.simulator.model,
                     DOE=current_DOE,
                     n_var=self.n_design,
                     bound=self.bound,
@@ -172,7 +171,6 @@ class CustomOptimizer(PymooWolfOptimizer):
             current_DOE = self.simulator.model.get_DOE()
             for _ in range(self.infill_lf_size):
                 infill_lf_ED = maximize_ED(
-                    model=self.simulator.model,
                     DOE=current_DOE,
                     n_var=self.n_design,
                     bound=self.bound,
