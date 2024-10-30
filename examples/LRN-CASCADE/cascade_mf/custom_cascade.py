@@ -11,11 +11,12 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.core.problem import Problem
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
+from typing import Any
 
 from aero_optim.geom import (get_area, get_camber_th, get_chords, get_circle, get_circle_centers,
                              get_cog, get_radius_violation, split_profile, plot_profile, plot_sides)
-from aero_optim.mf_sm.mf_infill import (maximize_ED, minimize_LCB, maximize_PI_BO,
-                                        compute_dominated_idx, compute_pareto)
+from aero_optim.mf_sm.mf_infill import maximize_ED, minimize_LCB, maximize_MPI_BO, compute_pareto
+from aero_optim.mf_sm.mf_models import MfDNN, MultiObjectiveModel, MfSMT
 from aero_optim.optim.evolution import PymooEvolution
 from aero_optim.optim.optimizer import WolfOptimizer
 from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
@@ -77,7 +78,6 @@ class CustomOptimizer(PymooWolfOptimizer):
         - bsl_c_ax (float)
         - bsl_cog (np.ndarray)
         - bsl_cog_x (float)
-        - infill_freq (int): adaptive infill frequency.
         - infill_nb (int): adaptive infill number.
         - infill_lf_size (int): number of new low fidelity candidates for each adaptive infill.
         - infill_hf_size (int): number of new high fidelity candidates for each adaptive infill.
@@ -88,8 +88,8 @@ class CustomOptimizer(PymooWolfOptimizer):
         - infill_ctr (int): infill counter.
         """
         # constraints
-        self.bsl_w_ADP = self.config["optim"].get("baseline_w_ADP", 0.03161)
-        self.bsl_w_OP = self.config["optim"].get("baseline_w_OP", 0.03756)
+        self.bsl_w_ADP = self.config["optim"]["bsl_hf_w_ADP"]
+        self.bsl_w_OP = self.config["optim"]["bsl_hf_w_OP"]
         bsl_pts = self.ffd.pts
         self.bsl_c, self.bsl_c_ax = get_chords(bsl_pts)
         logger.info(f"baseline chord = {self.bsl_c} m, baseline axial chord = {self.bsl_c_ax}")
@@ -109,7 +109,6 @@ class CustomOptimizer(PymooWolfOptimizer):
         self.bsl_Xcg_over_cax = self.bsl_cog[0] / self.bsl_c_ax
         logger.info(f"baseline X_cg over c_ax = {self.bsl_Xcg_over_cax}")
         # infill
-        self.infill_freq = self.config["optim"]["infill_freq"]
         self.infill_nb = self.config["optim"]["infill_nb"]
         self.infill_lf_size = self.config["optim"]["infill_lf_size"]
         self.infill_hf_size = self.config["optim"]["infill_hf_size"]
@@ -137,30 +136,16 @@ class CustomOptimizer(PymooWolfOptimizer):
         out["G"] = self.execute_constrained_candidates(X, gid)
 
         # update candidates fitness
-        idx = -1
         for cid in range(len(X)):
-            loss_ADP = self.simulator.df_dict[gid][cid]["loss_ADP"].iloc[-1]
-            loss_OP = self.simulator.df_dict[gid][cid]["loss_OP"].iloc[-1]
-            logger.info(f"g{gid}, c{cid}: "
-                        f"w_ADP = {loss_ADP}, w_OP = {loss_OP}")
-            self.J.append([loss_ADP, loss_OP])
-            if cid not in self.feasible_cid[gid]:
-                idx = cid
+            if cid in self.feasible_cid[gid]:
+                loss_ADP = self.simulator.df_dict[gid][cid]["loss_ADP"].iloc[-1]
+                loss_OP = self.simulator.df_dict[gid][cid]["loss_OP"].iloc[-1]
+                logger.info(f"g{gid}, c{cid}: "
+                            f"w_ADP = {loss_ADP}, w_OP = {loss_OP}")
+                self.J.append([loss_ADP, loss_OP])
+            else:
+                self.J.append([float("nan"), float("nan")])
         out["F"] = np.row_stack(self.J[-self.doe_size:])
-
-        # if hf infill computed and feasible replace any dominated candidate by hf sample
-        if self.infill(gid):
-            infill_hf = self.simulator.model.models[0].x_hf_DOE[-1]
-            y_hf = [self.simulator.model.models[0].y_hf_DOE[-1],
-                    self.simulator.model.models[1].y_hf_DOE[-1]]
-            hf_profile = self.ffd.apply_ffd(infill_hf)
-            hf_constraint = self.apply_candidate_constraints(hf_profile, "hf", self.infill_ctr)
-            if len([v for v in hf_constraint if v > 0]) == 0:
-                idx = idx if idx > 0 else compute_dominated_idx(out["F"][:, 0], out["F"][:, 1])
-                logger.info(f"replace candidate c{idx} = {X[idx]} with {infill_hf}")
-                X[idx] = infill_hf
-                out["G"][idx] = np.array(hf_constraint)
-                out["F"][idx] = np.array(y_hf)
 
         self._observe(out["F"])
         self.gen_ctr += 1
@@ -242,115 +227,9 @@ class CustomOptimizer(PymooWolfOptimizer):
             plot_sides(upper, lower, camber_line, le_circle, te_circle, th_vec, fig_name)
         return [th_cond, Xth_cond, area_cond, cog_cond]
 
-    def infill(self, gid):
-        return gid > 0 and (gid + 1) % self.infill_freq == 0 and self.infill_ctr < self.infill_nb
-
-    def execute_candidates(self, candidates, gid):
-        logger.info(f"execute candidates of generation {gid}..")
-        if self.infill(gid):
-            logger.info(f"infill computation ({self.infill_ctr + 1})")
-            infill_lf = self.compute_lf_infill()
-            logger.info(f"lf infill candidates of generation {gid}:\n {infill_lf}")
-            y_lf = self.execute_infill(gid, self.lf_config, infill_lf, "lf")
-            logger.info(f"lf infill fitnesses of generation {gid}:\n {y_lf}")
-            infill_hf = infill_lf[0]
-            logger.info(f"hf infill candidates of generation {gid}:\n {infill_hf}")
-            y_hf = self.execute_infill(gid, self.hf_config, infill_hf, "hf")
-            logger.info(f"hf infill fitnesses of generation {gid}:\n {y_hf}")
-            self.simulator.model.set_DOE(x_lf=infill_lf, y_lf=y_lf, x_hf=infill_hf, y_hf=y_hf)
-            logger.info(f"model infill_hf prediction before update: "
-                        f"{self.simulator.model.evaluate(np.atleast_2d(infill_hf))}")
-            self.simulator.model.train()
-            logger.info(f"model infill_hf prediction after update: "
-                        f"{self.simulator.model.evaluate(np.atleast_2d(infill_hf))}")
-            self.infill_ctr += 1
-
+    def execute_candidates(self, candidates, gid: int):
         logger.info(f"evaluating candidates of generation {gid}..")
         self.simulator.execute_sim(candidates, gid)
-
-    def compute_lf_infill(self) -> np.ndarray:
-        """
-        **Computes** the low fidelity infill candidates.
-        """
-        if self.bayesian_infill:
-            # Probability of Improvement
-            infill_lf = maximize_PI_BO(
-                model=self.simulator.model,
-                n_var=self.n_design,
-                bound=self.bound,
-                seed=self.seed,
-                n_gen=self.infill_nb_gen
-            )
-            # Lower Confidence Bound /objective 1
-            infill_lf_LCB_1 = minimize_LCB(
-                model=self.simulator.model.models[0],
-                n_var=self.n_design,
-                bound=self.bound,
-                seed=self.seed,
-                n_gen=self.infill_nb_gen
-            )
-            infill_lf = np.vstack((infill_lf, infill_lf_LCB_1))
-            # Lower Confidence Bound /objective 2
-            infill_lf_LCB_2 = minimize_LCB(
-                model=self.simulator.model.models[1],
-                n_var=self.n_design,
-                bound=self.bound,
-                seed=self.seed,
-                n_gen=self.infill_nb_gen
-            )
-            infill_lf = np.vstack((infill_lf, infill_lf_LCB_2))
-            # max-min Euclidean Distance
-            current_DOE = self.simulator.model.get_DOE()
-            current_DOE = np.vstack((current_DOE, infill_lf))
-            for _ in range(self.infill_lf_size - 3):
-                infill_lf_ED = maximize_ED(
-                    DOE=current_DOE,
-                    n_var=self.n_design,
-                    bound=self.bound,
-                    seed=self.seed,
-                    n_gen=self.infill_nb_gen
-                )
-                infill_lf = np.vstack((infill_lf, infill_lf_ED))
-                current_DOE = np.vstack((current_DOE, infill_lf_ED))
-        else:
-            # max-min Euclidean Distance
-            current_DOE = self.simulator.model.get_DOE()
-            for _ in range(self.infill_lf_size):
-                infill_lf_ED = maximize_ED(
-                    DOE=current_DOE,
-                    n_var=self.n_design,
-                    bound=self.bound,
-                    seed=self.seed,
-                    n_gen=self.infill_nb_gen
-                )
-                infill_lf = np.vstack((infill_lf, infill_lf_ED))
-                current_DOE = np.vstack((current_DOE, infill_lf_ED))
-        return infill_lf
-
-    def execute_infill(
-            self, gid: int, config: str, X: np.ndarray, fidelity: str
-    ) -> list[np.ndarray]:
-        """
-        **Executes** infill candidates and returns their associated fitnesses.
-        """
-        name = f"{fidelity}_infill_{gid}"
-        df_dict = execute_single_gen(
-            outdir=os.path.join(self.outdir, name),
-            config=config,
-            X=X,
-            name=name,
-            n_design=self.config["ffd"].get("ffd_ncontrol", self.n_design)
-        )
-        loss_ADP = np.array(
-            [df_dict[0][cid]["ADP"][self.QoI].iloc[-1] for cid in range(len(df_dict[0]))]
-        )
-        loss_OP = np.array(
-            [0.5 * (df_dict[0][cid]["OP1"][self.QoI].iloc[-1]
-                    + df_dict[0][cid]["OP2"][self.QoI].iloc[-1])
-             for cid in range(len(df_dict[0]))]
-        )
-        assert len(loss_ADP) == len(np.atleast_2d(X))
-        return [loss_ADP, loss_OP]
 
     def _observe(self, pop_fitness: np.ndarray):
         """
@@ -412,11 +291,10 @@ class CustomOptimizer(PymooWolfOptimizer):
 
         # plotting data: last gen. pareto, y_hf infill, hf baseline
         nsga = compute_pareto(gen_fitness[-self.doe_size:, 0], gen_fitness[-self.doe_size:, 1])
-        ax.plot(nsga[:, 0], nsga[:, 1], color="forestgreen", label=f"g{len(gen_fitness) - 1}")
-        w_ADP_hf = self.simulator.model.models[0].y_hf_DOE
-        w_OP_hf = self.simulator.model.models[1].y_hf_DOE
-        ax.scatter(w_ADP_hf[-self.infill_nb * self.infill_hf_size:],
-                   w_OP_hf[-self.infill_nb * self.infill_hf_size:],
+        ax.plot(nsga[:, 0], nsga[:, 1],
+                color="forestgreen", label=f"g{len(gen_fitness) // self.doe_size - 1}")
+        w_ADP_hf, w_OP_hf = get_hf_DOE(self.simulator.model)
+        ax.scatter(w_ADP_hf, w_OP_hf,
                    marker="s", color="k", facecolors="none", label="hf DOE & infill")
         ax.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="red", label="hf baseline")
         ax.plot()
@@ -436,8 +314,126 @@ class CustomOptimizer(PymooWolfOptimizer):
         plt.close()
 
 
+def get_hf_DOE(model: MfDNN | MultiObjectiveModel) -> tuple[np.ndarray, np.ndarray]:
+    """
+    **Returns** the two objectives high-fidelity DOEs
+    """
+    if isinstance(model, MultiObjectiveModel):
+        assert model.models[0].y_hf_DOE is not None
+        assert model.models[1].y_hf_DOE is not None
+        w_ADP_hf = model.models[0].y_hf_DOE
+        w_OP_hf = model.models[1].y_hf_DOE
+    elif isinstance(model, MfDNN):
+        assert model.y_hf_DOE is not None
+        w_ADP_hf = model.y_hf_DOE[:, 0]
+        w_OP_hf = model.y_hf_DOE[:, 1]
+    else:
+        raise Exception(f"{type(model)} is currently not supported")
+    return w_ADP_hf, w_OP_hf
+
+
+def compute_bayesian_infill(
+        model: MfDNN | MultiObjectiveModel,
+        infill_lf_size: int,
+        infill_nb_gen: int,
+        n_design: int,
+        bound: tuple[Any],
+        seed: int
+) -> np.ndarray:
+    """
+    **Computes** the low fidelity Bayesian infill candidates.
+    """
+    assert isinstance(model, MultiObjectiveModel)
+    # Probability of Improvement
+    infill_lf = maximize_MPI_BO(model, n_design, bound, seed, infill_nb_gen)
+    # Lower Confidence Bound /objective 1
+    assert isinstance(model.models[0], MfSMT)
+    infill_lf_LCB_1 = minimize_LCB(model.models[0], n_design, bound, seed, infill_nb_gen)
+    infill_lf = np.vstack((infill_lf, infill_lf_LCB_1))
+    # Lower Confidence Bound /objective 2
+    assert isinstance(model.models[1], MfSMT)
+    infill_lf_LCB_2 = minimize_LCB(model.models[1], n_design, bound, seed, infill_nb_gen)
+    infill_lf = np.vstack((infill_lf, infill_lf_LCB_2))
+    # max-min Euclidean Distance
+    current_DOE = model.get_DOE()
+    current_DOE = np.vstack((current_DOE, infill_lf))
+    for _ in range(infill_lf_size - 3):
+        infill_lf_ED = maximize_ED(current_DOE, n_design, bound, seed, infill_nb_gen)
+        infill_lf = np.vstack((infill_lf, infill_lf_ED))
+        current_DOE = np.vstack((current_DOE, infill_lf_ED))
+    return infill_lf
+
+
+def compute_non_bayesian_infill(
+    model: MfDNN | MultiObjectiveModel,
+    pareto_cand: np.ndarray,
+    pareto_fit: np.ndarray,
+    infill_lf_size: int,
+    infill_nb_gen: int,
+    n_design: int,
+    bound: tuple[Any],
+    seed: int
+) -> np.ndarray:
+    """
+    **Computes** the low fidelity non-Bayesian infill candidates.
+    """
+    if len(pareto_fit) == 1:
+        infill_lf = pareto_cand[0]
+        n_p = 1
+    elif len(pareto_fit) == 2:
+        infill_lf = pareto_cand[:2]
+        n_p = 2
+    else:
+        # matrix made of the distance between each point in the ordered pareto front
+        d_matrix = np.linalg.norm(pareto_fit[:, np.newaxis] - pareto_fit[np.newaxis, :], axis=-1)
+        # 1d array with the distance between two consecutive points along the ordered pareto front
+        s = np.array([d_matrix[i + 1, i] for i in range(len(d_matrix) - 1)])
+        s_length = np.sum(s)
+        # index of the closest point to the pareto set center
+        idx = np.argmin([abs(np.sum(s[:i]) - s_length / 2.) for i in range(len(s))])
+        infill_lf = pareto_cand[idx]
+        # best candidate wrt 1st objective
+        infill_lf = np.vstack((infill_lf, pareto_cand[0]))
+        # best candidate wrt 2nd objective
+        infill_lf = np.vstack((infill_lf, pareto_cand[-1]))
+        n_p = 3
+    # max-min Euclidean Distance
+    current_DOE = model.get_DOE()
+    for _ in range(infill_lf_size - n_p):
+        infill_lf_ED = maximize_ED(current_DOE, n_design, bound, seed, infill_nb_gen)
+        infill_lf = np.vstack((infill_lf, infill_lf_ED))
+        current_DOE = np.vstack((current_DOE, infill_lf_ED))
+    return infill_lf
+
+
+def execute_infill(
+        X: np.ndarray, config: str, n_design: int, outdir: str, ite: int, fidelity: str
+) -> list[np.ndarray]:
+    """
+    **Executes** infill candidates and returns their associated fitnesses.
+    """
+    name = f"{fidelity}_infill_{ite}"
+    df_dict = execute_single_gen(
+        X=X,
+        config=config,
+        outdir=os.path.join(outdir, name),
+        name=name,
+        n_design=n_design
+    )
+    loss_ADP = np.array(
+        [df_dict[0][cid]["ADP"]["LossCoef"].iloc[-1] for cid in range(len(df_dict[0]))]
+    )
+    loss_OP = np.array(
+        [0.5 * (df_dict[0][cid]["OP1"]["LossCoef"].iloc[-1]
+                + df_dict[0][cid]["OP2"]["LossCoef"].iloc[-1])
+            for cid in range(len(df_dict[0]))]
+    )
+    assert len(loss_ADP) == len(np.atleast_2d(X))
+    return [loss_ADP, loss_OP]
+
+
 def execute_single_gen(
-        outdir: str, config: str, X: np.ndarray, name: str, n_design: int = 0
+        X: np.ndarray, config: str, outdir: str, name: str, n_design: int = 0
 ) -> dict[int, dict[int, pd.DataFrame]]:
     """
     **Executes** a single generation of candidates.
