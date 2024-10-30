@@ -6,6 +6,7 @@ import torch
 
 from abc import ABC, abstractmethod
 from aero_optim.mf_sm.mf_dnn import NNH, NNL, MfDNN_train, NNL_pretrain, weights_init
+from aero_optim.utils import check_dir
 from emukit.model_wrappers.gpy_model_wrappers import GPyMultiOutputWrapper
 from emukit.multi_fidelity.models import GPyLinearMultiFidelityModel
 from emukit.multi_fidelity.convert_lists_to_array import (
@@ -13,6 +14,7 @@ from emukit.multi_fidelity.convert_lists_to_array import (
 )
 from scipy.spatial.distance import cdist
 from scipy.stats import qmc
+from smt.applications.mfkpls import MFKPLS
 from smt.applications.mfk import MFK
 from smt.surrogate_models import KRG
 
@@ -109,6 +111,7 @@ class MfDNN(MfModel):
     """
     def __init__(self, dim: int, model_dict: dict, outdir: str, seed: int):
         super().__init__(dim, model_dict, outdir, seed)
+        check_dir(outdir)
         self.requires_nested_doe = model_dict.get("nested_doe", False)
         self.name = model_dict.get("name", "MF-DNN")
         # seed torch
@@ -117,8 +120,9 @@ class MfDNN(MfModel):
         self.device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # the first layer of both network is created here
         self.model_dict["NNL"]["layer_sizes_NNL"].insert(0, dim)
-        self.model_dict["NNH"]["layer_sizes_NNH1"].insert(0, dim + 1)
-        self.model_dict["NNH"]["layer_sizes_NNH2"].insert(0, dim + 1)
+        self.n_obj = self.model_dict["NNL"]["layer_sizes_NNL"][-1]
+        self.model_dict["NNH"]["layer_sizes_NNH1"].insert(0, dim + self.n_obj)
+        self.model_dict["NNH"]["layer_sizes_NNH2"].insert(0, dim + self.n_obj)
         # low fidelity network
         self.NNL = NNL(self.model_dict["NNL"]["layer_sizes_NNL"])
         # high fidelity network
@@ -205,12 +209,13 @@ class MfDNN(MfModel):
             scheduler=MfDNN_scheduler
         )
 
-    def evaluate(self, x: np.ndarray) -> np.ndarray:
+    def evaluate(self, x: np.ndarray) -> np.ndarray | list[np.ndarray]:
         x_torch = torch.from_numpy(x).float()
         x_torch = x_torch.to(self.device)
         y_lo_hi = self.NNL.eval()(x_torch)
         y = self.NNH.eval()(torch.cat((x_torch, y_lo_hi), dim=1))
-        return y.cpu().detach().numpy()
+        y_np = y.cpu().detach().numpy()
+        return y_np if self.n_obj == 1 else [y_np[:, c_][:, None] for c_ in range(self.n_obj)]
 
 
 class MfSMT(MfModel):
@@ -221,7 +226,32 @@ class MfSMT(MfModel):
         super().__init__(dim, model_dict, outdir, seed)
         self.requires_nested_doe = model_dict.get("nested_doe", True)
         self.name = model_dict.get("name", "AR1")
-        self.model = MFK(theta0=dim * [1.0], print_global=False)
+        self.eval_noise = model_dict.get("eval_noise", False)
+        self.model = MFK(theta0=dim * [1.0], eval_noise=self.eval_noise, print_global=False)
+
+    def train(self):
+        self.model.set_training_values(self.x_lf_DOE, self.y_lf_DOE, name=0)
+        self.model.set_training_values(self.x_hf_DOE, self.y_hf_DOE)
+        self.model.train()
+
+    def evaluate(self, x: np.ndarray) -> np.ndarray:
+        y = self.model.predict_values(x)
+        return y
+
+    def evaluate_std(self, x: np.ndarray) -> np.ndarray:
+        return np.sqrt(self.model.predict_variances(x))
+
+
+class MfKPLS(MfModel):
+    """
+    Wrapping class around an smt multifidelity cokriging model.
+    """
+    def __init__(self, dim: int, model_dict: dict, outdir: str, seed: int):
+        super().__init__(dim, model_dict, outdir, seed)
+        self.requires_nested_doe = model_dict.get("nested_doe", True)
+        self.name = model_dict.get("name", "AR1")
+        self.ncomp = model_dict.get("ncomp", 2)
+        self.model = MFKPLS(n_comp=self.ncomp, theta0=self.ncomp * [1.0], print_global=False)
 
     def train(self):
         self.model.set_training_values(self.x_lf_DOE, self.y_lf_DOE, name=0)
@@ -303,8 +333,9 @@ class MultiObjectiveModel(MfModel):
     """
     Multi-objective surrogate model.
     """
-    def __init__(self, list_of_models: list[MfSMT | MfDNN | SfSMT | MfLGP]):
-        self.models: list[MfSMT | MfDNN | SfSMT | MfLGP] = list_of_models
+    def __init__(self, list_of_models: list[MfSMT | MfKPLS | SfSMT | MfLGP]):
+        self.models: list[MfSMT | MfKPLS | SfSMT | MfLGP] = list_of_models
+        self.requires_nested_doe = self.models[0].requires_nested_doe
 
     def train(self):
         for model in self.models:
@@ -336,7 +367,7 @@ class MultiObjectiveModel(MfModel):
 
 def get_model(
         model_name: str, dim: int, config_dict: dict, outdir: str, seed: int
-) -> SfSMT | MfSMT | MfLGP | MfDNN:
+) -> SfSMT | MfSMT | MfKPLS | MfLGP | MfDNN:
     """
     Returns a multifidelity model based on the user's specifications.
     """
@@ -344,6 +375,8 @@ def get_model(
         return SfSMT(dim, config_dict.get("smt", {}), outdir, seed)
     elif model_name.lower() == "mfsmt":
         return MfSMT(dim, config_dict.get("mfsmt", {}), outdir, seed)
+    elif model_name.lower() == "mfkpls":
+        return MfKPLS(dim, config_dict.get("mfkpls", {}), outdir, seed)
     elif model_name.lower() == "mflgp":
         return MfLGP(dim, config_dict.get("mflgp", {}), outdir, seed)
     elif model_name.lower() == "mfdnn":
