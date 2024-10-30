@@ -49,7 +49,8 @@ class EIProblem(LCBProblem):
 
 class PIBOProblem(Problem):
     """
-    Bi-objective Probability Improvement problem.
+    Bi-objective Probability of Improvement problem:
+    see A. J. Keane (2006): https://doi.org/10.2514/1.16875
     """
     epsilon: float = 1e-6
 
@@ -58,9 +59,9 @@ class PIBOProblem(Problem):
         self.model = model
 
     def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
-        assert self.model.models[0].y_lf_DOE is not None
-        assert self.model.models[1].y_lf_DOE is not None
-        pareto = compute_pareto(self.model.models[0].y_lf_DOE, self.model.models[1].y_lf_DOE)
+        assert self.model.models[0].y_hf_DOE is not None
+        assert self.model.models[1].y_hf_DOE is not None
+        pareto = compute_pareto(self.model.models[0].y_hf_DOE, self.model.models[1].y_hf_DOE)
         model1 = self.model.models[0]
         model2 = self.model.models[1]
 
@@ -69,15 +70,44 @@ class PIBOProblem(Problem):
         std1 = model1.evaluate_std(x) + self.epsilon
         std2 = model2.evaluate_std(x) + self.epsilon
 
-        PI_aug = norm.cdf((pareto[0, 0] - u1) / std1)
+        PIaug = norm.cdf((pareto[0, 0] - u1) / std1)
         for i in range(len(pareto) - 1):
-            PI_aug += (
-                norm.cdf((pareto[i + 1, 0] - u1) / std1)
-                - norm.cdf((pareto[i, 0] - u1) / std1) * norm.cdf((pareto[i, 1] - u2) / std2)
-                + (1 - norm.cdf((pareto[-1, 0] - u1) / std1))
-                * norm.cdf((pareto[-1, 1] - u2) / std2)
+            PIaug += (
+                (norm.cdf((pareto[i + 1, 0] - u1) / std1) - norm.cdf((pareto[i, 0] - u1) / std1))
+                * norm.cdf((pareto[i, 1] - u2) / std2)
             )
-        out["F"] = - PI_aug
+        PIaug += (1 - norm.cdf((pareto[-1, 0] - u1) / std1)) * norm.cdf((pareto[-1, 1] - u2) / std2)
+        out["F"] = - PIaug
+
+
+class MPIBOProblem(Problem):
+    """
+    Bi-objective Minimal Probability of Improvement problem:
+    see A. A. Rahat (2017): https://dl.acm.org/doi/10.1145/3071178.3071276
+    """
+    epsilon: float = 1e-6
+
+    def __init__(self, model: MultiObjectiveModel, n_var: int, bound: tuple[float]):
+        super().__init__(n_var=n_var, n_obj=1, xl=bound[0], xu=bound[-1])
+        self.model = model
+
+    def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
+        assert self.model.models[0].y_hf_DOE is not None
+        assert self.model.models[1].y_hf_DOE is not None
+        pareto = compute_pareto(self.model.models[0].y_hf_DOE, self.model.models[1].y_hf_DOE)
+        model1 = self.model.models[0]
+        model2 = self.model.models[1]
+
+        u1 = model1.evaluate(x)
+        u2 = model2.evaluate(x)
+        std1 = model1.evaluate_std(x) + self.epsilon
+        std2 = model2.evaluate_std(x) + self.epsilon
+
+        MPI = np.min(np.column_stack(
+            [1 - norm.cdf((u1 - pp[0]) / std1) * norm.cdf((u2 - pp[1]) / std2)
+             for pp in pareto]
+        ), axis=1)
+        out["F"] = - MPI
 
 
 class EDProblem(Problem):
@@ -142,7 +172,7 @@ def maximize_PI_BO(
         model: MultiObjectiveModel, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
 ) -> np.ndarray:
     """
-    Bi-objective Probability of Improvement maximization
+    Bi-objective Probability of Improvement maximization.
     """
     problem = PIBOProblem(model, n_var=n_var, bound=bound)
     algorithm = PSO()
@@ -154,6 +184,25 @@ def maximize_PI_BO(
         verbose=False
     )
     logger.info(f"PIBO adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
+    return res.X
+
+
+def maximize_MPI_BO(
+        model: MultiObjectiveModel, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
+) -> np.ndarray:
+    """
+    Bi-objective Minimal Probability of Improvement maximization.
+    """
+    problem = MPIBOProblem(model, n_var=n_var, bound=bound)
+    algorithm = PSO()
+    res = minimize(
+        problem,
+        algorithm,
+        termination=get_termination("n_gen", n_gen),
+        seed=seed,
+        verbose=False
+    )
+    logger.info(f"MPIBO adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
     return res.X
 
 
