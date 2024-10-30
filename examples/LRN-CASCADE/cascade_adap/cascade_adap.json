@@ -3,7 +3,8 @@
         "study_type": "cascade",
         "ffd_type": "ffd_2d",
         "file": "../data/lrn_cascade.dat",
-        "outdir": "output"
+        "outdir": "output",
+        "custom_file": "custom_cascade.py"
     },
     "optim": {
         "n_design": 8,
