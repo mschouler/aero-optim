@@ -22,6 +22,7 @@ def get_mo_model(
     if model_name == "mfsmt":
         model_ADP = get_model(model_name, n_design, config, outdir, seed)
         model_OP = copy.deepcopy(model_ADP)
+        assert not isinstance(model_ADP, MfDNN) and not isinstance(model_OP, MfDNN)
         return MultiObjectiveModel([model_ADP, model_OP])
     elif model_name == "mfdnn":
         model = get_model(model_name, n_design, config, outdir, seed)
@@ -70,6 +71,8 @@ def save_results(model: MfDNN | MultiObjectiveModel, outdir: str):
 
 def main():
     """
+    This script performs a single optimization execution with Bayesian or non-Bayesian infills
+    and with or without POD-based data reduction.
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-c", "--config", type=str, help="/path/to/lconfig.json")
@@ -192,7 +195,7 @@ def main():
     infill_nb_gen = sm_config["optim"]["infill_nb_gen"]
     bayesian_infill = sm_config["optim"]["bayesian_infill"]
     for ite in range(nite):
-        outdir_ite = os.path.join(outdir, outdir + f"_{ite}")
+        outdir_ite = os.path.join(outdir, outdir.split("/")[-1] + f"_{ite}")
         # optimization
         if not bayesian_infill:
             print("MFSM: executes aero-optim subprocess")
