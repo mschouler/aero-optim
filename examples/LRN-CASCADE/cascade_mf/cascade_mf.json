@@ -9,47 +9,56 @@
     "optim": {
         "n_design": 8,
         "doe_size": 20,
-        "max_generations": 150,
+        "max_generations": 50,
         "bound": [-0.2, 0.2],
         "QoI": "LossCoef",
-        "baseline_w_ADP": 0.04033,
-        "baseline_w_OP": 0.06791,
+        "bsl_hf_w_ADP": 0.04033,
+        "bsl_hf_w_OP": 0.06791,
+        "bsl_lf_w_ADP": 0.03604,
+        "bsl_lf_w_OP": 0.04674,
         "model_name": "mfsmt",
-        "n_lf": 100,
-        "n_hf": 10,
-        "infill_freq": 10,
+        "n_lf": 99,
+        "n_hf": 9,
         "infill_nb": 10,
         "infill_lf_size": 10,
         "infill_hf_size": 1,
-        "infill_nb_gen": 100,
+        "infill_nb_gen": 50,
         "bayesian_infill": true,
         "lf_config": "lf_config.json",
         "hf_config": "hf_config.json"
     },
-    "ffd": {
-        "pod_ncontrol": 5,
-        "ffd_dataset_size": 1000
+    "mfsmt" : {
+        "eval_noise": true
     },
-    "gmsh": {
-        "mesh": {
-            "bl": false,
-            "nodes_inlet": 20,
-            "nodes_outlet": 20,
-            "side_nodes_inlet": 20,
-            "side_nodes_outlet": 50,
-            "curved_side_nodes": 10,
-            "le": 64,
-            "te": 64,
-            "nodes_ss": 400,
-            "nodes_ps": 400,
-            "structured": false
+    "mfdnn": {
+        "nested_doe": true,
+        "pretraining": true,
+        "NNL": {
+            "layer_sizes_NNL": [32, 32, 32, 32, 32, 32, 2],
+            "optimizer": {
+                "lr": 1e-3,
+                "weight_decay": 0
+            },
+            "loss_target": 1e-5,
+            "niter": 10000
         },
-        "view": {
-            "GUI": true,
-            "quality": false,
-            "nview": 1
+        "NNH": {
+            "layer_sizes_NNH1": [16, 2],
+            "layer_sizes_NNH2": [16, 16, 2],
+            "optimizer": {
+                "lr": 1e-4,
+                "weight_decay_NNH1": 0,
+                "weight_decay_NNH2": 1e-4
+            },
+            "loss_target": 1e-5,
+            "niter": 20000
         }
     },
+    "ffd": {
+        "pod_ncontrol": 4,
+        "ffd_dataset_size": 1000
+    },
+    "gmsh": {},
     "simulator": {
         "model_file": "output_mf/model.pkl",
         "exec_cmd": "",
