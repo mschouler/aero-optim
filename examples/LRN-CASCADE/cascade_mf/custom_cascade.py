@@ -447,7 +447,7 @@ def execute_single_gen(
     # updates @outdir, @n_design, @doe_size, @custom_doe
     # Note: @n_design is the number of FFD control points even when using POD
     config_args = {
-        "@output": outdir,
+        "@outdir": outdir,
         "@n_design": f"{n_design if n_design else np.atleast_2d(X).shape[1]}",
         "@doe_size": f"{np.atleast_2d(X).shape[0]}",
         "@custom_doe": f"{custom_doe}"
