@@ -81,4 +81,4 @@ The `FFD_pod_2D` class is instantiated with 5 positional arguments:
 To use this functionality, the `ffd_type` of the `"study"` entry must be set to `"ffd_pod_2d"`. The number of FFD control points and boundaries are still given by the `"n_design"` and `"bound"` values of the `"optim"` entry. In the `"ffd"` entry, the POD reduced dimension is set via `"pod_ncontrol"` and the size of the FFD dataset with `"ffd_dataset_size"`.
 
 #### Illustration
-An application of this feature is illustrated in the POD notebook **[[WILL BE MADE AVAILABLE SOON]]**.
+An application of this feature is illustrated in the [POD notebook](https://github.com/mschouler/aero-optim/blob/master/scripts/FFD/POD.ipynb).
