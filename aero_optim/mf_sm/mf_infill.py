@@ -9,7 +9,7 @@ from pymoo.termination import get_termination
 from scipy.spatial.distance import cdist
 from scipy.stats import norm
 
-from aero_optim.mf_sm.mf_models import MfSMT
+from aero_optim.mf_sm.mf_models import MfSMT, MultiObjectiveModel
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +47,80 @@ class EIProblem(LCBProblem):
         out["F"] = - f1
 
 
+class PIBOProblem(Problem):
+    """
+    Bi-objective Probability of Improvement problem:
+    see A. J. Keane (2006): https://doi.org/10.2514/1.16875
+    """
+    epsilon: float = 1e-6
+
+    def __init__(self, model: MultiObjectiveModel, n_var: int, bound: tuple[float]):
+        super().__init__(n_var=n_var, n_obj=1, xl=bound[0], xu=bound[-1])
+        self.model = model
+
+    def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
+        assert self.model.models[0].y_hf_DOE is not None
+        assert self.model.models[1].y_hf_DOE is not None
+        pareto = compute_pareto(self.model.models[0].y_hf_DOE, self.model.models[1].y_hf_DOE)
+        model1 = self.model.models[0]
+        model2 = self.model.models[1]
+
+        u1 = model1.evaluate(x)
+        u2 = model2.evaluate(x)
+        std1 = model1.evaluate_std(x) + self.epsilon
+        std2 = model2.evaluate_std(x) + self.epsilon
+
+        PIaug = norm.cdf((pareto[0, 0] - u1) / std1)
+        for i in range(len(pareto) - 1):
+            PIaug += (
+                (norm.cdf((pareto[i + 1, 0] - u1) / std1) - norm.cdf((pareto[i, 0] - u1) / std1))
+                * norm.cdf((pareto[i, 1] - u2) / std2)
+            )
+        PIaug += (1 - norm.cdf((pareto[-1, 0] - u1) / std1)) * norm.cdf((pareto[-1, 1] - u2) / std2)
+        out["F"] = - PIaug
+
+
+class MPIBOProblem(Problem):
+    """
+    Bi-objective Minimal Probability of Improvement problem:
+    see A. A. Rahat (2017): https://dl.acm.org/doi/10.1145/3071178.3071276
+    """
+    epsilon: float = 1e-6
+
+    def __init__(self, model: MultiObjectiveModel, n_var: int, bound: tuple[float]):
+        super().__init__(n_var=n_var, n_obj=1, xl=bound[0], xu=bound[-1])
+        self.model = model
+
+    def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
+        assert self.model.models[0].y_hf_DOE is not None
+        assert self.model.models[1].y_hf_DOE is not None
+        pareto = compute_pareto(self.model.models[0].y_hf_DOE, self.model.models[1].y_hf_DOE)
+        model1 = self.model.models[0]
+        model2 = self.model.models[1]
+
+        u1 = model1.evaluate(x)
+        u2 = model2.evaluate(x)
+        std1 = model1.evaluate_std(x) + self.epsilon
+        std2 = model2.evaluate_std(x) + self.epsilon
+
+        MPI = np.min(np.column_stack(
+            [1 - norm.cdf((u1 - pp[0]) / std1) * norm.cdf((u2 - pp[1]) / std2)
+             for pp in pareto]
+        ), axis=1)
+        out["F"] = - MPI
+
+
 class EDProblem(Problem):
     """
     Euclidean Distance problem.
     """
-    def __init__(self, DOE: np.ndarray, model: MfSMT, n_var: int, bound: tuple[float]):
+    def __init__(
+            self,
+            DOE: np.ndarray,
+            n_var: int,
+            bound: tuple[float]
+    ):
         super().__init__(n_var=n_var, n_obj=1, xl=bound[0], xu=bound[-1])
-        self.model = model
         self.DOE = DOE
 
     def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
@@ -87,9 +154,6 @@ def maximize_EI(
 ) -> np.ndarray:
     """
     Expected Improvement maximization function.
-
-    Inputs:
-        y_star (float): the current best fitness value.
     """
     problem = EIProblem(model, n_var=n_var, bound=bound)
     algorithm = PSO()
@@ -104,16 +168,54 @@ def maximize_EI(
     return res.X
 
 
-def maximize_ED(
-        model: MfSMT, DOE: np.ndarray, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
+def maximize_PI_BO(
+        model: MultiObjectiveModel, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
 ) -> np.ndarray:
     """
-    Expected Improvement maximization function.
+    Bi-objective Probability of Improvement maximization.
+    """
+    problem = PIBOProblem(model, n_var=n_var, bound=bound)
+    algorithm = PSO()
+    res = minimize(
+        problem,
+        algorithm,
+        termination=get_termination("n_gen", n_gen),
+        seed=seed,
+        verbose=False
+    )
+    logger.info(f"PIBO adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
+    return res.X
+
+
+def maximize_MPI_BO(
+        model: MultiObjectiveModel, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
+) -> np.ndarray:
+    """
+    Bi-objective Minimal Probability of Improvement maximization.
+    """
+    problem = MPIBOProblem(model, n_var=n_var, bound=bound)
+    algorithm = PSO()
+    res = minimize(
+        problem,
+        algorithm,
+        termination=get_termination("n_gen", n_gen),
+        seed=seed,
+        verbose=False
+    )
+    logger.info(f"MPIBO adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
+    return res.X
+
+
+def maximize_ED(
+        DOE: np.ndarray, n_var: int, bound: tuple[float], seed: int, n_gen: int = 1000
+) -> np.ndarray:
+    """
+    Euclidean distance maximization function.
 
     Inputs:
         DOE (np.ndarray): the full low- and high-fidelity DOE.
     """
-    problem = EDProblem(DOE, model, n_var=n_var, bound=bound)
+    problem = EDProblem(DOE, n_var=n_var, bound=bound)
     algorithm = PSO()
     res = minimize(
         problem,
@@ -124,3 +226,32 @@ def maximize_ED(
     )
     logger.info(f"ED adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
     return res.X
+
+
+def compute_pareto(J1: np.ndarray, J2: np.ndarray) -> np.ndarray:
+    """
+    Returns the current fitness pareto front.
+    see implementation from the stackoverflow thread below:
+    https://stackoverflow.com/questions/32791911/fast-calculation-of-pareto-front-in-python/40239615#40239615 # noqa
+    """
+    costs = np.column_stack((J1, J2))
+    is_efficient = np.ones(costs.shape[0], dtype=bool)
+    for i, c in enumerate(costs):
+        if is_efficient[i]:
+            is_efficient[is_efficient] = np.any(costs[is_efficient] < c, axis=1)
+            is_efficient[i] = True
+    costs = costs[is_efficient]
+    sorted_idx = np.argsort(costs, axis=0)[:, 0]
+    return costs[sorted_idx]
+
+
+def compute_dominated_idx(J1: np.ndarray, J2: np.ndarray) -> int:
+    """
+    Returns the index of a dominated objective couple.
+    """
+    pareto = compute_pareto(J1, J2)
+    assert len(pareto) < len(J1)
+    for idx, j1 in enumerate(J1):
+        if j1 not in pareto[:, 0]:
+            return idx
+    return -1

@@ -62,7 +62,9 @@ class NNH(torch.nn.Module):
         self.NNH2 = torch.nn.Sequential(*NNH2_layers)
 
         # linear + nonlinear
-        self.alpha = torch.nn.Parameter(torch.tensor(0., requires_grad=True))
+        self.alpha = torch.nn.Parameter(
+            torch.tensor([0.] * self.lay_size_NNH1[-1], requires_grad=True)
+        )
 
     def forward(self, x: torch.Tensor):
         y_hi_l = self.NNH1(x)

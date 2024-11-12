@@ -6,6 +6,7 @@ import torch
 
 from abc import ABC, abstractmethod
 from aero_optim.mf_sm.mf_dnn import NNH, NNL, MfDNN_train, NNL_pretrain, weights_init
+from aero_optim.utils import check_dir
 from emukit.model_wrappers.gpy_model_wrappers import GPyMultiOutputWrapper
 from emukit.multi_fidelity.models import GPyLinearMultiFidelityModel
 from emukit.multi_fidelity.convert_lists_to_array import (
@@ -13,6 +14,7 @@ from emukit.multi_fidelity.convert_lists_to_array import (
 )
 from scipy.spatial.distance import cdist
 from scipy.stats import qmc
+from smt.applications.mfkpls import MFKPLS
 from smt.applications.mfk import MFK
 from smt.surrogate_models import KRG
 
@@ -51,10 +53,13 @@ class MfModel(ABC):
         """
 
     @abstractmethod
-    def evaluate(self, x: np.ndarray) -> np.ndarray:
+    def evaluate(self, x: np.ndarray):
         """
         Returns a model prediction for a given input x.
         """
+
+    def evaluate_std(self, x: np.ndarray):
+        raise Exception("Not implemented")
 
     def get_DOE(self) -> np.ndarray:
         """
@@ -93,25 +98,11 @@ class MfModel(ABC):
 
     def get_y_star(self) -> float | np.ndarray:
         """
-        Returns the current best lf fitness (SO) or pareto front (MO).
+        Returns the current best lf fitness (SOO) or pareto front (MOO).
         """
         # single objective, y_star is simply the min value
-        if isinstance(self.y_lf_DOE, np.ndarray) and self.y_lf_DOE[0].size == 1:
-            return min(self.y_lf_DOE)
-        # multi objective, y_star corresponds to the pareto front
-        else:
-            assert (
-                isinstance(self.y_lf_DOE, np.ndarray) and isinstance(self.y_lf_DOE[0], np.ndarray)
-            )
-            return self.compute_pareto(self.y_lf_DOE)
-
-    def compute_pareto(self, y_lf: np.ndarray) -> np.ndarray:
-        """
-        Returns the current lf fitness pareto front.
-        see implementation from the stackoverflow thread below:
-        https://stackoverflow.com/questions/32791911/fast-calculation-of-pareto-front-in-python/40239615#40239615 # noqa
-        """
-        raise Exception("Not implemented")
+        assert self.y_lf_DOE is not None
+        return min(self.y_lf_DOE)
 
 
 class MfDNN(MfModel):
@@ -120,6 +111,7 @@ class MfDNN(MfModel):
     """
     def __init__(self, dim: int, model_dict: dict, outdir: str, seed: int):
         super().__init__(dim, model_dict, outdir, seed)
+        check_dir(outdir)
         self.requires_nested_doe = model_dict.get("nested_doe", False)
         self.name = model_dict.get("name", "MF-DNN")
         # seed torch
@@ -128,8 +120,9 @@ class MfDNN(MfModel):
         self.device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # the first layer of both network is created here
         self.model_dict["NNL"]["layer_sizes_NNL"].insert(0, dim)
-        self.model_dict["NNH"]["layer_sizes_NNH1"].insert(0, dim + 1)
-        self.model_dict["NNH"]["layer_sizes_NNH2"].insert(0, dim + 1)
+        self.n_obj = self.model_dict["NNL"]["layer_sizes_NNL"][-1]
+        self.model_dict["NNH"]["layer_sizes_NNH1"].insert(0, dim + self.n_obj)
+        self.model_dict["NNH"]["layer_sizes_NNH2"].insert(0, dim + self.n_obj)
         # low fidelity network
         self.NNL = NNL(self.model_dict["NNL"]["layer_sizes_NNL"])
         # high fidelity network
@@ -216,12 +209,13 @@ class MfDNN(MfModel):
             scheduler=MfDNN_scheduler
         )
 
-    def evaluate(self, x: np.ndarray) -> np.ndarray:
+    def evaluate(self, x: np.ndarray) -> np.ndarray | list[np.ndarray]:
         x_torch = torch.from_numpy(x).float()
         x_torch = x_torch.to(self.device)
         y_lo_hi = self.NNL.eval()(x_torch)
         y = self.NNH.eval()(torch.cat((x_torch, y_lo_hi), dim=1))
-        return y.cpu().detach().numpy()
+        y_np = y.cpu().detach().numpy()
+        return y_np if self.n_obj == 1 else [y_np[:, c_][:, None] for c_ in range(self.n_obj)]
 
 
 class MfSMT(MfModel):
@@ -232,7 +226,32 @@ class MfSMT(MfModel):
         super().__init__(dim, model_dict, outdir, seed)
         self.requires_nested_doe = model_dict.get("nested_doe", True)
         self.name = model_dict.get("name", "AR1")
-        self.model = MFK(theta0=dim * [1.0], print_global=False)
+        self.eval_noise = model_dict.get("eval_noise", False)
+        self.model = MFK(theta0=dim * [1.0], eval_noise=self.eval_noise, print_global=False)
+
+    def train(self):
+        self.model.set_training_values(self.x_lf_DOE, self.y_lf_DOE, name=0)
+        self.model.set_training_values(self.x_hf_DOE, self.y_hf_DOE)
+        self.model.train()
+
+    def evaluate(self, x: np.ndarray) -> np.ndarray:
+        y = self.model.predict_values(x)
+        return y
+
+    def evaluate_std(self, x: np.ndarray) -> np.ndarray:
+        return np.sqrt(self.model.predict_variances(x))
+
+
+class MfKPLS(MfModel):
+    """
+    Wrapping class around an smt multifidelity cokriging model.
+    """
+    def __init__(self, dim: int, model_dict: dict, outdir: str, seed: int):
+        super().__init__(dim, model_dict, outdir, seed)
+        self.requires_nested_doe = model_dict.get("nested_doe", True)
+        self.name = model_dict.get("name", "AR1")
+        self.ncomp = model_dict.get("ncomp", 2)
+        self.model = MFKPLS(n_comp=self.ncomp, theta0=self.ncomp * [1.0], print_global=False)
 
     def train(self):
         self.model.set_training_values(self.x_lf_DOE, self.y_lf_DOE, name=0)
@@ -310,9 +329,45 @@ class MfLGP(MfModel):
         return self.predict(x)[-1]
 
 
+class MultiObjectiveModel(MfModel):
+    """
+    Multi-objective surrogate model.
+    """
+    def __init__(self, list_of_models: list[MfSMT | MfKPLS | SfSMT | MfLGP]):
+        self.models: list[MfSMT | MfKPLS | SfSMT | MfLGP] = list_of_models
+        self.requires_nested_doe = self.models[0].requires_nested_doe
+
+    def train(self):
+        for model in self.models:
+            model.train()
+
+    def evaluate(self, x: np.ndarray) -> list[np.ndarray]:
+        return [model.evaluate(x) for model in self.models]
+
+    def evaluate_std(self, x: np.ndarray) -> list[np.ndarray]:
+        return [model.evaluate_std(x) for model in self.models]
+
+    def get_DOE(self) -> np.ndarray:
+        return self.models[0].get_DOE()
+
+    def set_DOE(
+            self,
+            x_lf: np.ndarray, x_hf: np.ndarray,
+            y_lf: np.ndarray | list[np.ndarray], y_hf: np.ndarray | list[np.ndarray]
+    ):
+        for model, yy_lf, yy_hf in zip(self.models, y_lf, y_hf):
+            model.set_DOE(x_lf, x_hf, yy_lf, yy_hf)
+
+    def get_y_star(self) -> float | np.ndarray:
+        """
+        Returns the current best lf fitness (SO) or pareto front (MO).
+        """
+        raise Exception("Not implemented")
+
+
 def get_model(
         model_name: str, dim: int, config_dict: dict, outdir: str, seed: int
-) -> SfSMT | MfSMT | MfLGP | MfDNN:
+) -> SfSMT | MfSMT | MfKPLS | MfLGP | MfDNN:
     """
     Returns a multifidelity model based on the user's specifications.
     """
@@ -320,6 +375,8 @@ def get_model(
         return SfSMT(dim, config_dict.get("smt", {}), outdir, seed)
     elif model_name.lower() == "mfsmt":
         return MfSMT(dim, config_dict.get("mfsmt", {}), outdir, seed)
+    elif model_name.lower() == "mfkpls":
+        return MfKPLS(dim, config_dict.get("mfkpls", {}), outdir, seed)
     elif model_name.lower() == "mflgp":
         return MfLGP(dim, config_dict.get("mflgp", {}), outdir, seed)
     elif model_name.lower() == "mfdnn":

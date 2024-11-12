@@ -217,6 +217,7 @@ def plot_profile(pts: np.ndarray, cog: np.ndarray = np.array([]), figname: str =
         plt.savefig(figname, bbox_inches='tight')
     else:
         plt.show()
+    plt.close()
 
 
 def plot_sides(
@@ -285,3 +286,4 @@ def plot_sides(
         plt.savefig(figname, bbox_inches='tight')
     else:
         plt.show()
+    plt.close()

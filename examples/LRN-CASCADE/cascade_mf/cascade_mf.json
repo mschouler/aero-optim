@@ -1,0 +1,67 @@
+{
+    "study": {
+        "study_type": "cascade",
+        "ffd_type": "ffd_2d",
+        "file": "../data/lrn_cascade.dat",
+        "outdir": "output_mf",
+        "custom_file": "custom_cascade.py"
+    },
+    "optim": {
+        "n_design": 8,
+        "doe_size": 20,
+        "max_generations": 50,
+        "bound": [-0.2, 0.2],
+        "QoI": "LossCoef",
+        "bsl_hf_w_ADP": 0.04033,
+        "bsl_hf_w_OP": 0.06791,
+        "bsl_lf_w_ADP": 0.03604,
+        "bsl_lf_w_OP": 0.04674,
+        "model_name": "mfsmt",
+        "n_lf": 99,
+        "n_hf": 9,
+        "infill_nb": 10,
+        "infill_lf_size": 10,
+        "infill_hf_size": 1,
+        "infill_nb_gen": 50,
+        "bayesian_infill": true,
+        "lf_config": "lf_config.json",
+        "hf_config": "hf_config.json"
+    },
+    "mfsmt" : {
+        "eval_noise": true
+    },
+    "mfdnn": {
+        "nested_doe": true,
+        "pretraining": true,
+        "NNL": {
+            "layer_sizes_NNL": [32, 32, 32, 32, 32, 32, 2],
+            "optimizer": {
+                "lr": 1e-3,
+                "weight_decay": 0
+            },
+            "loss_target": 1e-5,
+            "niter": 10000
+        },
+        "NNH": {
+            "layer_sizes_NNH1": [16, 2],
+            "layer_sizes_NNH2": [16, 16, 2],
+            "optimizer": {
+                "lr": 1e-4,
+                "weight_decay_NNH1": 0,
+                "weight_decay_NNH2": 1e-4
+            },
+            "loss_target": 1e-5,
+            "niter": 20000
+        }
+    },
+    "ffd": {
+        "pod_ncontrol": 4,
+        "ffd_dataset_size": 1000
+    },
+    "gmsh": {},
+    "simulator": {
+        "model_file": "output_mf/model.pkl",
+        "exec_cmd": "",
+        "ref_input": ""
+    }
+}

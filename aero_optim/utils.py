@@ -35,7 +35,8 @@ def from_dat(file: str, header_len: int = 2, scale: float = 1) -> list[list[floa
 
 
 def check_config(
-        config: str, custom_file: str = "",
+        config: str,
+        custom_file: str = "", outdir: str = "",
         optim: bool = False, gmsh: bool = False, sim: bool = False) -> tuple[dict, str, str]:
     """
     Ensures the presence of all required entries in config,
@@ -47,13 +48,17 @@ def check_config(
         config_dict = json.load(jfile)
     print("AERO-Optim: general check config..")
 
+    # supersed outdir if given
+    if outdir:
+        config_dict["study"]["outdir"] = outdir
+
     # look for upper level categories
     if "study" not in config_dict:
         raise Exception(f"ERROR -- no <study>  upper entry in {config}")
     if optim and "optim" not in config_dict:
         raise Exception(f"ERROR -- no <optim>  upper entry in {config}")
     if (optim or gmsh) and "gmsh" not in config_dict:
-        raise Exception(f"ERROR -- no <mesh>  upper entry in {config}")
+        raise Exception(f"ERROR -- no <gmsh>  upper entry in {config}")
     if (optim or sim) and "simulator" not in config_dict:
         raise Exception(f"ERROR -- no <simulator>  upper entry in {config}")
 

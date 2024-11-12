@@ -11,12 +11,6 @@ NavierStokes
 SpalartAllmarasTurbulenceModel
 SANegativeModel
 
-FreeStreamNuSA
-1.5e-2
-
-TurbulentIntensity
-0.5
-
 Gamma
   1.400
 
