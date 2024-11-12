@@ -3,7 +3,7 @@
         "study_type": "cascade",
         "ffd_type": "ffd_2d",
         "file": "../data/lrn_cascade.dat",
-        "outdir": "@output",
+        "outdir": "@outdir",
         "custom_file": "../cascade_adap/custom_cascade.py"
     },
     "optim": {
@@ -17,7 +17,7 @@
         "constraint": false
     },
     "ffd": {
-        "pod_ncontrol": 5,
+        "pod_ncontrol": 4,
         "ffd_dataset_size": 1000
     },
     "gmsh": {
