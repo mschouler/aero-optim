@@ -1,5 +1,5 @@
 ## Free-Form Deformation Module
-Free-form Deformation (FFD) is a technique designed to deform solid geometric models in a free-form manner. It was originally introduced by Sederberg in 1986 ([doi](https://dl.acm.org/doi/10.1145/15886.15903)). The present implementation is based on the description in [Duvigneau 2006](https://inria.hal.science/inria-00085058/). 
+The deformation module relies on an abstract class `Deform` theoretically compatible with any kind of geometric deformation but it was only subclassed for Free-Form Deformation (FFD) purposes so far. FFD is a technique designed to deform solid geometric models in a free-form manner. It was originally introduced by Sederberg in 1986 ([doi](https://dl.acm.org/doi/10.1145/15886.15903)). The present implementation is based on the description in [Duvigneau 2006](https://inria.hal.science/inria-00085058/). 
 
 The main steps of FFD are:
 
@@ -25,14 +25,14 @@ Free-Form Deformation is implemented in `FFD_2D`, a straightforward class instan
 
 Once instantiated, the `apply_ffd(Delta)` method can be used to perform the deformation corresponding to the array `Delta`.
 
-### Illustration
+#### Illustration
 An FFD with 2 control points (i.e. 4 in total) and the deformation vector `Delta = (0., 0., 1., 1.)` will yield the following profile:
 <p float="left">
   <img src="../Figures/naca12.png" width="100%" />
 </p>
 Considering the figure notations, one notices that the deformation vector `Delta` corresponds to the list of deformations to be applied to the lower control points followed by those applied to the upper control points. In this case, `Delta` is: $$(D_{10}=0.,\, D_{20}=0.,\, D_{11}=1.,\, D_{21}=1.)$$ in lattice unit. The corner points are left unchanged so that the lattice corners remain fixed.
 
-### Quick Experiments
+#### Quick Experiments
 The `auto_ffd.py` scripts is called with the `ffd` command. It enables basic testing and visualization. It comes with a few options:
 ```py
 ffd --help
@@ -66,3 +66,19 @@ ffd -f ../data/naca12.dat -np 4 -nc 3 -s lhs
 
 !!! Note
     The positions of the deformed control points on the generated figure correspond to those of the last profile, in this case `Pid-3`.
+
+### 2D FFD & POD
+The coupling between POD and FFD was implemented in the `FFD_pod_2D` class. Its objective is to build a dataset of `n` FFD perturbed profiles sampled from LHS and to use it to perform POD-based data reduction from the FFD dimension `d` to a smaller dimension `d*`. Details on how to do so are given in ([POD 1](https://doi.org/10.2514/6.2008-6584)) and ([POD 2](https://doi.org/10.2514/6.2017-3057)).
+
+The `FFD_pod_2D` class is instantiated with 5 positional arguments:
+
+- `file (str)` which indicates the filename of the baseline geometry to be deformed,
+- `pod_ncontrol (int)` which indicates the number of reduced design points,
+- `ffd_ncontrol (int)` which indicates the number of FFD control points design points,
+- `ffd_dataset_size (int)` which indicates the size of the FFD dataset used in the POD procedure,
+- `ffd_bound (tuple[Any])` which set the min/max displacement ranges of the FFD dataset used in the POD procedure.
+
+To use this functionality, the `ffd_type` of the `"study"` entry must be set to `"ffd_pod_2d"`. The number of FFD control points and boundaries are still given by the `"n_design"` and `"bound"` values of the `"optim"` entry. In the `"ffd"` entry, the POD reduced dimension is set via `"pod_ncontrol"` and the size of the FFD dataset with `"ffd_dataset_size"`.
+
+#### Illustration
+An application of this feature is illustrated in the [POD notebook](https://github.com/mschouler/aero-optim/blob/master/scripts/FFD/POD.ipynb).
