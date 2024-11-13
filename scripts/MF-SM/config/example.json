@@ -1,0 +1,16 @@
+{
+    "function 1d": {
+        "parameter": [1, 2, 3, 4],
+        "bounds": [0, 1],
+        "n_hf": [10],
+        "n_lf": [40],
+        "n_val": 1000
+    },
+    "function nd": {
+        "parameter": [2, 5],
+        "bounds": [-3, 3],
+        "n_hf": [10],
+        "n_lf": [100],
+        "n_val": 1000
+    }
+}

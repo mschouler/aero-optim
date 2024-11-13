@@ -136,8 +136,15 @@ def main():
 
     parser.add_argument("-c", "--config", type=str, help="test functions and model config file")
     parser.add_argument("-o", "--out", type=str, help="output directory")
-    parser.add_argument("-m", "--model", type=str, help="surrogate model: mfkg or mfdnn")
-    parser.add_argument("-f", "--function", type=str, help="test function: 1d or nd")
+    parser.add_argument(
+        "-m", "--model", type=str,
+        choices=["smt", "mfsmt", "mfkpls", "mflgp", "mfdnn"],
+        help="surrogate model: mfkg or mfdnn"
+    )
+    parser.add_argument(
+        "-f", "--function", type=str,
+        choices=["1d", "nd"],
+        help="test function: 1d or nd")
     parser.add_argument("-n", "--nite", type=int, help="number of training with varying seed")
     args = parser.parse_args()
 
