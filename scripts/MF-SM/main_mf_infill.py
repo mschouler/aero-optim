@@ -224,7 +224,7 @@ def plot_results(
         "axes.labelsize": 8
     })
     fig, ax = plt.subplots(figsize=(3.2, 3.2))
-    ax.plot(ref_pareto[:, 0], ref_pareto[:, 1], color="r", label="reference Pareto")
+    ax.plot(ref_pareto[:, 0], ref_pareto[:, 1], color="r", label="reference Pareto", zorder=-1)
     ax.scatter(
         pred_pareto[:, 0], pred_pareto[:, 1],
         marker="x", color="b", label="predicted Pareto"
