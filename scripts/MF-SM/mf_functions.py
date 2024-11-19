@@ -148,8 +148,7 @@ def zdt2_v(x: np.ndarray) -> np.ndarray:
 
 def zdt2_hf(x) -> np.ndarray:
     """
-    ZDT2 high-fidelity function from Charayron 2023:
-    https://doi.org/10.1016/j.ast.2023.108673
+    ZDT2 high-fidelity function.
     """
     f1 = x[:, 0]
     f2 = zdt2_u(x) * zdt2_v(x)
@@ -158,8 +157,7 @@ def zdt2_hf(x) -> np.ndarray:
 
 def zdt2_lf(x) -> np.ndarray:
     """
-    ZDT2 low-fidelity function from Charayron 2023:
-    https://doi.org/10.1016/j.ast.2023.108673
+    ZDT2 low-fidelity function.
     """
     f1 = 0.8 * x[:, 0] + 0.2
     f2 = (0.9 * zdt2_u(x) + 0.2) * (1.1 * zdt2_v(x) - 0.2)
@@ -168,17 +166,22 @@ def zdt2_lf(x) -> np.ndarray:
 
 class SimpleProblem(Problem):
     """
-    Pymoo simple optimization problem.
+    Pymoo simple bi-objective optimization problem.
+
+    Note: function can either be an analytical function and return a numpy array
+          or it can be the output of a MultiObjectiveModel evaluation and be a list
+          of numpy arrays.
     """
-    def __init__(self, hf_function: Callable, dim: int, bound: list[float]):
+    def __init__(self, function: Callable, dim: int, bound: list[float]):
         Problem.__init__(
             self, n_var=dim, n_obj=2, n_ieq_constr=0, xl=bound[0], xu=bound[1]
         )
-        self.function = hf_function
+        self.function = function
         self.gen_ctr = 0
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
-        out["F"] = self.function(X)
+        eval = self.function(X)
+        out["F"] = eval if isinstance(eval, np.ndarray) else np.column_stack(eval)
         if self.gen_ctr == 0:
             self.candidates = X
             self.fitnesses = out["F"]
