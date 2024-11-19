@@ -6,6 +6,7 @@ from typing import Callable
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.core.problem import Problem
 from pymoo.optimize import minimize
+from pymoo.core.result import Result
 from pymoo.termination import get_termination
 
 from scipy.spatial.distance import cdist
@@ -102,12 +103,12 @@ class EDProblem(Problem):
         self.DOE = DOE
 
     def _evaluate(self, x: np.ndarray, out: np.ndarray, *args, **kwargs):
-        out["F"] = - ED_acquisition_function(x, self.DOE)
+        out["F"] = -ED_acquisition_function(x, self.DOE)
 
 
 class AcquisitionFunctionProblem(Problem):
     """
-    Generic class for acquisition function optimization problems.
+    Generic class for Bayesian acquisition function optimization problems.
     """
     def __init__(
             self,
@@ -115,31 +116,27 @@ class AcquisitionFunctionProblem(Problem):
             model: MfLGP | MfKPLS | MfSMT | SfSMT | MultiObjectiveModel,
             n_var: int,
             bound: list,
-            minimize: bool = True
+            min: bool = True
     ):
         Problem.__init__(
             self, n_var=n_var, n_ieq_constr=0, xl=bound[0], xu=bound[1]
         )
         self.model = model
         self.function = function
-        self.minimize = minimize
+        self.min = min
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
-        out["F"] = self.function(X, self.model) if self.minimize else -self.function(X, self.model)
+        out["F"] = self.function(X, self.model) if self.min else -self.function(X, self.model)
 
 
 class RegCritProblem(Problem):
     """
-    Regularized problem:
+    Regularized infill criterion problem:
     see R. Grapin et al. (2022): https://doi.org/10.2514/6.2022-4053
     """
     def __init__(
-            self,
-            function: Callable,
-            model: MultiObjectiveModel,
-            n_var: int,
-            bound: list,
-            gamma: float
+            self, function: Callable, model: MultiObjectiveModel,
+            n_var: int, bound: list, gamma: float
     ):
         super().__init__(n_var=n_var, n_obj=1, xl=bound[0], xu=bound[-1])
         self.model = model
@@ -149,8 +146,22 @@ class RegCritProblem(Problem):
     def _evaluate(self, x: np.ndarray, out: np.ndarray):
         u1 = self.model.models[0].evaluate(x)
         u2 = self.model.models[1].evaluate(x)
-        out["F"] = - (self.gamma * self.function(x, self.model)
-                      - np.sum(np.column_stack([u1, u2]), axis=1))
+        out["F"] = -(self.gamma * self.function(x, self.model)
+                     - np.sum(np.column_stack([u1, u2]), axis=1))
+
+
+def optimize_acquisition_function(
+        problem: EDProblem | AcquisitionFunctionProblem,
+        seed: int, n_gen: int = 100
+) -> Result:
+    """
+    Generic function that optimizes any given acquisition function problem.
+    """
+    res = minimize(problem, PSO(),
+                   termination=get_termination("n_gen", n_gen),
+                   seed=seed, verbose=False)
+    logger.info(f"adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
+    return res
 
 
 def maximize_ED(
@@ -163,11 +174,7 @@ def maximize_ED(
         DOE (np.ndarray): the full low- and high-fidelity DOE.
     """
     problem = EDProblem(DOE, n_var=n_var, bound=bound)
-    algorithm = PSO()
-    res = minimize(problem, algorithm, termination=get_termination("n_gen", n_gen),
-                   seed=seed, verbose=False)
-    logger.info(f"ED adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
-    return res.X
+    return optimize_acquisition_function(problem, seed, n_gen=n_gen).X
 
 
 def minimize_LCB(
@@ -177,14 +184,8 @@ def minimize_LCB(
     """
     Lower Confidence Bound minimization function.
     """
-    problem = AcquisitionFunctionProblem(
-        LCB_acquisition_function, model, n_var=n_var, bound=bound
-    )
-    algorithm = PSO()
-    res = minimize(problem, algorithm, termination=get_termination("n_gen", n_gen),
-                   seed=seed, verbose=False)
-    logger.info(f"LCB adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
-    return res.X
+    problem = AcquisitionFunctionProblem(LCB_acquisition_function, model, n_var, bound)
+    return optimize_acquisition_function(problem, seed, n_gen=n_gen).X
 
 
 def maximize_EI(
@@ -194,77 +195,51 @@ def maximize_EI(
     """
     Expected Improvement maximization function.
     """
-    problem = AcquisitionFunctionProblem(
-        EI_acquisition_function, model, n_var=n_var, bound=bound, minimize=False
-    )
-    algorithm = PSO()
-    res = minimize(problem, algorithm, termination=get_termination("n_gen", n_gen),
-                   seed=seed, verbose=False)
-    logger.info(f"EI adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
-    return res.X
+    problem = AcquisitionFunctionProblem(EI_acquisition_function, model, n_var, bound, min=False)
+    return optimize_acquisition_function(problem, seed, n_gen=n_gen).X
 
 
 def maximize_PI_BO(
-        model: MultiObjectiveModel, n_var: int, bound: list, seed: int, n_gen: int = 100
+        model: MultiObjectiveModel,
+        n_var: int, bound: list, seed: int, n_gen: int = 100
 ) -> np.ndarray:
     """
     Bi-objective Probability of Improvement maximization.
     """
-    problem = AcquisitionFunctionProblem(
-        PI_acquisition_function, model, n_var=n_var, bound=bound, minimize=False
-    )
-    algorithm = PSO()
-    res = minimize(problem, algorithm, termination=get_termination("n_gen", n_gen),
-                   seed=seed, verbose=False)
-    logger.info(f"PIBO adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
-    return res.X
+    problem = AcquisitionFunctionProblem(PI_acquisition_function, model, n_var, bound, min=False)
+    return optimize_acquisition_function(problem, seed, n_gen=n_gen).X
 
 
 def maximize_MPI_BO(
-        model: MultiObjectiveModel, n_var: int, bound: list, seed: int, n_gen: int = 100
+        model: MultiObjectiveModel,
+        n_var: int, bound: list, seed: int, n_gen: int = 100
 ) -> np.ndarray:
     """
     Bi-objective Minimal Probability of Improvement maximization.
     """
-    problem = AcquisitionFunctionProblem(
-        MPI_acquisition_function, model, n_var=n_var, bound=bound, minimize=False
-    )
-    algorithm = PSO()
-    res = minimize(problem, algorithm, termination=get_termination("n_gen", n_gen),
-                   seed=seed, verbose=False)
-    logger.info(f"MPIBO adaptive infill best solution:\n X = {res.X}\n F = {res.F}")
-    return res.X
+    problem = AcquisitionFunctionProblem(MPI_acquisition_function, model, n_var, bound, min=False)
+    return optimize_acquisition_function(problem, seed, n_gen=n_gen).X
 
 
 def maximize_RegCrit(
-    acquisition_function: Callable,
-    model: MultiObjectiveModel,
-    n_var: int,
-    bound: list,
-    seed: int,
-    n_gen: int = 100
+    acquisition_function: Callable, model: MultiObjectiveModel,
+    n_var: int, bound: list, seed: int, n_gen: int = 100
 ) -> np.ndarray:
     """
     Sum regularized infill criterion for bi-objective acquisition functions.
     """
     # maximize the acquisition function
-    problem = AcquisitionFunctionProblem(
-        acquisition_function, model, n_var=n_var, bound=bound, minimize=False
-    )
-    algorithm = PSO()
-    res = minimize(problem, algorithm, termination=get_termination("n_gen", n_gen),
-                   seed=seed, verbose=False)
+    problem = AcquisitionFunctionProblem(acquisition_function, model, n_var, bound, min=False)
+    res = optimize_acquisition_function(problem, seed, n_gen=n_gen)
     logger.info(f"acquisition function approximate maximizer:\n X = {res.X}\n F = {res.F}")
     # compute the regularization variable gamma
     X_max = res.X
-    alpha = res.F
+    alpha = -res.F
     xi = np.sum(model.evaluate(X_max.reshape(1, -1)))
     gamma = 100 * xi / alpha if alpha > 0 else 1
     # maximize the regularized infill criterion
     reg_problem = RegCritProblem(acquisition_function, model, n_var, bound, gamma)
-    algorithm = PSO()
-    reg_res = minimize(reg_problem, algorithm, termination=get_termination("n_gen", n_gen),
-                       seed=seed, verbose=False)
+    reg_res = optimize_acquisition_function(reg_problem, seed, n_gen=n_gen)
     logger.info(f"regularized infill best solution:\n X = {res.X}\n F = {res.F}")
     return reg_res.X
 
