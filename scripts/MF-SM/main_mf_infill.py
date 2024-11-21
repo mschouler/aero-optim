@@ -421,7 +421,7 @@ def main():
         model_igd, model_igdp = compute_metrics(model, igd, igdp)
         igd_list.append(model_igd)
         igdp_list.append(model_igdp)
-        time_list.append(time.time() - t0)
+        time_list.append(time.time() - t_ite)
         print(f"\nIGD: {model_igd}, IGD+: {model_igdp}\n")
 
         # results saving
