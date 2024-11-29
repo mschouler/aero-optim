@@ -62,9 +62,7 @@ SGSNumberOfSubIterations
 LinearSystemResidual
 0.02
 
-DefectCorrection
-DeCNumberOfIterations
-1
+LinearSystemLineSearch
 
 Cfl
 0.1
