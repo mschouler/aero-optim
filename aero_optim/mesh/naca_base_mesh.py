@@ -162,7 +162,7 @@ class NACABaseMesh(Mesh):
         # closed curve loop and computational domain surface definition
         cloop = [-arc_inlet, top_side, outlet, bottom_side]
         boundary_loop = gmsh.model.geo.addCurveLoop(cloop)
-        self.surf_tag = [gmsh.model.geo.addPlaneSurface([boundary_loop, naca_loop], tag=1000)]
+        self.surf_tag = [gmsh.model.geo.addPlaneSurface([-boundary_loop, -naca_loop], tag=1000)]
 
         # define physical groups for boundary conditions
         gmsh.model.geo.addPhysicalGroup(1, [spline_low, spline_le, spline_up], tag=100)

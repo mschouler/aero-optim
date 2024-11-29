@@ -110,23 +110,23 @@ class NACABlockMesh(NACABaseMesh):
 
         # domain and block surfaces
         cloop_1 = gmsh.model.geo.addCurveLoop([circle_4, -line_5, spline_le, line_6])
-        surf_1 = gmsh.model.geo.addPlaneSurface([cloop_1], tag=1001)
+        surf_1 = gmsh.model.geo.addPlaneSurface([-cloop_1], tag=1001)
         gmsh.model.geo.mesh.setTransfiniteSurface(surf_1)
 
         cloop_2 = gmsh.model.geo.addCurveLoop([line_5, line_7, -line_13, spline_up])
-        surf_2 = gmsh.model.geo.addPlaneSurface([cloop_2], tag=1002)
+        surf_2 = gmsh.model.geo.addPlaneSurface([-cloop_2], tag=1002)
         gmsh.model.geo.mesh.setTransfiniteSurface(surf_2)
 
         cloop_3 = gmsh.model.geo.addCurveLoop([line_13, line_9, -line_12, -line_15])
-        surf_3 = gmsh.model.geo.addPlaneSurface([cloop_3], tag=1003)
+        surf_3 = gmsh.model.geo.addPlaneSurface([-cloop_3], tag=1003)
         gmsh.model.geo.mesh.setTransfiniteSurface(surf_3)
 
         cloop_4 = gmsh.model.geo.addCurveLoop([line_6, line_8, -line_14, -spline_low])
-        surf_4 = gmsh.model.geo.addPlaneSurface([cloop_4], tag=1004)
+        surf_4 = gmsh.model.geo.addPlaneSurface([-cloop_4], tag=1004)
         gmsh.model.geo.mesh.setTransfiniteSurface(surf_4)
 
         cloop_5 = gmsh.model.geo.addCurveLoop([line_14, line_10, -line_11, -line_15])
-        surf_5 = gmsh.model.geo.addPlaneSurface([cloop_5], tag=1005)
+        surf_5 = gmsh.model.geo.addPlaneSurface([-cloop_5], tag=1005)
         gmsh.model.geo.mesh.setTransfiniteSurface(surf_5)
 
         # physical groups
@@ -140,8 +140,3 @@ class NACABlockMesh(NACABaseMesh):
         logger.debug(f"BC: Side tags are {[line_9, line_10]}")
         gmsh.model.geo.addPhysicalGroup(1, [spline_up, spline_le, spline_low], tag=30)
         logger.debug(f"BC: Wall tags are {[spline_up, spline_le, spline_low]}")
-
-        # non-corner points defined as flow-field and inner block line nodes
-        self.non_corner_tags.extend([abs(s_tag) for s_tag in self.surf_tag])
-        self.non_corner_tags.extend([abs(li) for li in [line_5, line_6, line_13, line_14, line_15]])
-        self.non_corner_tags.extend([abs(spl) for spl in [spline_up, spline_le, spline_low]])
