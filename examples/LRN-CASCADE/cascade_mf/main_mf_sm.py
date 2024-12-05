@@ -194,6 +194,7 @@ def main():
     infill_size = sm_config["optim"]["infill_lf_size"]
     infill_nb_gen = sm_config["optim"]["infill_nb_gen"]
     bayesian_infill = sm_config["optim"]["bayesian_infill"]
+    infill_regularization = sm_config["optim"].get("regularization", False)
     for ite in range(nite):
         outdir_ite = os.path.join(outdir, outdir.split("/")[-1] + f"_{ite}")
         # optimization
@@ -227,7 +228,13 @@ def main():
         else:
             # compute Bayesian infill
             x_lf_infill = compute_bayesian_infill(
-                model, infill_size, infill_nb_gen, n_design, bound, seed
+                model,
+                infill_size,
+                infill_nb_gen,
+                infill_regularization,
+                n_design,
+                bound,
+                seed,
             )
         # execute infill
         y_lf_infill = execute_infill(

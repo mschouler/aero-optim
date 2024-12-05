@@ -15,7 +15,8 @@ from typing import Any
 
 from aero_optim.geom import (get_area, get_camber_th, get_chords, get_circle, get_circle_centers,
                              get_cog, get_radius_violation, split_profile, plot_profile, plot_sides)
-from aero_optim.mf_sm.mf_infill import maximize_ED, minimize_LCB, maximize_MPI_BO, compute_pareto
+from aero_optim.mf_sm.mf_infill import (maximize_ED, minimize_LCB, maximize_MPI_BO,
+                                        maximize_RegCrit, MPI_acquisition_function, compute_pareto)
 from aero_optim.mf_sm.mf_models import MfDNN, MultiObjectiveModel, MfSMT
 from aero_optim.optim.evolution import PymooEvolution
 from aero_optim.optim.optimizer import WolfOptimizer
@@ -336,16 +337,22 @@ def compute_bayesian_infill(
         model: MfDNN | MultiObjectiveModel,
         infill_lf_size: int,
         infill_nb_gen: int,
+        infill_regularization: bool,
         n_design: int,
-        bound: tuple[Any],
-        seed: int
+        bound: list[Any],
+        seed: int,
 ) -> np.ndarray:
     """
     **Computes** the low fidelity Bayesian infill candidates.
     """
     assert isinstance(model, MultiObjectiveModel)
     # Probability of Improvement
-    infill_lf = maximize_MPI_BO(model, n_design, bound, seed, infill_nb_gen)
+    if infill_regularization:
+        infill_lf = maximize_RegCrit(
+            MPI_acquisition_function, model, n_design, bound, seed, infill_nb_gen
+        )
+    else:
+        infill_lf = maximize_MPI_BO(model, n_design, bound, seed, infill_nb_gen)
     # Lower Confidence Bound /objective 1
     assert isinstance(model.models[0], MfSMT)
     infill_lf_LCB_1 = minimize_LCB(model.models[0], n_design, bound, seed, infill_nb_gen)
@@ -371,7 +378,7 @@ def compute_non_bayesian_infill(
     infill_lf_size: int,
     infill_nb_gen: int,
     n_design: int,
-    bound: tuple[Any],
+    bound: list[Any],
     seed: int
 ) -> np.ndarray:
     """
