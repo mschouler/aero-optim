@@ -1,0 +1,24 @@
+{
+    "study": {
+        "study_type": "",
+        "file": "../data/naca12.dat",
+        "outdir": "output_mf_Gpy_CS",
+        "custom_file": "../naca_mf_Gpy/custom_sm_Gpy.py"
+    },
+    "optim": {
+        "n_design": 8,
+        "doe_size": 100,
+        "max_generations": 80,
+        "bound": [-0.5, 0.5],
+        "QoI": "CD",
+        "penalty": ["CL", 0.1],
+        "area_margin": 100
+    },
+    "gmsh": {},
+    "simulator": {
+        "model_file": "output_hf_doe/modelGpy_CS.pkl",
+        "exec_cmd": "",
+        "ref_input": "",
+        "Gpy": 1
+    }
+}
