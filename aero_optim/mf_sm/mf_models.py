@@ -98,11 +98,11 @@ class MfModel(ABC):
 
     def get_y_star(self) -> float | np.ndarray:
         """
-        Returns the current best lf fitness (SOO) or pareto front (MOO).
+        Returns the current best lf fitness (SOO).
         """
         # single objective, y_star is simply the min value
-        assert self.y_lf_DOE is not None
-        return min(self.y_lf_DOE)
+        assert self.y_hf_DOE is not None
+        return min(self.y_hf_DOE)
 
 
 class MfDNN(MfModel):
@@ -113,7 +113,7 @@ class MfDNN(MfModel):
         super().__init__(dim, model_dict, outdir, seed)
         check_dir(outdir)
         self.requires_nested_doe = model_dict.get("nested_doe", False)
-        self.name = model_dict.get("name", "MF-DNN")
+        self.name = model_dict.get("name", "MFDNN")
         # seed torch
         torch.manual_seed(seed)
         # select device
@@ -336,6 +336,7 @@ class MultiObjectiveModel(MfModel):
     def __init__(self, list_of_models: list[MfSMT | MfKPLS | SfSMT | MfLGP]):
         self.models: list[MfSMT | MfKPLS | SfSMT | MfLGP] = list_of_models
         self.requires_nested_doe = self.models[0].requires_nested_doe
+        self.name = self.models[0].name
 
     def train(self):
         for model in self.models:
