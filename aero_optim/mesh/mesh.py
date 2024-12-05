@@ -67,8 +67,10 @@ class Mesh(ABC):
         - bl_ratio (float): the BL meshing growth ratio.
         - bl_size (float): the BL first element size.
         - bl_fan_elements (int): the number of BL fan elements.
+        - mesh_order (int): the order of the mesh.
         - structured (bool): whether to recombine triangles (True) or not (False).
         - extrusion_layers (int): the number of extrusion layers when generating a 3D mesh.
+        - extrusion_size (float): the total size of the extruded layers.
         - GUI (bool): whether to launch gmsh GUI (True) or not (False).
         - nview (int): the number of sub-windows in gmsh GUI.
         - quality (bool): whether to display quality metrics in gmsh GUI (True) or not (False).
@@ -93,6 +95,7 @@ class Mesh(ABC):
         self.bl_ratio: float = config["gmsh"]["mesh"].get("bl_ratio", 1.1)
         self.bl_size: float = config["gmsh"]["mesh"].get("bl_size", 1e-5)
         self.bl_fan_elements: int = config["gmsh"]["mesh"].get("bl_fan_elements", 10)
+        self.mesh_order: int = config["gmsh"]["mesh"].get("order", 0)
         # mesh params (3d extrusion)
         self.structured: bool = config["gmsh"]["mesh"].get("structured", False)
         self.extrusion_layers: int = config["gmsh"]["mesh"].get("extrusion_layers", 0)
@@ -129,11 +132,14 @@ class Mesh(ABC):
         gmsh.model.add("model")
 
         self.build_2dmesh()
+        self.build_3dmesh() if self.extrusion_layers > 0 else 0
 
         if self.structured:
             [gmsh.model.geo.mesh.setRecombine(2, abs(id)) for id in self.surf_tag]
         gmsh.model.geo.synchronize()
-        gmsh.model.mesh.generate(2)
+        gmsh.model.mesh.generate(3) if self.extrusion_layers > 0 else gmsh.model.mesh.generate(2)
+        if self.mesh_order:
+            gmsh.model.mesh.setOrder(self.mesh_order)
 
         # visualization
         if self.quality:
@@ -282,3 +288,9 @@ class Mesh(ABC):
         """
         Builds the surface mesh of the computational domain.
         """
+
+    def build_3dmesh(self):
+        """
+        Builds a 3D mesh by extrusion
+        """
+        raise Exception("build_3dmesh method not implemented")

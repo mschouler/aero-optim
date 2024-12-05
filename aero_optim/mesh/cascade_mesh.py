@@ -282,20 +282,64 @@ class CascadeMesh(Mesh):
 
         # define physical groups for boundary conditions
         self.surf_tag = [surf_1, surf_2] if self.dlr_mesh else [surf_2]
-        gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=100, name="field")
-        gmsh.model.geo.addPhysicalGroup(1, [l_10], tag=10, name="inlet")
-        logger.debug(f"BC: Inlet tags are {[l_10]}")
-        gmsh.model.geo.addPhysicalGroup(1, [l_21], tag=20, name="outlet")
-        logger.debug(f"BC: Outlet tags are {[l_21]}")
-        gmsh.model.geo.addPhysicalGroup(1, spl_list, tag=30, name="wall")
-        logger.debug(f"BC: Wall tags are {spl_list}")
-        gmsh.model.geo.addPhysicalGroup(1, self.top_tags, tag=40, name="uwall")
-        logger.debug(f"BC: Top tags are {self.top_tags}")
-        gmsh.model.geo.addPhysicalGroup(1, self.bottom_tags, tag=50, name="lwall")
-        logger.debug(f"BC: Bottom tags are {self.bottom_tags}")
+        if self.extrusion_layers == 0:
+            gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=100, name="fluid")
+            gmsh.model.geo.addPhysicalGroup(1, [l_10], tag=10, name="inlet")
+            logger.debug(f"2D BC: Inlet tags are {[l_10]}")
+            gmsh.model.geo.addPhysicalGroup(1, [l_21], tag=20, name="outlet")
+            logger.debug(f"2D BC: Outlet tags are {[l_21]}")
+            gmsh.model.geo.addPhysicalGroup(1, spl_list, tag=30, name="wall")
+            logger.debug(f"2D BC: Wall tags are {spl_list}")
+            gmsh.model.geo.addPhysicalGroup(1, self.top_tags, tag=40, name="periodic_vert_l")
+            logger.debug(f"2D BC: Top tags are {self.top_tags}")
+            gmsh.model.geo.addPhysicalGroup(1, self.bottom_tags, tag=50, name="periodic_vert_r")
+            logger.debug(f"2D BC: Bottom tags are {self.bottom_tags}")
+        else:
+            gmsh.model.geo.addPhysicalGroup(2, self.surf_tag, tag=100, name="periodic_span_l")
 
         # non-corner points defined as flow-field, inner block line and wall nodes
         self.non_corner_tags.extend([abs(s_tag) for s_tag in self.surf_tag])
         self.non_corner_tags.extend([abs(s_tag) for s_tag in spl_list])
         if self.dlr_mesh:
             self.non_corner_tags.append(abs(l_13))
+
+    def build_3dmesh(self):
+        """
+        **Performs** an extrusion along the z axis.
+        - h_size (float): the total extruded depth.
+        """
+        h_size = self.extrusion_size
+        self.ext_tag = [gmsh.model.geo.extrude(
+            [(2, s)], 0, 0, h_size, [self.extrusion_layers], [1], True) for s in self.surf_tag]
+        # retrieve extruded surfaces and volumes
+        vol = [tu[-1] for tu in [self.ext_tag[0][1], self.ext_tag[1][1]]]
+        top = [tu[-1] for tu in [self.ext_tag[0][0], self.ext_tag[1][0]]]
+        # 1st block
+        inlet = [self.ext_tag[0][2][-1]]
+        perlo = [self.ext_tag[0][3][-1]]
+        perup = [self.ext_tag[0][5][-1]]
+        # 2nd block
+        perlo += [tu[-1] for tu in self.ext_tag[1][3:10]]
+        outlet = [self.ext_tag[1][10][-1]]
+        perup += [tu[-1] for tu in self.ext_tag[1][11:18]]
+        wall = [tu[-1] for tu in self.ext_tag[1][18:]]
+        # create physical groups
+        gmsh.model.geo.addPhysicalGroup(3, vol, tag=2000, name="fluid")
+        logger.debug("3D BC: vol tag is 2000")
+        gmsh.model.geo.addPhysicalGroup(2, top, tag=2001, name="periodic_span_r")
+        logger.debug("3D BC: periodic_span_l tag is 100")
+        logger.debug("3D BC: periodic_span_r tag is 2001")
+        gmsh.model.geo.addPhysicalGroup(2, perlo, tag=2003, name="periodic_vert_l")
+        logger.debug("3D BC: periodic_vert_l tag is 2003")
+        gmsh.model.geo.addPhysicalGroup(2, perup, tag=2004, name="periodic_vert_r")
+        logger.debug("3D BC: periodic_vert_r tag is 2004")
+        gmsh.model.geo.addPhysicalGroup(2, inlet, tag=2005, name="inlet")
+        logger.debug("3D BC: inlet tag is 2005")
+        gmsh.model.geo.addPhysicalGroup(2, outlet, tag=2006, name="outlet")
+        logger.debug("3D BC: outlet tag is 2006")
+        gmsh.model.geo.addPhysicalGroup(2, wall, tag=2007, name="wall")
+        logger.debug("3D BC: wall tag is 2007")
+        # set 2 tags to none to prevent reformatting
+        self.non_corner_tags = None
+        self.bottom_tags = None
+        self.top_tags = None

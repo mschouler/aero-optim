@@ -58,7 +58,7 @@ def check_config(
     if optim and "optim" not in config_dict:
         raise Exception(f"ERROR -- no <optim>  upper entry in {config}")
     if (optim or gmsh) and "gmsh" not in config_dict:
-        raise Exception(f"ERROR -- no <mesh>  upper entry in {config}")
+        raise Exception(f"ERROR -- no <gmsh>  upper entry in {config}")
     if (optim or sim) and "simulator" not in config_dict:
         raise Exception(f"ERROR -- no <simulator>  upper entry in {config}")
 

@@ -1,0 +1,32 @@
+{
+    "function 1d": {
+        "parameter": [1, 2, 3, 4],
+        "bounds": [0, 1],
+        "n_hf": [10],
+        "n_lf": [40],
+        "n_val": 1000
+    },
+    "mfdnn": {
+        "pretraining": true,
+        "NNL": {
+            "layer_sizes_NNL": [32, 32, 32, 32, 32, 32, 1],
+            "optimizer": {
+                "lr": 1e-3,
+                "weight_decay": 0
+            },
+            "loss_target": 1e-5,
+            "niter": 10000
+        },
+        "NNH": {
+            "layer_sizes_NNH1": [16, 1],
+            "layer_sizes_NNH2": [16, 16, 1],
+            "optimizer": {
+                "lr": 1e-4,
+                "weight_decay_NNH1": 0,
+                "weight_decay_NNH2": 1e-4
+            },
+            "loss_target": 1e-5,
+            "niter": 20000
+        }
+    }
+}
