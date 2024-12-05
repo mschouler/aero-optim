@@ -31,36 +31,59 @@
 <hr style="border:1px solid grey">
 
 ### Infill problems
-::: mf_sm.mf_infill.LCBProblem
-    options:
-      heading_level: 3
-      show_root_heading: true
-      show_root_toc_entry: true
-<hr style="border:1px light grey">
-
-::: mf_sm.mf_infill.EIProblem
-    options:
-      heading_level: 3
-      show_root_heading: true
-      show_root_toc_entry: true
-<hr style="border:1px light grey">
-
-::: mf_sm.mf_infill.PIBOProblem
-    options:
-      heading_level: 3
-      show_root_heading: true
-      show_root_toc_entry: true
-<hr style="border:1px light grey">
-
-::: mf_sm.mf_infill.MPIBOProblem
-    options:
-      heading_level: 3
-      show_root_heading: true
-      show_root_toc_entry: true
-<hr style="border:1px light grey">
-
 ::: mf_sm.mf_infill.EDProblem
     options:
       heading_level: 3
       show_root_heading: true
       show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+::: mf_sm.mf_infill.AcquisitionFunctionProblem
+    options:
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+::: mf_sm.mf_infill.RegCritProblem
+    options:
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px solid grey">
+
+### Infill acquisition functions
+::: mf_sm.mf_infill.ED_acquisition_function
+    options:
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+::: mf_sm.mf_infill.LCB_acquisition_function
+    options:
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+::: mf_sm.mf_infill.EI_acquisition_function
+    options:
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+::: mf_sm.mf_infill.PI_acquisition_function
+    options:
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
+
+::: mf_sm.mf_infill.MPI_acquisition_function
+    options:
+      heading_level: 3
+      show_root_heading: true
+      show_root_toc_entry: true
+<hr style="border:1px light grey">
