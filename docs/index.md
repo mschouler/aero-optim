@@ -85,16 +85,13 @@ simulator -c naca_base.json -f output/naca_base.mesh
 ```
 will run a [`Wolf`](https://pages.saclay.inria.fr/frederic.alauzet/software.html) simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
 ```sh
-INFO:src.simulator.simulator:g0, c0 converged in 530 it.
-INFO:src.simulator.simulator:last five values:
+INFO:aero_optim.simulator.simulator:g0, c0 converged in 533 it.
+INFO:aero_optim.simulator.simulator:last values:
       ResTot       CD       CL        ResCD        ResCL   x   y  Cp
-8.954465e-07 0.152784 0.360282 2.361657e-15 2.465232e-15 NaN NaN NaN
-6.094393e-07 0.152784 0.360282 3.633318e-16 4.622309e-16 NaN NaN NaN
-4.161994e-07 0.152784 0.360282 0.000000e+00 6.163079e-16 NaN NaN NaN
-2.851701e-07 0.152784 0.360282 1.089995e-15 2.927463e-15 NaN NaN NaN
-1.960139e-07 0.152784 0.360282 1.089995e-15 1.078539e-15 NaN NaN NaN
->> simulation finished after 4.014134407043457 seconds
+1.799346e-08 0.152689 0.358267 7.271155e-16 2.169212e-15 NaN NaN NaN
+>> simulation finished after 5.0141987800598145 seconds
 ```
+The printed quantities correspond to the last row of the dataframe built by post-processing the simulation outputs as indicated in the `"post_process"` entry of the configuration file. The NaNs correspond to missing values due to the varying size of the extracted data.
 
 !!! Warning
     In order for the command to pass, don't forget to fix the `exec_cmd` executable path in `naca_base.json`.
