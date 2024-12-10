@@ -146,12 +146,6 @@ BCElementWise
 FarField
 3
 6 4 5
-# BCInletPressureTotCoef
-# 1.0283
-# BCInletTemperatureTotCoef
-# 1.008
-# BCInletVelocityDirection
-# 1. 0. 0.
 
 SubsonicOutletPs
 1
