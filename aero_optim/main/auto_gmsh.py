@@ -4,6 +4,7 @@ import sys
 
 from aero_optim.utils import check_config, get_custom_class
 from aero_optim.mesh.cascade_mesh import CascadeMesh
+from aero_optim.mesh.flat_plate_mesh import FlatPlateMesh
 from aero_optim.mesh.naca_base_mesh import NACABaseMesh
 from aero_optim.mesh.naca_block_mesh import NACABlockMesh
 
@@ -38,6 +39,8 @@ def main():
             MeshClass = NACABlockMesh
         elif study_type == "cascade":
             MeshClass = CascadeMesh
+        elif study_type == "flat_plate":
+            MeshClass = FlatPlateMesh
         else:
             raise Exception(f"ERROR -- incorrect study_type <{study_type}>")
     gmsh_mesh = MeshClass(config, args.file)

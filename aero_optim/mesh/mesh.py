@@ -83,7 +83,7 @@ class Mesh(ABC):
         self.config = config
         self.process_config()
         # study params
-        self.dat_file: str = datfile if datfile else config["study"]["file"]
+        self.dat_file: str = datfile if datfile else config["study"].get("file", "")
         self.outdir: str = config["study"]["outdir"]
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
         self.scale: int = config["study"].get("scale", 1)
@@ -105,7 +105,8 @@ class Mesh(ABC):
         self.nview: int = config["gmsh"]["view"].get("nview", 1)
         self.quality: bool = config["gmsh"]["view"].get("quality", False)
         # geometry coordinates loading
-        self.pts: list[list[float]] = from_dat(self.dat_file, self.header, self.scale)
+        self.pts: list[list[float]] = ([[]] if not self.dat_file
+                                       else from_dat(self.dat_file, self.header, self.scale))
         # flow-field and non-corner tags (for recombination and corners definition)
         self.surf_tag: list[int] = []
         self.non_corner_tags: list[int] = []
