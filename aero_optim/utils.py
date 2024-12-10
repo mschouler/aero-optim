@@ -67,7 +67,7 @@ def check_config(
         raise Exception(f"ERROR -- no <ffd_type> entry in {config}[study]")
     if (optim or gmsh) and "study_type" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <study_type> entry in {config}[study]")
-    if (optim or gmsh) and "file" not in config_dict["study"]:
+    if optim and "file" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <file>  entry in {config}[study]")
     if "outdir" not in config_dict["study"]:
         raise Exception(f"ERROR -- no <outdir>  entry in {config}[study]")
@@ -76,7 +76,7 @@ def check_config(
         cp_filelist([config], [config_dict["study"]["outdir"]])
 
     # check path and study_type correctness
-    if (optim or gmsh) and not os.path.isfile(config_dict["study"]["file"]):
+    if optim and not os.path.isfile(config_dict["study"]["file"]):
         raise Exception(f"ERROR -- <{config_dict['study']['file']}> could not be found")
 
     # supersede custom_file entry
