@@ -1,0 +1,29 @@
+{
+    "study": {
+        "study_type": "flat_plate",
+        "ffd_type": "ffd_2d",
+        "outfile": "t3a",
+        "outdir": "output"
+    },
+    "gmsh": {
+        "domain": {},
+        "mesh": {
+            "structured": true,
+            "nodes_inlet": 49,
+            "side_nodes": [25, 89]
+        },
+        "view": {
+            "GUI": true,
+            "quality": false,
+            "nview": 1
+        }
+    },
+    "simulator": {
+        "ref_input": "t3a_base.wolf",
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"]
+        },
+        "exec_cmd": "/home/mschouler/bin/wolf_sabcm -in @.mesh"
+    }
+}
