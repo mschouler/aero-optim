@@ -186,6 +186,10 @@ class VAE(torch.nn.Module):
         self.softplus = torch.nn.Softplus()
         self.decoder = decoder
 
+        self.device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.encoder.to(self.device)
+        self.decoder.to(self.device)
+
     def encode(self, x, eps: float = 1e-8):
         """
         Encodes the input data into the latent space.
@@ -260,11 +264,8 @@ class VAETrainer:
         self.model = model
         self.optimizer = optimizer
 
-        self.device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.train_losses: list[float] = []
         self.val_losses: list[float] = []
-        self.errors: list[float] = []
-        self.lrs: list[float] = []
 
     def train(
         self,
@@ -277,13 +278,12 @@ class VAETrainer:
             for _, batch_data in enumerate(train_loader):
                 self.optimizer.zero_grad()
                 x = batch_data[0]
-                x.to(self.device)
+                x = x.to(self.model.device)
                 output = self.model(x)
                 loss = output.loss
                 loss.backward()
                 self.optimizer.step()
                 self.train_losses.append(loss.item())
-                self.lrs.append(self.optimizer.param_groups[0]["lr"])
 
             # val
             val_loss = 0
@@ -291,7 +291,7 @@ class VAETrainer:
                 self.model.eval()
                 for valid_batch, batch_data in enumerate(val_loader):
                     x = batch_data[0]
-                    x.to(self.device)
+                    x = x.to(self.model.device)
                     # model evaluation
                     output = self.model(x)
                     loss = output.loss
