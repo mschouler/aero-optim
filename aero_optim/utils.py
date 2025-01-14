@@ -6,6 +6,7 @@ import os.path
 import shutil
 import signal
 import subprocess
+import argparse
 
 from types import FrameType
 
@@ -86,6 +87,21 @@ def check_config(
     return (
         config_dict, config_dict["study"].get("custom_file", ""), config_dict["study"]["study_type"]
     )
+
+
+def check_parser(args: argparse.ArgumentParser):
+    """
+    Ensures the presence of all required entries in the command line (for auto_*.py).
+    """
+    # if the 2D profile is not available directly, need specific arguments
+    if args.profile_or_mesh_files != 'profile':
+        # indicate the blocks containing wall coordinates (connected the profile)
+        if not args.wall_bl:
+            raise Exception("ERROR -- must include [wall_bl] entry (see --help)")
+        # if periodic blocks must be translated to reconstruct 2D profile
+        # check if pitch is provided
+        if args.periodic_bl and not args.pitch:
+            raise Exception("ERROR -- if periodic_bl, must include blade pitch value (see --help)")
 
 
 def check_file(filename: str):

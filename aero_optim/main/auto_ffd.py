@@ -104,9 +104,22 @@ def main():
         "-s", "--sampler", type=str, help="sampling technique [lhs, halton, sobol]", default="lhs")
     parser.add_argument(
         "-d", "--delta", type=str, default=None, help="Delta: 'D10 D20 .. D2nc'")
+    parser.add_argument(
+        "-pm", "--profile_or_mesh_files", type=str, help="'profile' or 'mesh_files'.\
+        Indicate whether 'profile' is available in a 2D file or must be extracted from 'mesh_files'\
+        (the latter is very specific to structured grids, we recommend you write the\
+        2D file beforehand)", default='profile')
+    parser.add_argument(
+        "-wb", "--wall_bl", type=str, help="list of mesh blocks containg a wall.\
+         wall_bl: '1 2 3 ... n'\
+        !!! must be in the correct order to reconstruct 2D profile !!!", default=None)
+    parser.add_argument(
+        "-pb", "--periodic_bl", type=str, help="list of mesh blocks that must be translated\
+         periodic_bl: '1 2 3 ... n'\
+        down by one pitch to reconstruct the profile.", default=[0])
+    parser.add_argument(
+        "-p", "--pitch", type=float, help="blade-to-blade pitch.", default=None)
     args = parser.parse_args()
-
-    check_file(args.file)
 
     # FFD routine
     # (i) Instantiate an FFD object
@@ -119,6 +132,18 @@ def main():
     #  |  -> project the new profile back into the original referential
     seed = 1234
     ncontrol = args.ncontrol
+    if args.profile_or_mesh_files == 'mesh_files':
+        # must separate the directory path and mesh files name from the --file argument
+        path = args.file.split('/')
+        mesh_name = path[-1].split('.')[0]
+        dat_dir = '/'.join(path[:-1])
+        # write 2D profile
+        from aero_optim.mesh.cascade_mesh import CascadeMeshMusicaa
+        cmm = CascadeMeshMusicaa(dat_dir, mesh_name, periodic_bl=args.periodic_bl, pitch=args.pitch)
+        cmm.write_profile(args.wall_bl)
+    else:
+        # 2D profile file should exist
+        check_file(args.file)
     ffd = FFD_2D(args.file, ncontrol)
     if not args.delta:
         sampler = get_sampler(args.sampler, ncontrol, seed)

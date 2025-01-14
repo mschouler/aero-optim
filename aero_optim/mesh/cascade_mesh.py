@@ -359,16 +359,19 @@ class CascadeMeshMusicaa:
 
         **Input**
 
+        Mandatory:
         - dat_dir: directory containing mesh files
         - mesh_name: name of the mesh files (turb, ogv, grid...)
+
+        In kwargs:
         - pitch: blade-to-blade pitch
-        - periodic_bls: list containing the blocks that must be translated DOWN to reform
+        - periodic_bl: list containing the blocks that must be translated DOWN to reform
                         the blade geometry fully. Not needed if the original mesh already
                         surrounds the blade
 
         **Inner**
 
-
+        - re: used to read integers from str
 
         """
         self.dat_dir = dat_dir
@@ -376,15 +379,15 @@ class CascadeMeshMusicaa:
 
         # From kwargs
         self.pitch = kwargs.get('pitch', 1)
-        self.periodic_bls = kwargs.get('periodic_bl', [0])
+        self.periodic_bl = list(map(int, kwargs.get('periodic_bl', '0').split()))
 
         # Additional modules required
         import re
         self.re = re
 
-    def read_mesh(self, wall_bl: list[int]) -> np.ndarray:
+    def write_profile(self, wall_bl: list[int]) -> np.ndarray:
         """
-        **Reads** the mesh used fy MUSICAA
+        **Writes** the profile by extracting its coordinates from MUSICAA grid files.
         - wall_bl: ORDERED list of the blocks containing a wall of the geometry to be optimized.
                    The block numbers should be ordered following the curvilinear abscissae of
                    the blade. Unfortunately, the present version only reads walls along i
@@ -397,6 +400,7 @@ class CascadeMeshMusicaa:
                 |   wall
                 - - - - -> i
         """
+        wall_bl = list(map(int, wall_bl.split()))
 
         # Create storage
         coords_x = []
@@ -424,7 +428,7 @@ class CascadeMeshMusicaa:
                 coords_x.append(coords_flat[:nx])
 
                 # Check if block must be translated in the pitchwise direction
-                if bl in self.periodic_bls:
+                if bl in self.periodic_bl:
                     coords_flat[nx * ny:nx * ny + nx] += -self.pitch
                 coords_y.append(coords_flat[nx * ny:nx * ny + nx])
 
@@ -439,4 +443,5 @@ class CascadeMeshMusicaa:
         coords[:, 0] += -x_stag
         coords[:, 1] += -y_stag
 
-        return coords
+        # Save to file
+        np.savetxt(f'{self.dat_dir}/{self.mesh_name}.dat', coords)
