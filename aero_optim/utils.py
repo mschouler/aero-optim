@@ -89,7 +89,7 @@ def check_config(
     )
 
 
-def check_parser(args: argparse.ArgumentParser):
+def check_parser(args: argparse.Namespace):
     """
     Ensures the presence of all required entries in the command line (for auto_*.py).
     """

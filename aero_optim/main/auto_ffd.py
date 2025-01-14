@@ -8,7 +8,7 @@ import sys
 
 from scipy.stats import qmc
 from aero_optim.ffd.ffd import FFD_2D
-from aero_optim.utils import check_file
+from aero_optim.utils import check_file, check_parser
 
 # set pillow and matplotlib loggers to WARNING mode
 logging.getLogger("PIL").setLevel(logging.WARNING)
@@ -133,6 +133,7 @@ def main():
     seed = 1234
     ncontrol = args.ncontrol
     if args.profile_or_mesh_files == 'mesh_files':
+        check_parser(args)
         # must separate the directory path and mesh files name from the --file argument
         path = args.file.split('/')
         mesh_name = path[-1].split('.')[0]

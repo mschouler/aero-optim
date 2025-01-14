@@ -385,10 +385,10 @@ class CascadeMeshMusicaa:
         import re
         self.re = re
 
-    def write_profile(self, wall_bl: list[int]) -> np.ndarray:
+    def write_profile(self, wall_bl: str):
         """
         **Writes** the profile by extracting its coordinates from MUSICAA grid files.
-        - wall_bl: ORDERED list of the blocks containing a wall of the geometry to be optimized.
+        - wall_bl: str containing the blocks adjacent to the geometry to be optimized.
                    The block numbers should be ordered following the curvilinear abscissae of
                    the blade. Unfortunately, the present version only reads walls along i
                    located at j=0 (grid indices):
@@ -400,14 +400,14 @@ class CascadeMeshMusicaa:
                 |   wall
                 - - - - -> i
         """
-        wall_bl = list(map(int, wall_bl.split()))
+        wall_bl_list = list(map(int, wall_bl.split()))
 
         # Create storage
         coords_x = []
         coords_y = []
 
         # Loop over blocks within list
-        for bl in wall_bl:
+        for bl in wall_bl_list:
             c = []
             with open(f'{self.dat_dir}/{self.mesh_name}_bl{bl}.x', 'r') as f:
 
@@ -433,9 +433,7 @@ class CascadeMeshMusicaa:
                 coords_y.append(coords_flat[nx * ny:nx * ny + nx])
 
         # Assemble 2D array
-        coords_x = np.hstack(coords_x)
-        coords_y = np.hstack(coords_y)
-        coords = np.vstack((coords_x, coords_y)).T
+        coords = np.vstack((np.hstack(coords_x), np.hstack(coords_y))).T
 
         # Make sure LE is positionned at geometric stagnation point
         x_stag = coords[:, 0].min()
