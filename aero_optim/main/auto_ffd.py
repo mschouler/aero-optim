@@ -114,7 +114,7 @@ def main():
          wall_bl: '1 2 3 ... n'\
         !!! must be in the correct order to reconstruct 2D profile !!!", default=None)
     parser.add_argument(
-        "-pb", "--periodic_bl", type=str, help="list of mesh blocks that must be translated\
+        "-pb", "--periodic_bl", type=str, help="list of mesh blocks that must be translated.\
          periodic_bl: '1 2 3 ... n'\
         down by one pitch to reconstruct the profile.", default=[0])
     parser.add_argument(
