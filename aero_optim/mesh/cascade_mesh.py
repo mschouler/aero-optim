@@ -1,6 +1,7 @@
 import gmsh
 import logging
 import numpy as np
+import pandas
 
 from aero_optim.mesh.mesh import Mesh
 
@@ -343,3 +344,99 @@ class CascadeMesh(Mesh):
         self.non_corner_tags = None
         self.bottom_tags = None
         self.top_tags = None
+
+
+class CascadeMeshMusicaa:
+    """
+    This class implements a mesh routine for a compressor cascade geometry when using MUSICAA.
+    This solver requires strctured coincident blocks with a unique frontier on each boundary.
+    """
+    def __init__(self, dat_dir: str, mesh_name: str, **kwargs):
+        """
+        Instantiates the CascadeMeshMusicaa object.
+
+        - **kwargs: optional arguments listed upon call
+
+        **Input**
+
+        - dat_dir: directory containing mesh files
+        - mesh_name: name of the mesh files (turb, ogv, grid...)
+        - pitch: blade-to-blade pitch
+        - periodic_bls: list containing the blocks that must be translated DOWN to reform
+                        the blade geometry fully. Not needed if the original mesh already
+                        surrounds the blade
+
+        **Inner**
+
+
+
+        """
+        self.dat_dir = dat_dir
+        self.mesh_name = mesh_name
+
+        # From kwargs
+        self.pitch = kwargs.get('pitch', 1)
+        self.periodic_bls = kwargs.get('periodic_bl', [0])
+
+        # Additional modules required
+        import re
+        self.re = re
+
+    def read_mesh(self, wall_bl: list[int]) -> np.ndarray:
+        """
+        **Reads** the mesh used fy MUSICAA
+        - wall_bl: ORDERED list of the blocks containing a wall of the geometry to be optimized.
+                   The block numbers should be ordered following the curvilinear abscissae of
+                   the blade. Unfortunately, the present version only reads walls along i
+                   located at j=0 (grid indices):
+
+                j
+                ^
+                |
+                |
+                |   wall
+                - - - - -> i
+        """
+
+        # Create storage
+        coords_x = []
+        coords_y = []
+
+        # Loop over blocks within list
+        for bl in wall_bl:
+            c = []
+            with open(f'{self.dat_dir}/{self.mesh_name}_bl{bl}.x', 'r') as f:
+
+                a = pandas.read_csv(f).to_numpy()
+                npts = a[0][0]
+                npts = self.re.findall(r'\d+', npts)
+                nx = int(npts[0])
+                ny = int(npts[1])
+
+                for line in a[1:]:
+                    b = line[0].split(' ')
+                    for element in b:
+                        if element != '':
+                            c.append(np.float64(element))
+                coords_flat = np.array(c)
+
+                # Save only wall (located at j=0)
+                coords_x.append(coords_flat[:nx])
+
+                # Check if block must be translated in the pitchwise direction
+                if bl in self.periodic_bls:
+                    coords_flat[nx * ny:nx * ny + nx] += -self.pitch
+                coords_y.append(coords_flat[nx * ny:nx * ny + nx])
+
+        # Assemble 2D array
+        coords_x = np.hstack(coords_x)
+        coords_y = np.hstack(coords_y)
+        coords = np.vstack((coords_x, coords_y)).T
+
+        # Make sure LE is positionned at geometric stagnation point
+        x_stag = coords[:, 0].min()
+        y_stag = coords[np.argmin(coords[:, 0]), 1]
+        coords[:, 0] += -x_stag
+        coords[:, 1] += -y_stag
+
+        return coords
