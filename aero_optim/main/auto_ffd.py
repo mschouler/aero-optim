@@ -138,9 +138,18 @@ def main():
         path = args.file.split('/')
         mesh_name = path[-1].split('.')[0]
         dat_dir = '/'.join(path[:-1])
+        # build config dictionnary
+        config = {}
+        config["musicaa_mesh"] = {}
+        config["musicaa_mesh"]["mesh_name"] = mesh_name
+        config["musicaa_mesh"]["blocks"] = {}
+        config["musicaa_mesh"]["blocks"]["periodic_bl"] = args.periodic_bl
+        config["study"] = {}
+        config["study"]["geometry"] = {}
+        config["study"]["geometry"]["pitch"] = args.pitch
         # write 2D profile
         from aero_optim.mesh.cascade_mesh import CascadeMeshMusicaa
-        cmm = CascadeMeshMusicaa(dat_dir, mesh_name, periodic_bl=args.periodic_bl, pitch=args.pitch)
+        cmm = CascadeMeshMusicaa(config, dat_dir)
         cmm.write_profile(args.wall_bl)
     else:
         # 2D profile file should exist

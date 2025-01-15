@@ -294,3 +294,51 @@ class Mesh(ABC):
         Builds a 3D mesh by extrusion
         """
         raise Exception("build_3dmesh method not implemented")
+
+
+class MeshMusicaa(ABC):
+    """
+    This class implements an abstract meshing class for the solver MUSICAA.
+    """
+    def __init__(self, config: dict, dat_dir: str):
+        """
+        Instantiates the abstract MeshMusicaa object.
+
+        **Input**
+
+        - config (dict): the config file dictionary.
+        - dat_dir (str): path to input_geometry.dat.
+
+        **Inner**
+
+        - mesh_name (str): name of the mesh files (******_bl1.x)
+
+        """
+        self.config = config
+        self.dat_dir = dat_dir
+        self.mesh_name: str = config["musicaa_mesh"]["mesh_name"]
+
+    @abstractmethod
+    def write_profile(self, wall_bl: str):
+        """
+        **Writes** the profile by extracting its coordinates from MUSICAA grid files.
+        - wall_bl: str containing the blocks adjacent to the geometry to be optimized.
+                   The block numbers should be ordered following the curvilinear abscissae of
+                   the blade. Unfortunately, the present version only reads walls along i
+                   located at j=0 (grid indices):
+
+                j
+                ^
+                |
+                |
+                |   wall
+                - - - - -> i
+        """
+        pass
+
+    def deform_mesh(self):
+        """
+        **Executes** the MUSICAA mesh deformation routine.
+        """
+
+        # Write commands to execute MUSICAA in mode 5.

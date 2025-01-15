@@ -4,6 +4,7 @@ import numpy as np
 import pandas
 
 from aero_optim.mesh.mesh import Mesh
+from aero_optim.mesh.mesh import MeshMusicaa
 
 logger = logging.getLogger(__name__)
 
@@ -346,12 +347,12 @@ class CascadeMesh(Mesh):
         self.top_tags = None
 
 
-class CascadeMeshMusicaa:
+class CascadeMeshMusicaa(MeshMusicaa):
     """
     This class implements a mesh routine for a compressor cascade geometry when using MUSICAA.
     This solver requires strctured coincident blocks with a unique frontier on each boundary.
     """
-    def __init__(self, dat_dir: str, mesh_name: str, **kwargs):
+    def __init__(self, config: dict, dat_dir: str):
         """
         Instantiates the CascadeMeshMusicaa object.
 
@@ -359,27 +360,22 @@ class CascadeMeshMusicaa:
 
         **Input**
 
-        Mandatory:
-        - dat_dir: directory containing mesh files
-        - mesh_name: name of the mesh files (turb, ogv, grid...)
+        - config (dict): the config file dictionary.
+        - dat_dir (str): directory containing mesh files
 
-        In kwargs:
+        **Inner**
+
         - pitch: blade-to-blade pitch
         - periodic_bl: list containing the blocks that must be translated DOWN to reform
                         the blade geometry fully. Not needed if the original mesh already
                         surrounds the blade
-
-        **Inner**
-
         - re: used to read integers from str
 
         """
-        self.dat_dir = dat_dir
-        self.mesh_name = mesh_name
-
-        # From kwargs
-        self.pitch = kwargs.get('pitch', 1)
-        self.periodic_bl = list(map(int, kwargs.get('periodic_bl', '0').split()))
+        super().__init__(config, dat_dir)
+        self.pitch: int = config["study"]["geometry"].get('pitch', 1)
+        self.periodic_bl: list[int] = list(map(int, config["musicaa_mesh"]["blocks"]
+                                               .get("periodic_bl", "0").split()))
 
         # Additional modules required
         import re
