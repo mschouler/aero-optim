@@ -2,6 +2,8 @@ import gmsh
 import logging
 import math
 import os
+import numpy as np
+import pandas
 
 from abc import ABC, abstractmethod
 from aero_optim.utils import from_dat, check_dir
@@ -300,45 +302,104 @@ class MeshMusicaa(ABC):
     """
     This class implements an abstract meshing class for the solver MUSICAA.
     """
-    def __init__(self, config: dict, dat_dir: str):
+    def __init__(self, config: dict):
         """
         Instantiates the abstract MeshMusicaa object.
 
         **Input**
 
         - config (dict): the config file dictionary.
-        - dat_dir (str): path to input_geometry.dat.
 
         **Inner**
 
+        - dat_file (str): input_geometry.dat file including path.
+        - dat_dir (str): path to input_geometry.dat.
         - mesh_name (str): name of the mesh files (******_bl1.x)
-
-        """
-        self.config = config
-        self.dat_dir = dat_dir
-        self.mesh_name: str = config["musicaa_mesh"]["mesh_name"]
-
-    @abstractmethod
-    def write_profile(self, wall_bl: str):
-        """
-        **Writes** the profile by extracting its coordinates from MUSICAA grid files.
         - wall_bl: str containing the blocks adjacent to the geometry to be optimized.
                    The block numbers should be ordered following the curvilinear abscissae of
                    the blade. Unfortunately, the present version only reads walls along i
-                   located at j=0 (grid indices):
+                   located at j=0 (grid indices).
 
-                j
-                ^
-                |
-                |
-                |   wall
-                - - - - -> i
+        """
+        self.config = config
+        # study params
+        self.dat_file = config["study"]["file"]
+        self.dat_dir = '/'.join(self.dat_file.split('/')[:-1])
+        # mesh params
+        self.mesh_name: str = config["study"]["file"].split('/')[-1].split('.')[0]
+        self.wall_bl: list[int] = config["musicaa_mesh"].get("wall_bl", [0])
+
+    def get_info_mesh(self) -> dict:
+        """
+        **Returns** a dictionnary containing relevant information on the mesh
+        used by MUSICAA: number of blocks, block size.
+        Note: this element is automatically produced by MUSICAA, and need not be
+        created manually.
+        """
+        dict_info = {}
+
+        # read relevant lines
+        f = open(f'{self.dat_dir}/info.ini', 'r')
+        lines = f.readlines()
+        dict_info["nbloc"] = int(lines[0].split()[4])
+        for ind in range(dict_info["nbloc"]):
+            dict_info["nx_bl" + str(ind + 1)] = int(lines[1 + ind].split()[5])
+            dict_info["ny_bl" + str(ind + 1)] = int(lines[1 + ind].split()[6])
+            dict_info["nz_bl" + str(ind + 1)] = int(lines[1 + ind].split()[7])
+
+        return dict_info
+
+    def read_bl(self, bl: int) -> np.ndarray:
+        """
+        **Returns** an array containing the block coordinates.
+        """
+        coord_list = []
+        # read block coordinates
+        with open(f'{self.dat_dir}/{self.mesh_name}_bl{bl}.x', 'r') as f:
+            a = pandas.read_csv(f).to_numpy()
+
+        # get block size
+        dict_info = self.get_info_mesh()
+        nx, ny = dict_info[f"nx_bl{bl}"], dict_info[f"ny_bl{bl}"]
+
+        # convert coordinates to a regular 2D array
+        for line in a[1:]:
+            b = line[0].split(' ')
+            for element in b:
+                if element != '':
+                    coord_list.append(np.float64(element))
+
+        # extract 2D mesh and store
+        coords_x = np.array(coord_list[:nx * ny])
+        coords_y = np.array(coord_list[nx * ny:2 * nx * ny])
+        coords = np.vstack((coords_x, coords_y)).T
+
+        return coords
+
+    def read_profile(self):
+        """
+        **Returns** the 2D blade profile from the file <mesh_name>.dat
+        """
+        return np.loadtxt(self.dat_file)
+
+    @abstractmethod
+    def write_profile(self):
+        """
+        **Writes** the profile by extracting its coordinates from MUSICAA grid files.
         """
         pass
 
+    @abstractmethod
+    def write_deformed_mesh_edges(self):
+        """
+        **Writes** the deformed profile in a format such that the MUSICAA solver
+        can generate the fully deformed mesh via a Fortran routine.
+        """
+        pass
+
+    @abstractmethod
     def deform_mesh(self):
         """
         **Executes** the MUSICAA mesh deformation routine.
         """
-
-        # Write commands to execute MUSICAA in mode 5.
+        pass

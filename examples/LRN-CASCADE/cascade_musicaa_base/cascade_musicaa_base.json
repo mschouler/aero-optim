@@ -1,0 +1,17 @@
+{
+    "study": {
+        "study_type": "cascade",
+        "ffd_type": "ffd_2d",
+        "file": "examples/LRN-CASCADE/cascade_musicaa_base/ogv1c.dat",
+        "outdir": "output"
+    },
+    "musicaa_mesh": {
+        "wall_bl": [3,4,7,6],
+        "periodic_bl": [6],
+        "pitch": 40.39
+    },
+    "simulator": {
+        "ref_input_num": "param.ini",
+        "ref_input_mesh": "param_blocks.ini"
+    }
+}

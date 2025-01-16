@@ -8,7 +8,8 @@ import sys
 
 from scipy.stats import qmc
 from aero_optim.ffd.ffd import FFD_2D
-from aero_optim.utils import check_file, check_parser
+from aero_optim.utils import check_file, check_config, get_custom_class
+from aero_optim.mesh.cascade_mesh import CascadeMeshMusicaa
 
 # set pillow and matplotlib loggers to WARNING mode
 logging.getLogger("PIL").setLevel(logging.WARNING)
@@ -105,20 +106,7 @@ def main():
     parser.add_argument(
         "-d", "--delta", type=str, default=None, help="Delta: 'D10 D20 .. D2nc'")
     parser.add_argument(
-        "-pm", "--profile_or_mesh_files", type=str, help="'profile' or 'mesh_files'.\
-        Indicate whether 'profile' is available in a 2D file or must be extracted from 'mesh_files'\
-        (the latter is very specific to structured grids, we recommend you write the\
-        2D file beforehand)", default='profile')
-    parser.add_argument(
-        "-wb", "--wall_bl", type=str, help="list of mesh blocks containg a wall.\
-         wall_bl: '1 2 3 ... n'\
-        !!! must be in the correct order to reconstruct 2D profile !!!", default=None)
-    parser.add_argument(
-        "-pb", "--periodic_bl", type=str, help="list of mesh blocks that must be translated.\
-         periodic_bl: '1 2 3 ... n'\
-        down by one pitch to reconstruct the profile.", default=[0])
-    parser.add_argument(
-        "-p", "--pitch", type=float, help="blade-to-blade pitch.", default=None)
+        "-c", "--config", type=str, help="config: --config=/path/to/config.json")
     args = parser.parse_args()
 
     # FFD routine
@@ -132,25 +120,19 @@ def main():
     #  |  -> project the new profile back into the original referential
     seed = 1234
     ncontrol = args.ncontrol
-    if args.profile_or_mesh_files == 'mesh_files':
-        check_parser(args)
-        # must separate the directory path and mesh files name from the --file argument
-        path = args.file.split('/')
-        mesh_name = path[-1].split('.')[0]
-        dat_dir = '/'.join(path[:-1])
-        # build config dictionnary
-        config = {}
-        config["musicaa_mesh"] = {}
-        config["musicaa_mesh"]["mesh_name"] = mesh_name
-        config["musicaa_mesh"]["blocks"] = {}
-        config["musicaa_mesh"]["blocks"]["periodic_bl"] = args.periodic_bl
-        config["study"] = {}
-        config["study"]["geometry"] = {}
-        config["study"]["geometry"]["pitch"] = args.pitch
+
+    # read config
+    config, custom_file, study_type = check_config(args.config)
+    if config["musicaa_mesh"]:
         # write 2D profile
-        from aero_optim.mesh.cascade_mesh import CascadeMeshMusicaa
-        cmm = CascadeMeshMusicaa(config, dat_dir)
-        cmm.write_profile(args.wall_bl)
+        MeshClass = get_custom_class(custom_file, "CustomMesh") if custom_file else None
+        if not MeshClass:
+            if study_type == "cascade":
+                MeshClass = CascadeMeshMusicaa
+            else:
+                raise Exception(f"ERROR -- incorrect study_type <{study_type}>")
+        musicaa_cmm = CascadeMeshMusicaa(config)
+        musicaa_cmm.write_profile()
     else:
         # 2D profile file should exist
         check_file(args.file)

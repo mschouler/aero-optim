@@ -1,7 +1,6 @@
 import gmsh
 import logging
 import numpy as np
-import pandas
 
 from aero_optim.mesh.mesh import Mesh
 from aero_optim.mesh.mesh import MeshMusicaa
@@ -352,7 +351,7 @@ class CascadeMeshMusicaa(MeshMusicaa):
     This class implements a mesh routine for a compressor cascade geometry when using MUSICAA.
     This solver requires strctured coincident blocks with a unique frontier on each boundary.
     """
-    def __init__(self, config: dict, dat_dir: str):
+    def __init__(self, config: dict):
         """
         Instantiates the CascadeMeshMusicaa object.
 
@@ -361,81 +360,98 @@ class CascadeMeshMusicaa(MeshMusicaa):
         **Input**
 
         - config (dict): the config file dictionary.
-        - dat_dir (str): directory containing mesh files
 
         **Inner**
 
-        - pitch: blade-to-blade pitch
-        - periodic_bl: list containing the blocks that must be translated DOWN to reform
+        - pitch (float): blade-to-blade pitch
+        - periodic_bl (list[int]): list containing the blocks that must be translated DOWN to reform
                         the blade geometry fully. Not needed if the original mesh already
                         surrounds the blade
-        - re: used to read integers from str
 
         """
-        super().__init__(config, dat_dir)
-        self.pitch: int = config["study"]["geometry"].get('pitch', 1)
-        self.periodic_bl: list[int] = list(map(int, config["musicaa_mesh"]["blocks"]
-                                               .get("periodic_bl", "0").split()))
+        super().__init__(config)
+        self.pitch: int = config["musicaa_mesh"].get('pitch', 1)
+        self.periodic_bl: list[int] = config["musicaa_mesh"].get("periodic_bl", [0])
 
-        # Additional modules required
-        import re
-        self.re = re
-
-    def write_profile(self, wall_bl: str):
+    def write_profile(self):
         """
         **Writes** the profile by extracting its coordinates from MUSICAA grid files.
-        - wall_bl: str containing the blocks adjacent to the geometry to be optimized.
-                   The block numbers should be ordered following the curvilinear abscissae of
-                   the blade. Unfortunately, the present version only reads walls along i
-                   located at j=0 (grid indices):
-
-                j
-                ^
-                |
-                |
-                |   wall
-                - - - - -> i
         """
-        wall_bl_list = list(map(int, wall_bl.split()))
 
-        # Create storage
-        coords_x = []
-        coords_y = []
+        # create storage
+        coords_wall_x = []
+        coords_wall_y = []
 
-        # Loop over blocks within list
-        for bl in wall_bl_list:
-            c = []
-            with open(f'{self.dat_dir}/{self.mesh_name}_bl{bl}.x', 'r') as f:
+        # get mesh information
+        dict_info = self.get_info_mesh()
 
-                a = pandas.read_csv(f).to_numpy()
-                npts = a[0][0]
-                npts = self.re.findall(r'\d+', npts)
-                nx = int(npts[0])
-                ny = int(npts[1])
+        # loop over blocks within list
+        for bl in self.wall_bl:
 
-                for line in a[1:]:
-                    b = line[0].split(' ')
-                    for element in b:
-                        if element != '':
-                            c.append(np.float64(element))
-                coords_flat = np.array(c)
+            # read block coordinates
+            coords = self.read_bl(bl)
+            nx = dict_info[f'nx_bl{bl}']
 
-                # Save only wall (located at j=0)
-                coords_x.append(coords_flat[:nx])
+            # save only wall (located at j=0)
+            coords_wall_x.append(coords[:nx, 0])
+            coords_wall_y.append(coords[:nx, 1])
 
-                # Check if block must be translated in the pitchwise direction
-                if bl in self.periodic_bl:
-                    coords_flat[nx * ny:nx * ny + nx] += -self.pitch
-                coords_y.append(coords_flat[nx * ny:nx * ny + nx])
+            # check if block must be translated in the pitchwise direction
+            if bl in self.periodic_bl:
+                coords_wall_y[-1] += -self.pitch
 
-        # Assemble 2D array
-        coords = np.vstack((np.hstack(coords_x), np.hstack(coords_y))).T
+        # assemble 2D array
+        coords_wall = np.vstack((np.hstack(coords_wall_x), np.hstack(coords_wall_y))).T
 
-        # Make sure LE is positionned at geometric stagnation point
+        # make sure LE is positionned at geometric stagnation point
         x_stag = coords[:, 0].min()
         y_stag = coords[np.argmin(coords[:, 0]), 1]
-        coords[:, 0] += -x_stag
-        coords[:, 1] += -y_stag
+        coords_wall[:, 0] += -x_stag
+        coords_wall[:, 1] += -y_stag
 
-        # Save to file
-        np.savetxt(f'{self.dat_dir}/{self.mesh_name}.dat', coords)
+        # save to file
+        np.savetxt(self.dat_file, coords_wall)
+
+    def write_deformed_mesh_edges(self):
+        """
+        **Writes** the deformed profile in a format such that the MUSICAA solver
+        can generate the fully deformed mesh via a Fortran routine.
+        """
+
+        # get deformed profile
+        coords_wall = self.read_profile()
+
+        # get mesh information
+        dict_info = self.get_info_mesh()
+
+        # loop over blocks
+        j = 0
+        for bl in self.wall_bl:
+
+            # get block dimensions
+            nx = dict_info[f'nx_bl{bl}']
+            ny = dict_info[f'ny_bl{bl}']
+            nz = dict_info[f'nz_bl{bl}']
+
+            # open file and write specific format
+            with open(f'{self.dat_dir}/turb_pert_edges_bl{bl}.x', 'w') as f:
+                f.write('1\n')
+                f.write(str(str(nx) + '  ' + str(ny) + '  ' + str(nz) + '\n'))
+
+                # write wall coordinates
+                for i in range(nx):
+                    f.write(str(coords_wall[i + j, 0]) + ' ')
+                f.write('\n')
+                for i in range(nx):
+                    if bl in self.periodic_bl:
+                        f.write(str(coords_wall[i + j, 1] + self.pitch) + ' ')
+                    else:
+                        f.write(str(coords_wall[i + j, 1]) + ' ')
+                j += nx
+
+    def deform_mesh(self):
+        """
+        **Executes** the MUSICAA mesh deformation routine.
+        """
+
+        # Write commands to execute MUSICAA in mode 5.
