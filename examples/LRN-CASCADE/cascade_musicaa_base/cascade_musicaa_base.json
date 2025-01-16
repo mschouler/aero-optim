@@ -1,5 +1,6 @@
 {
     "study": {
+        "custom_file": "custom_MUSICAA_optim.py",
         "study_type": "cascade",
         "ffd_type": "ffd_2d",
         "file": "examples/LRN-CASCADE/cascade_musicaa_base/ogv1c.dat",

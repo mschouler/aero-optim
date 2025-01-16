@@ -382,20 +382,81 @@ class MeshMusicaa(ABC):
         """
         return np.loadtxt(self.dat_file)
 
-    @abstractmethod
     def write_profile(self):
         """
         **Writes** the profile by extracting its coordinates from MUSICAA grid files.
         """
-        pass
 
-    @abstractmethod
+        # create storage
+        coords_wall_x = []
+        coords_wall_y = []
+
+        # get mesh information
+        dict_info = self.get_info_mesh()
+
+        # loop over blocks within list
+        for bl in self.wall_bl:
+
+            # read block coordinates
+            coords = self.read_bl(bl)
+            nx = dict_info[f'nx_bl{bl}']
+
+            # save only wall (located at j=0)
+            coords_wall_x.append(coords[:nx, 0])
+            coords_wall_y.append(coords[:nx, 1])
+
+            # check if block must be translated in the pitchwise direction
+            if bl in self.periodic_bl:
+                coords_wall_y[-1] += -self.pitch
+
+        # assemble 2D array
+        coords_wall = np.vstack((np.hstack(coords_wall_x), np.hstack(coords_wall_y))).T
+
+        # make sure LE is positionned at geometric stagnation point
+        x_stag = coords[:, 0].min()
+        y_stag = coords[np.argmin(coords[:, 0]), 1]
+        coords_wall[:, 0] += -x_stag
+        coords_wall[:, 1] += -y_stag
+
+        # save to file
+        np.savetxt(self.dat_file, coords_wall)
+
     def write_deformed_mesh_edges(self):
         """
         **Writes** the deformed profile in a format such that the MUSICAA solver
         can generate the fully deformed mesh via a Fortran routine.
         """
-        pass
+
+        # get deformed profile
+        coords_wall = self.read_profile()
+
+        # get mesh information
+        dict_info = self.get_info_mesh()
+
+        # loop over blocks
+        j = 0
+        for bl in self.wall_bl:
+
+            # get block dimensions
+            nx = dict_info[f'nx_bl{bl}']
+            ny = dict_info[f'ny_bl{bl}']
+            nz = dict_info[f'nz_bl{bl}']
+
+            # open file and write specific format
+            with open(f'{self.dat_dir}/turb_pert_edges_bl{bl}.x', 'w') as f:
+                f.write('1\n')
+                f.write(str(str(nx) + '  ' + str(ny) + '  ' + str(nz) + '\n'))
+
+                # write wall coordinates
+                for i in range(nx):
+                    f.write(str(coords_wall[i + j, 0]) + ' ')
+                f.write('\n')
+                for i in range(nx):
+                    if bl in self.periodic_bl:
+                        f.write(str(coords_wall[i + j, 1] + self.pitch) + ' ')
+                    else:
+                        f.write(str(coords_wall[i + j, 1]) + ' ')
+                j += nx
 
     @abstractmethod
     def deform_mesh(self):
