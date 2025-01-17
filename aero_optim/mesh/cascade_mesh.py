@@ -3,7 +3,6 @@ import logging
 import numpy as np
 
 from aero_optim.mesh.mesh import Mesh
-from aero_optim.mesh.mesh import MeshMusicaa
 
 logger = logging.getLogger(__name__)
 
@@ -344,65 +343,3 @@ class CascadeMesh(Mesh):
         self.non_corner_tags = None
         self.bottom_tags = None
         self.top_tags = None
-
-
-class CascadeMeshMusicaa(MeshMusicaa):
-    """
-    This class implements a mesh routine for a compressor cascade geometry when using MUSICAA.
-    This solver requires strctured coincident blocks with a unique frontier on each boundary.
-    """
-    def __init__(self, config: dict):
-        """
-        Instantiates the CascadeMeshMusicaa object.
-
-        - **kwargs: optional arguments listed upon call
-
-        **Input**
-
-        - config (dict): the config file dictionary.
-
-        **Inner**
-
-        - pitch (float): blade-to-blade pitch
-        - periodic_bl (list[int]): list containing the blocks that must be translated DOWN to reform
-                        the blade geometry fully. Not needed if the original mesh already
-                        surrounds the blade
-
-        """
-        super().__init__(config)
-
-    def write_profile_from_mesh(self):
-        """
-        **Writes** the profile by extracting its coordinates from MUSICAA grid files.
-        """
-
-        # create storage
-        coords_wall_x = []
-        coords_wall_y = []
-
-        # loop over blocks within list
-        for bl in self.wall_bl:
-
-            # read block coordinates
-            coords = self.read_bl(bl)
-            nx = self.mesh_info[f'nx_bl{bl}']
-
-            # save only wall (located at j=0)
-            coords_wall_x.append(coords[:nx, 0])
-            coords_wall_y.append(coords[:nx, 1])
-
-            # check if block must be translated in the pitchwise direction
-            if bl in self.periodic_bl:
-                coords_wall_y[-1] += -self.pitch
-
-        # assemble 2D array
-        coords_wall = np.vstack((np.hstack(coords_wall_x), np.hstack(coords_wall_y))).T
-
-        # make sure LE is positionned at geometric stagnation point
-        x_stag = coords[:, 0].min()
-        y_stag = coords[np.argmin(coords[:, 0]), 1]
-        coords_wall[:, 0] += -x_stag
-        coords_wall[:, 1] += -y_stag
-
-        # save to file
-        np.savetxt(self.dat_file, coords_wall)
