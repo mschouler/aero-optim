@@ -329,10 +329,10 @@ class MeshMusicaa(ABC):
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
         # mesh params
         self.mesh_name: str = self.dat_file.split('/')[-1].split('.')[0]
-        self.wall_bl: list[int] = config["musicaa_mesh"].get("wall_bl", [0])
+        self.wall_bl: list[int] = config["plot3D"]["mesh"].get("wall_bl", [0])
         self.mesh_info = self.get_info_mesh()
-        self.pitch: int = config["musicaa_mesh"].get('pitch', 1)
-        self.periodic_bl: list[int] = config["musicaa_mesh"].get("periodic_bl", [0])
+        self.pitch: int = config["plot3D"]["mesh"].get('pitch', 1)
+        self.periodic_bl: list[int] = config["plot3D"]["mesh"].get("periodic_bl", [0])
 
     def write_mesh(self, outdir: str) -> str:
         """

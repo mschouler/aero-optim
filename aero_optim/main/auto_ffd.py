@@ -120,18 +120,23 @@ def main():
     seed = 1234
     ncontrol = args.ncontrol
 
-    # read config
-    # config, custom_file, study_type = check_config(args.config)
-    # if config["musicaa_mesh"]:
-    #     # write 2D profile
-    #     MeshClass = get_custom_class(custom_file, "CustomMesh") if custom_file else None
-    #     if not MeshClass:
-    #         if study_type == "cascade":
-    #             MeshClass = CascadeMeshMusicaa
-    #         else:
-    #             raise Exception(f"ERROR -- incorrect study_type <{study_type}>")
-    #     musicaa_cmm = CascadeMeshMusicaa(config)
-    #     musicaa_cmm.write_profile_from_mesh()
+    # if profile does not exist, the MeshClasse should provide it
+    # this is possible if using a customized approach
+    if not os.path.isfile(args.file):
+
+        # read config file
+        config, custom_file, _ = check_config(args.config)
+        custom_file = config["study"].get("custom_file", "")
+
+        # get customized mesh class
+        MeshClass = get_custom_class(custom_file, "CustomMesh") if custom_file else None
+        if not MeshClass:
+            raise Exception("ERROR -- either provide a 2D profile, or a valid CustomMesh class.")
+        mesh = MeshClass(config)
+
+        # write profile
+        mesh.write_profile_from_mesh()
+
     # 2D profile file should exist
     check_file(args.file)
     ffd = FFD_2D(args.file, ncontrol)
