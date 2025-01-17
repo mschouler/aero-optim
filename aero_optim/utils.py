@@ -235,6 +235,23 @@ def replace_in_file(fname: str, sim_args: dict):
         file.write(filedata)
 
 
+def modify_next_line_in_file(fname: str, location: str, modif: str):
+    """
+    Overwrites the next line within the file with the argument.
+    """
+    with open(fname, 'r') as file:
+        filedata = file.readlines()
+    # Iterate through the lines and find the line containing location
+    for i, line in enumerate(filedata):
+        if location in line:
+            # Ensure the next line exists
+            if i + 1 < len(filedata):
+                filedata[i + 1] = modif + '\n'
+    # Write the modified content back to the file
+    with open(fname, 'w') as file:
+        file.writelines(filedata)
+
+
 def rm_filelist(deletion_list: list[str]):
     """
     Wrapper around os.remove that deletes all files specified in deletion_list.

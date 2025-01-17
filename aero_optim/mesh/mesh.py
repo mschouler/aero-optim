@@ -4,9 +4,10 @@ import math
 import os
 import numpy as np
 import pandas
+import subprocess
 
 from abc import ABC, abstractmethod
-from aero_optim.utils import from_dat, check_dir
+from aero_optim.utils import from_dat, check_dir, modify_next_line_in_file
 
 logger = logging.getLogger(__name__)
 
@@ -328,6 +329,9 @@ class MeshMusicaa(ABC):
         # mesh params
         self.mesh_name: str = config["study"]["file"].split('/')[-1].split('.')[0]
         self.wall_bl: list[int] = config["musicaa_mesh"].get("wall_bl", [0])
+        self.mesh_info = self.get_info_mesh()
+        self.pitch: int = config["musicaa_mesh"].get('pitch', 1)
+        self.periodic_bl: list[int] = config["musicaa_mesh"].get("periodic_bl", [0])
 
     def get_info_mesh(self) -> dict:
         """
@@ -336,18 +340,18 @@ class MeshMusicaa(ABC):
         Note: this element is automatically produced by MUSICAA, and need not be
         created manually.
         """
-        dict_info = {}
+        mesh_info = {}
 
         # read relevant lines
         f = open(f'{self.dat_dir}/info.ini', 'r')
         lines = f.readlines()
-        dict_info["nbloc"] = int(lines[0].split()[4])
-        for ind in range(dict_info["nbloc"]):
-            dict_info["nx_bl" + str(ind + 1)] = int(lines[1 + ind].split()[5])
-            dict_info["ny_bl" + str(ind + 1)] = int(lines[1 + ind].split()[6])
-            dict_info["nz_bl" + str(ind + 1)] = int(lines[1 + ind].split()[7])
+        mesh_info["nbloc"] = int(lines[0].split()[4])
+        for ind in range(mesh_info["nbloc"]):
+            mesh_info["nx_bl" + str(ind + 1)] = int(lines[1 + ind].split()[5])
+            mesh_info["ny_bl" + str(ind + 1)] = int(lines[1 + ind].split()[6])
+            mesh_info["nz_bl" + str(ind + 1)] = int(lines[1 + ind].split()[7])
 
-        return dict_info
+        return mesh_info
 
     def read_bl(self, bl: int) -> np.ndarray:
         """
@@ -359,8 +363,8 @@ class MeshMusicaa(ABC):
             a = pandas.read_csv(f).to_numpy()
 
         # get block size
-        dict_info = self.get_info_mesh()
-        nx, ny = dict_info[f"nx_bl{bl}"], dict_info[f"ny_bl{bl}"]
+        nx = self.mesh_info[f"nx_bl{bl}"]
+        ny = self.mesh_info[f"ny_bl{bl}"]
 
         # convert coordinates to a regular 2D array
         for line in a[1:]:
@@ -376,30 +380,71 @@ class MeshMusicaa(ABC):
 
         return coords
 
-    def read_profile(self):
+    def read_profile(self, dat_file: str) -> np.ndarray:
         """
-        **Returns** the 2D blade profile from the file <mesh_name>.dat
+        **Returns** the 2D blade profile from the file dat_file
         """
-        return np.loadtxt(self.dat_file)
+        return np.loadtxt(dat_file)
 
-    @abstractmethod
-    def write_profile(self):
-        """
-        **Writes** the profile by extracting its coordinates from MUSICAA grid files.
-        """
-        pass
-
-    @abstractmethod
-    def write_deformed_mesh_edges(self):
+    def write_deformed_mesh_edges(self,
+                                  profile: np.ndarray,
+                                  outdir: str,
+                                  gid: int = 0, cid: int = 0) -> str:
         """
         **Writes** the deformed profile in a format such that the MUSICAA solver
         can generate the fully deformed mesh via a Fortran routine.
+        **Returns** the path to the files.
         """
-        pass
 
-    @abstractmethod
-    def deform_mesh(self):
+        # check if directory exists
+        outdir += f'/musicaa_g{gid}_c{cid}/'
+        check_dir(outdir)
+
+        # loop over blocks
+        j = 0
+        for bl in self.wall_bl:
+
+            # get block dimensions
+            nx = self.mesh_info[f'nx_bl{bl}']
+            ny = self.mesh_info[f'ny_bl{bl}']
+            nz = self.mesh_info[f'nz_bl{bl}']
+
+            # open file and write specific format
+            with open(f'{outdir}/{self.mesh_name}_pert_edges_bl{bl}.x', 'w') as f:
+                f.write('1\n')
+                f.write(str(str(nx) + '  ' + str(ny) + '  ' + str(nz) + '\n'))
+
+                # write wall coordinates
+                for i in range(nx):
+                    f.write(str(profile[i + j, 0]) + ' ')
+                f.write('\n')
+                for i in range(nx):
+                    if bl in self.periodic_bl:
+                        f.write(str(profile[i + j, 1] + self.pitch) + ' ')
+                    else:
+                        f.write(str(profile[i + j, 1]) + ' ')
+                j += nx
+
+        return outdir
+
+    def deform_mesh(self, outdir: str):
         """
         **Executes** the MUSICAA mesh deformation routine.
+        """
+        # change MUSICAA restart mode to 5
+        modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
+                                 "from_field", str(5))
+        # change mesh files directory
+        modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
+                                 "dirGRID", outdir)
+
+        # execute MUSICAA
+        deform_cmd = self.config["simulator"]["deform_cmd"]
+        subprocess.Popen(deform_cmd, env=os.environ)
+
+    @abstractmethod
+    def write_profile_from_mesh(self):
+        """
+        **Writes** the profile by extracting its coordinates from MUSICAA mesh files.
         """
         pass

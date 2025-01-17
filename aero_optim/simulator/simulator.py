@@ -305,6 +305,21 @@ class WolfSimulator(Simulator):
         _ = [subpro.terminate() for _, subpro in self.sim_pro]
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class MusicaaSimulator(Simulator):
     """
     This class implements a simulator for the CFD code MUSICAA.
@@ -353,43 +368,59 @@ class MusicaaSimulator(Simulator):
         """
         self.solver_name = "musicaa"
 
-    # def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0, restart: int = 0):
-    #     """
-    #     **Pre-processes** and **executes** a MUSICAA simulation.
-    #     """
-    #     # add gid entry to the results dictionary
-    #     if gid not in self.df_dict:
-    #         self.df_dict[gid] = {}
+    def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0, restart: int = 0):
+        """
+        **Pre-processes** and **executes** a MUSICAA simulation.
+        """
+        # add gid entry to the results dictionary
+        if gid not in self.df_dict:
+            self.df_dict[gid] = {}
 
-    #     try:
-    #         sim_outdir = self.get_sim_outdir(gid, cid)
-    #         dict_id: dict = {"gid": gid, "cid": cid, "meshfile": meshfile}
-    #         self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
-    #             dict_id, sim_outdir
-    #         )
-    #         logger.info(f"g{gid}, c{cid}: loaded pre-existing results from files")
-    #     except FileNotFoundError:
-    #         # Pre-process
-    #         sim_outdir, exec_cmd = self.pre_process(meshfile, gid, cid)
-    #         # Execution
-    #         self.execute(sim_outdir, exec_cmd, gid, cid, meshfile, restart)
+        try:
+            sim_outdir = self.get_sim_outdir(gid, cid)
+            dict_id: dict = {"gid": gid, "cid": cid, "meshfile": meshfile}
+            self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
+                dict_id, sim_outdir
+            )
+            logger.info(f"g{gid}, c{cid}: loaded pre-existing results from files")
+        except FileNotFoundError:
+            # Pre-process
+            sim_outdir, exec_cmd = self.pre_process(meshfile, gid, cid)
+            # Execution
+            self.execute(sim_outdir, exec_cmd, gid, cid, meshfile, restart)
 
     def pre_process(self, meshfile: str, gid: int, cid: int) -> tuple[str, list[str]]:
         """
         **Pre-processes** the simulation execution
         and **returns** the execution command and directory.
         """
-        # get the simulation meshfile
+        # Important note: this function is looped upon, so all actions
+        # are performed on a single candidate
+        #                    ----------------
+
+        # 1) get the simulation meshfile
+        # name of file (INCLUDING DIRECTORY) containing 2D profile
         full_meshfile = meshfile if meshfile else self.config["simulator"]["file"]
+        # get just the path to that file
         path_to_meshfile: str = "/".join(full_meshfile.split("/")[:-1])
+        # get just the name of that file
         meshfile = full_meshfile.split("/")[-1]
-        # generate custom input by altering the wolf template
+
+        # 2) generate custom input by altering the wolf template
+        # name of simulation directory
         sim_outdir = self.get_sim_outdir(gid=gid, cid=cid)
+        # check if it exists, if not ~> create it
         check_dir(sim_outdir)
+        # add it the inputs
         self.custom_input(os.path.join(sim_outdir, f"{meshfile.split('.')[0]}.wolf"))
-        # copy meshfile to the output directory
+
+        # 3) copy meshfile to the output directory
+        # /!\ for MUSICAA, the profile ust be written to the mesh file
+        # Make general so you don't import Cascade_mesh !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # Should call mesh.write_profile
         shutil.copy(os.path.join(path_to_meshfile, meshfile), sim_outdir)
         logger.info(f"{os.path.join(path_to_meshfile, meshfile)} copied to {sim_outdir}")
+
         # copy any other solver expected files
         suffix_list = [file.split(".")[-1] for file in self.files_to_cp]
         [shutil.copy(file, os.path.join(sim_outdir, f"{meshfile.split('.')[0]}.{suffix}"))
@@ -497,6 +528,17 @@ class MusicaaSimulator(Simulator):
         """
         logger.info(f"{len(self.sim_pro)} remaining simulation(s) will be killed")
         _ = [subpro.terminate() for _, subpro in self.sim_pro]
+
+
+
+
+
+
+
+
+
+
+
 
 
 class DebugSimulator(Simulator):

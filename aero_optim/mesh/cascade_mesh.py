@@ -370,10 +370,8 @@ class CascadeMeshMusicaa(MeshMusicaa):
 
         """
         super().__init__(config)
-        self.pitch: int = config["musicaa_mesh"].get('pitch', 1)
-        self.periodic_bl: list[int] = config["musicaa_mesh"].get("periodic_bl", [0])
 
-    def write_profile(self):
+    def write_profile_from_mesh(self):
         """
         **Writes** the profile by extracting its coordinates from MUSICAA grid files.
         """
@@ -382,15 +380,12 @@ class CascadeMeshMusicaa(MeshMusicaa):
         coords_wall_x = []
         coords_wall_y = []
 
-        # get mesh information
-        dict_info = self.get_info_mesh()
-
         # loop over blocks within list
         for bl in self.wall_bl:
 
             # read block coordinates
             coords = self.read_bl(bl)
-            nx = dict_info[f'nx_bl{bl}']
+            nx = self.mesh_info[f'nx_bl{bl}']
 
             # save only wall (located at j=0)
             coords_wall_x.append(coords[:nx, 0])
@@ -411,47 +406,3 @@ class CascadeMeshMusicaa(MeshMusicaa):
 
         # save to file
         np.savetxt(self.dat_file, coords_wall)
-
-    def write_deformed_mesh_edges(self):
-        """
-        **Writes** the deformed profile in a format such that the MUSICAA solver
-        can generate the fully deformed mesh via a Fortran routine.
-        """
-
-        # get deformed profile
-        coords_wall = self.read_profile()
-
-        # get mesh information
-        dict_info = self.get_info_mesh()
-
-        # loop over blocks
-        j = 0
-        for bl in self.wall_bl:
-
-            # get block dimensions
-            nx = dict_info[f'nx_bl{bl}']
-            ny = dict_info[f'ny_bl{bl}']
-            nz = dict_info[f'nz_bl{bl}']
-
-            # open file and write specific format
-            with open(f'{self.dat_dir}/turb_pert_edges_bl{bl}.x', 'w') as f:
-                f.write('1\n')
-                f.write(str(str(nx) + '  ' + str(ny) + '  ' + str(nz) + '\n'))
-
-                # write wall coordinates
-                for i in range(nx):
-                    f.write(str(coords_wall[i + j, 0]) + ' ')
-                f.write('\n')
-                for i in range(nx):
-                    if bl in self.periodic_bl:
-                        f.write(str(coords_wall[i + j, 1] + self.pitch) + ' ')
-                    else:
-                        f.write(str(coords_wall[i + j, 1]) + ' ')
-                j += nx
-
-    def deform_mesh(self):
-        """
-        **Executes** the MUSICAA mesh deformation routine.
-        """
-
-        # Write commands to execute MUSICAA in mode 5.

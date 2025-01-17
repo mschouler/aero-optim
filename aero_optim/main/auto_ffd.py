@@ -132,10 +132,9 @@ def main():
             else:
                 raise Exception(f"ERROR -- incorrect study_type <{study_type}>")
         musicaa_cmm = CascadeMeshMusicaa(config)
-        musicaa_cmm.write_profile()
-    else:
-        # 2D profile file should exist
-        check_file(args.file)
+        musicaa_cmm.write_profile_from_mesh()
+    # 2D profile file should exist
+    check_file(args.file)
     ffd = FFD_2D(args.file, ncontrol)
     if not args.delta:
         sampler = get_sampler(args.sampler, ncontrol, seed)
