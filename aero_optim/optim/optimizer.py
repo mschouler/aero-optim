@@ -544,3 +544,132 @@ class DebugOptimizer(Optimizer, ABC):
             self.simulator.execute_sim(cand, gid, cid)
             logger.debug(f"g{gid}, c{cid} cand {cand}, "
                          f"fitness {self.simulator.df_dict[gid][cid]['result'].iloc[-1]}")
+
+
+class MusicaaOptimizer(Optimizer, ABC):
+    """
+    This class implements a Wolf based Optimizer.
+    """
+    def __init__(self, config: dict):
+        """
+        Instantiates the WolfOptimizer object.
+
+        **Input**
+
+        - config (dict): the config file dictionary.
+        """
+        super().__init__(config)
+
+    def set_simulator_class(self):
+        """
+        **Sets** the simulator class as custom if found, as WolfSimulator otherwise.
+        """
+        super().set_simulator_class()
+        if not self.SimulatorClass:
+            self.SimulatorClass = WolfSimulator
+
+    def set_inner(self):
+        """
+        **Sets** some use-case specific inner variables:
+
+        - baseline_CD (float): the drag coefficient of the baseline geometry.
+        - baseline_CL (float): the lift coefficient of the baseline geometry.
+        - baseline_area (float): the baseline area that is used as a structural constraint.
+        - area_margin (float): area tolerance margin given as a percentage wrt baseline_area</br>
+            i.e. a candidate with an area greater/smaller than +/- area_margin % of the
+            baseline_area will be penalized.
+        - penalty (list): a [key, value] constraint not to be worsen by the optimization.
+        - constraint (bool): constraints are applied (True) or not (False)
+        """
+        self.baseline_CD: float = self.config["optim"].get("baseline_CD", 0.15)
+        self.baseline_CL: float = self.config["optim"].get("baseline_CL", 0.36)
+        self.baseline_area: float = abs(get_area(self.ffd.pts))
+        self.area_margin: float = self.config["optim"].get("area_margin", 40.) / 100.
+        self.penalty: list = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
+        self.constraint: bool = self.config["optim"].get("constraint", True)
+
+    def plot_generation(
+            self,
+            gid: int,
+            sorted_idx: np.ndarray,
+            gen_fitness: np.ndarray,
+            fig_name: str
+    ):
+        """
+        **Plots** the results of the last evaluated generation.
+        **Saves** the graph in the output directory.
+        """
+        baseline: np.ndarray = self.ffd.pts
+        profiles: list[np.ndarray] = self.ffd_profiles[gid]
+        res_dict = self.simulator.df_dict[gid]
+        df_key = res_dict[0].columns  # "ResTot", "CD", "CL", "ResCD", "ResCL", "x", "y", "Cp"
+
+        cmap = mpl.colormaps[self.cmap].resampled(self.n_plt)
+        colors = cmap(np.linspace(0, 1, self.n_plt))
+        # subplot construction
+        fig = plt.figure(figsize=(16, 12))
+        ax1 = plt.subplot(2, 1, 1)  # profiles
+        ax2 = plt.subplot(2, 3, 4)  # ResTot
+        ax3 = plt.subplot(2, 3, 5)  # CD & CL
+        ax4 = plt.subplot(2, 3, 6)  # fitness (CD)
+        plt.subplots_adjust(wspace=0.25)
+        ax1.plot(baseline[:, 0], baseline[:, 1], color="k", lw=2, ls="--", label="baseline")
+        ax3.axhline(y=self.baseline_CD, color='k', label="baseline")
+        ax3.axhline(y=self.baseline_CL, color='k', linestyle="--", label="baseline")
+        ax4.axhline(y=self.baseline_CD, color='k', linestyle="--", label="baseline")
+        # loop over candidates through the last generated profiles
+        for color, cid in enumerate(sorted_idx):
+            ax1.plot(profiles[cid][:, 0], profiles[cid][:, 1], color=colors[color], label=f"c{cid}")
+            res_dict[cid][df_key[0]].plot(ax=ax2, color=colors[color], label=f"c{cid}")  # ResTot
+            res_dict[cid][df_key[1]].plot(ax=ax3, color=colors[color], label=f"{df_key[1]} c{cid}")
+            res_dict[cid][df_key[2]].plot(
+                ax=ax3, color=colors[color], ls="--", label=f"{df_key[2]} c{cid}"
+            )
+            ax4.scatter(cid, gen_fitness[cid], color=colors[color], label=f"c{cid}")
+        # legend and title
+        fig.suptitle(
+            f"Generation {gid} - {self.n_plt} top candidates", size="x-large", weight="bold", y=0.93
+        )
+        # top
+        ax1.set_title("FFD profiles", weight="bold")
+        ax1.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax1.set_xlabel('$x$ $[m]$')
+        ax1.set_ylabel('$y$ $[m]$')
+        # bottom left
+        ax2.set_title(f"{df_key[0]}", weight="bold")
+        ax2.set_yscale("log")
+        ax2.set_xlabel('iteration $[\\cdot]$')
+        ax2.set_ylabel('residual $[\\cdot]$')
+        # bottom center
+        ax3.set_title(f"{df_key[1]} & {df_key[2]}", weight="bold")
+        ax3.set_xlabel('iteration $[\\cdot]$')
+        ax3.set_ylabel('aerodynamic coefficients $[\\cdot]$')
+        # bottom right
+        ax4.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax4.set_title(f"fitness: {self.QoI}", weight="bold")
+        ax4.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        ax4.set_xlabel('candidate $[\\cdot]$')
+        ax4.set_ylabel("fitness")
+        # save figure as png
+        logger.info(f"saving {fig_name} to {self.outdir}")
+        plt.savefig(os.path.join(self.figdir, fig_name), bbox_inches='tight')
+        plt.close()
+
+    def save_results(self):
+        super().save_results()
+        with open(os.path.join(self.outdir, "df_dict.pkl"), "wb") as handle:
+            pickle.dump(self.simulator.df_dict, handle)
+        logger.info(f"results dictionary saved to {self.outdir}")
+
+    @abstractmethod
+    def apply_constraints(self, *args, **kwargs):
+        """
+        Looks for constraints violations.
+        """
+
+    @abstractmethod
+    def final_observe(self, *args, **kwargs):
+        """
+        Plots convergence progress by plotting the fitness values
+        obtained with the successive generations.
+        """

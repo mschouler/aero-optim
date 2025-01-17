@@ -305,21 +305,6 @@ class WolfSimulator(Simulator):
         _ = [subpro.terminate() for _, subpro in self.sim_pro]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class MusicaaSimulator(Simulator):
     """
     This class implements a simulator for the CFD code MUSICAA.
@@ -461,15 +446,17 @@ class MusicaaSimulator(Simulator):
             ({"gid": gid, "cid": cid, "meshfile": meshfile, "restart": restart}, proc)
         )
 
-    def monitor_sim_progress(self) -> int:
+    def monitor_sim_progress(self) -> str:
         """
         **Updates** the list of simulations under execution and **returns** its length.
         """
+        return "Function 'monitor_sim_progress' not yet implemented"
 
-    def post_process(self, dict_id: dict, sim_out_dir: str) -> pd.DataFrame:
+    def post_process(self, dict_id: dict, sim_out_dir: str) -> str:
         """
         **Post-processes** the results of a terminated simulation.</br>
         """
+        return "Function 'post_process' not yet implemented"
 
     def kill_all(self):
         """
@@ -477,17 +464,6 @@ class MusicaaSimulator(Simulator):
         """
         logger.info(f"{len(self.sim_pro)} remaining simulation(s) will be killed")
         _ = [subpro.terminate() for _, subpro in self.sim_pro]
-
-
-
-
-
-
-
-
-
-
-
 
 
 class DebugSimulator(Simulator):
