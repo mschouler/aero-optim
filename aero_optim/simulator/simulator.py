@@ -444,7 +444,7 @@ class MusicaaSimulator(Simulator):
         """
         **Submits** the simulation subprocess and **updates** sim_pro.
         """
-        # move to the output directory, execute wolf and move back to the main directory
+        # move to the output directory, execute musicaa and move back to the main directory
         os.chdir(sim_outdir)
         with open(f"{self.solver_name}_g{gid}_c{cid}.out", "wb") as out:
             with open(f"{self.solver_name}_g{gid}_c{cid}.err", "wb") as err:
@@ -465,62 +465,11 @@ class MusicaaSimulator(Simulator):
         """
         **Updates** the list of simulations under execution and **returns** its length.
         """
-        finished_sim = []
-        # loop over the list of simulation processes
-        for id, (dict_id, p_id) in enumerate(self.sim_pro):
-            returncode = p_id.poll()
-            if returncode is None:
-                pass  # simulation still running
-            elif returncode == 0:
-                logger.info(f"simulation {dict_id} finished")
-                finished_sim.append(id)
-                sim_outdir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
-                self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
-                    dict_id, sim_outdir
-                )
-                break
-            else:
-                if dict_id["restart"] < self.restart:
-                    logger.error(f"ERROR -- simulation {dict_id} crashed and will be restarted")
-                    finished_sim.append(id)
-                    sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
-                    shutil.rmtree(sim_out_dir, ignore_errors=True)
-                    self.execute_sim(
-                        dict_id["meshfile"], dict_id["gid"], dict_id["cid"], dict_id["restart"] + 1
-                    )
-                else:
-                    raise Exception(f"ERROR -- simulation {dict_id} crashed")
-        # update the list of active processes
-        self.sim_pro = [tup for id, tup in enumerate(self.sim_pro) if id not in finished_sim]
-        return len(self.sim_pro)
 
     def post_process(self, dict_id: dict, sim_out_dir: str) -> pd.DataFrame:
         """
         **Post-processes** the results of a terminated simulation.</br>
-        **Returns** the extracted results in a DataFrame.
         """
-        qty_list: list[list[float]] = []
-        head_list: list[str] = []
-        # loop over the post-processing arguments to extract from the results
-        for key, value in self.post_process_args.items():
-            # filter removes possible blank lines avoiding index out of range errors
-            file = list(filter(None, open(os.path.join(sim_out_dir, key), "r").read().splitlines()))
-            headers = file[0][2:].split()  # ignore "# " before first item in headers
-            for qty in value:
-                try:
-                    idx = headers.index(qty)
-                    qty_list.append([float(line.split()[idx]) for line in file[1:]])
-                    head_list.append(qty)
-                except Exception as e:
-                    logger.warning(f"could not read {qty} in {headers}")
-                    logger.warning(f"exception {e} was raised")
-        # pd.Series allows columns of different lengths
-        df = pd.DataFrame({head_list[i]: pd.Series(qty_list[i]) for i in range(len(qty_list))})
-        logger.info(
-            f"g{dict_id['gid']}, c{dict_id['cid']} converged in {len(df)} it."
-        )
-        logger.info(f"last values:\n{df.tail(n=1).to_string(index=False)}")
-        return df
 
     def kill_all(self):
         """
