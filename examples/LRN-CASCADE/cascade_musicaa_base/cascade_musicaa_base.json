@@ -4,7 +4,7 @@
         "study_type": "cascade",
         "ffd_type": "ffd_2d",
         "file": "examples/LRN-CASCADE/cascade_musicaa_base/ogv1c.dat",
-        "outdir": "output"
+        "outdir": "examples/LRN-CASCADE/cascade_musicaa_base/output"
     },
     "plot3D": {
         "mesh": {

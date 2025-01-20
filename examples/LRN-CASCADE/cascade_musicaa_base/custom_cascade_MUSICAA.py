@@ -3,7 +3,7 @@ import os
 
 from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.simulator.simulator import MusicaaSimulator
-from aero_optim.utils import modify_next_line_in_file
+from aero_optim.utils import modify_next_line_in_file, from_dat
 
 """
 This script contains various customizations of the aero_optim module
@@ -43,7 +43,7 @@ class CustomMesh(MeshMusicaa):
         deformed profile for MUSICAA.
         """
         # read profile
-        profile = self.read_profile(self.dat_file)
+        profile = from_dat(self.dat_file)
 
         # create musicaa_<mesh_name>_pert_bl*.x files
         mesh_dir = self.write_deformed_mesh_edges(profile, self.outdir)

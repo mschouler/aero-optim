@@ -314,11 +314,18 @@ class MeshMusicaa(ABC):
 
         - dat_file (str): input_geometry.dat file including path.
         - dat_dir (str): path to input_geometry.dat.
+        - outdir (str): path/to/outputdirectory
+        - outfile (str): the core name of all outputed files e.g. outfile.log, outfile.mesh, etc.
+        - header (int): the number of header lines in dat_file.
         - mesh_name (str): name of the mesh files (******_bl1.x)
-        - wall_bl: str containing the blocks adjacent to the geometry to be optimized.
+        - wall_bl (list[int]): list containing the blocks adjacent to the geometry to be optimized.
                    The block numbers should be ordered following the curvilinear abscissae of
                    the blade. Unfortunately, the present version only reads walls along i
                    located at j=0 (grid indices).
+        - pitch (float): blade-to-blade pitch
+        - periodic_bl (list[int]): list containing the blocks that must be translated DOWN to reform
+                        the blade geometry fully. Not needed if the original mesh already
+                        surrounds the blade
 
         """
         self.config = config
@@ -327,6 +334,7 @@ class MeshMusicaa(ABC):
         self.dat_dir = '/'.join(self.dat_file.split('/')[:-1])
         self.outdir: str = config["study"]["outdir"]
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
+        self.header: int = config["study"].get("header", 2)
         # mesh params
         self.mesh_name: str = self.dat_file.split('/')[-1].split('.')[0]
         self.wall_bl: list[int] = config["plot3D"]["mesh"].get("wall_bl", [0])
@@ -386,12 +394,6 @@ class MeshMusicaa(ABC):
         coords = np.vstack((coords_x, coords_y)).T
 
         return coords
-
-    def read_profile(self, dat_file: str) -> np.ndarray:
-        """
-        **Returns** the 2D blade profile from the file dat_file
-        """
-        return np.loadtxt(dat_file)
 
     def write_deformed_mesh_edges(self,
                                   profile: np.ndarray,
@@ -465,7 +467,9 @@ class MeshMusicaa(ABC):
         coords_wall[:, 1] += -y_stag
 
         # save to file
-        np.savetxt(self.dat_file, coords_wall)
+        np.savetxt(self.dat_file, coords_wall,
+                   header=(f"Baseline profile {self.outfile}\n"
+                           f"Extracted from mesh files in {self.dat_dir}"))
 
     @abstractmethod
     def deform_mesh(self, outdir: str):
