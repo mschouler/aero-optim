@@ -328,6 +328,7 @@ class MeshMusicaa(ABC):
                         surrounds the blade
 
         """
+        self.cwd: str = os.getcwd()
         self.config = config
         # study params
         self.dat_file: str = datfile if datfile else config["study"]["file"]
@@ -336,17 +337,17 @@ class MeshMusicaa(ABC):
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
         self.header: int = config["study"].get("header", 2)
         # mesh params
-        self.mesh_name: str = self.dat_file.split('/')[-1].split('.')[0]
         self.wall_bl: list[int] = config["plot3D"]["mesh"].get("wall_bl", [0])
         self.mesh_info = self.get_info_mesh()
         self.pitch: int = config["plot3D"]["mesh"].get('pitch', 1)
         self.periodic_bl: list[int] = config["plot3D"]["mesh"].get("periodic_bl", [0])
+        self.mesh_name: str = config["plot3D"]["mesh"].get("mesh_name", self.outfile)
 
     def write_mesh(self, outdir: str) -> str:
         """
-        **Returns** path/to/MESH/musicaa_<mesh_name>/ .
+        **Returns** path/to/MESH/musicaa_<outfile>/ .
         """
-        return os.path.join(outdir, "MESH", f'/musicaa_{self.mesh_name}')
+        return os.path.join(outdir, "MESH", f'musicaa_{self.outfile}')
 
     def get_info_mesh(self) -> dict:
         """
@@ -374,7 +375,7 @@ class MeshMusicaa(ABC):
         """
         coord_list = []
         # read block coordinates
-        with open(f'{self.dat_dir}/{self.mesh_name}_bl{bl}.x', 'r') as f:
+        with open(f'{self.dat_dir}/{self.outfile}_bl{bl}.x', 'r') as f:
             a = pandas.read_csv(f).to_numpy()
 
         # get block size
@@ -395,17 +396,22 @@ class MeshMusicaa(ABC):
 
         return coords
 
-    def write_deformed_mesh_edges(self,
-                                  profile: np.ndarray,
-                                  outdir: str) -> str:
+    def write_deformed_mesh_edges(
+            self,
+            profile: np.ndarray,
+            outdir: str,
+            gid: int = 0, cid: int = 0
+    ) -> str:
         """
         **Writes** the deformed profile in a format such that the MUSICAA solver
         can generate the fully deformed mesh via a Fortran routine.
         **Returns** the path to the files.
         """
         # create output directory within MESH
-        mesh_dir = os.path.join(outdir, "MESH", f'/musicaa_{self.mesh_name}')
+        check_dir(os.path.join(outdir, "MESH"))
+        mesh_dir = os.path.join(outdir, "MESH", f'musicaa_{self.outfile}')
         check_dir(mesh_dir)
+        check_dir(os.path.join(mesh_dir, "Grid_pert"))
 
         # loop over blocks
         j = 0
@@ -417,19 +423,20 @@ class MeshMusicaa(ABC):
             nz = self.mesh_info[f'nz_bl{bl}']
 
             # open file and write specific format
-            with open(f'{mesh_dir}/{self.mesh_name}_pert_edges_bl{bl}.x', 'w') as f:
+            mesh_file = f"{mesh_dir}/Grid_pert/{self.mesh_name}_g{gid}_c{cid}_pert_edges_bl{bl}.x"
+            with open(mesh_file, "w") as f:
                 f.write('1\n')
                 f.write(str(str(nx) + '  ' + str(ny) + '  ' + str(nz) + '\n'))
 
                 # write wall coordinates
                 for i in range(nx):
-                    f.write(str(profile[i + j, 0]) + ' ')
+                    f.write(str(profile[i + j][0]) + ' ')
                 f.write('\n')
                 for i in range(nx):
                     if bl in self.periodic_bl:
-                        f.write(str(profile[i + j, 1] + self.pitch) + ' ')
+                        f.write(str(profile[i + j][1] + self.pitch) + ' ')
                     else:
-                        f.write(str(profile[i + j, 1]) + ' ')
+                        f.write(str(profile[i + j][1]) + ' ')
                 j += nx
 
         return mesh_dir
@@ -459,12 +466,6 @@ class MeshMusicaa(ABC):
 
         # assemble 2D array
         coords_wall = np.vstack((np.hstack(coords_wall_x), np.hstack(coords_wall_y))).T
-
-        # make sure LE is positionned at geometric stagnation point
-        x_stag = coords[:, 0].min()
-        y_stag = coords[np.argmin(coords[:, 0]), 1]
-        coords_wall[:, 0] += -x_stag
-        coords_wall[:, 1] += -y_stag
 
         # save to file
         np.savetxt(self.dat_file, coords_wall,

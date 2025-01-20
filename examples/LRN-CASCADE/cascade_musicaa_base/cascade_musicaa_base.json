@@ -8,14 +8,15 @@
     },
     "plot3D": {
         "mesh": {
+            "mesh_name": "ogv1c",
             "wall_bl": [3,4,7,6],
             "periodic_bl": [6],
             "pitch": 40.39
         }
     },
     "simulator": {
-        "ref_input_num": "param.ini",
-        "ref_input_mesh": "param_blocks.ini",
+        "ref_input_num": "examples/LRN-CASCADE/cascade_musicaa_base/param.ini",
+        "ref_input_mesh": "examples/LRN-CASCADE/cascade_musicaa_base/param_blocks.ini",
         "deform_cmd" : "./musica",
         "exec_cmd" : "mpiexec -n 51 ./musica"
     }
