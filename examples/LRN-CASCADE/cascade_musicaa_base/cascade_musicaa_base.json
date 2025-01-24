@@ -4,6 +4,7 @@
         "study_type": "cascade",
         "ffd_type": "ffd_2d",
         "file": "examples/LRN-CASCADE/cascade_musicaa_base/ogv1c.dat",
+        "file_": "examples/LRN-CASCADE/cascade_musicaa_base/ogv1c_g0_c0.dat",
         "outdir": "examples/LRN-CASCADE/cascade_musicaa_base/output"
     },
     "plot3D": {
@@ -17,7 +18,7 @@
     "simulator": {
         "ref_input_num": "examples/LRN-CASCADE/cascade_musicaa_base/param.ini",
         "ref_input_mesh": "examples/LRN-CASCADE/cascade_musicaa_base/param_blocks.ini",
-        "deform_cmd" : "./musica",
-        "exec_cmd" : "mpiexec -n 51 ./musica"
+        "deform_cmd" : "./musicaa",
+        "exec_cmd" : "mpiexec -n 51 ./musicaa"
     }
 }

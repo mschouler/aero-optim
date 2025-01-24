@@ -411,7 +411,6 @@ class MeshMusicaa(ABC):
         check_dir(os.path.join(outdir, "MESH"))
         mesh_dir = os.path.join(outdir, "MESH", f'musicaa_{self.outfile}')
         check_dir(mesh_dir)
-        check_dir(os.path.join(mesh_dir, "Grid_pert"))
 
         # loop over blocks
         j = 0
@@ -420,10 +419,10 @@ class MeshMusicaa(ABC):
             # get block dimensions
             nx = self.mesh_info[f'nx_bl{bl}']
             ny = self.mesh_info[f'ny_bl{bl}']
-            nz = self.mesh_info[f'nz_bl{bl}']
+            nz = 1
 
             # open file and write specific format
-            mesh_file = f"{mesh_dir}/Grid_pert/{self.mesh_name}_g{gid}_c{cid}_pert_edges_bl{bl}.x"
+            mesh_file = f"{mesh_dir}/{self.mesh_name}_g{gid}_c{cid}_pert_edges_bl{bl}.x"
             with open(mesh_file, "w") as f:
                 f.write('1\n')
                 f.write(str(str(nx) + '  ' + str(ny) + '  ' + str(nz) + '\n'))

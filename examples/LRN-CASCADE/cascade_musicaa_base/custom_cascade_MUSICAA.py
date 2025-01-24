@@ -1,6 +1,5 @@
 import subprocess
 import os
-import shutil
 
 from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.simulator.simulator import MusicaaSimulator
@@ -56,28 +55,29 @@ class CustomMesh(MeshMusicaa):
         """
         **Executes** the MUSICAA mesh deformation routine.
         """
-        # ! The following lines will be modified to account for the
-        # new MUSICAA version (coming soon), so leave the commented lines
-        # change MUSICAA restart mode to 5
+        # set MUSICAA to pre-processing mode: 0
         modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
-                                 "Restart indicator", str(5))
-        # # change mesh files directory
-        # modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
-        #                          "dirGRID", mesh_dir)
+                                 "from_field", "0")
+        # set to perturb grid
+        modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
+                                 "Half-cell", "F")
+        modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
+                                 "Coarse grid", "F 0")
+        modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
+                                 "Perturb grid", "T")
 
-        # copy baseline mesh in Grid directory
-        path_to_Grid = os.path.join(mesh_dir, "Grid")
-        check_dir(path_to_Grid)
-        for bl in range(self.mesh_info["nbloc"]):
-            in_file = f"{self.dat_dir}/{self.mesh_name}_bl{bl+1}.x"
-            shutil.copy(in_file, path_to_Grid)
+        # indicate output directory and name
+        musicaa_mesh_dir = os.path.relpath(mesh_dir, self.dat_dir)
+        modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
+                                 "Directory for perturbed grid files", f"'{musicaa_mesh_dir}/'")
+        modify_next_line_in_file(f'{self.config["simulator"]["ref_input_num"]}',
+                                 "Name for perturbed grid files", f"'{self.outfile}'")
 
         # execute MUSICAA to deform mesh
         os.chdir(self.dat_dir)
         deform_cmd = self.config["simulator"]["deform_cmd"]
         subprocess.Popen(deform_cmd, env=os.environ)
         os.chdir(self.cwd)
-
 
 # class MusicaaOptimizer(Optimizer, ABC):
 #     """
