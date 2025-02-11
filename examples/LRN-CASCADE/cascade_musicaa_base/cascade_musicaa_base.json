@@ -12,13 +12,33 @@
             "mesh_name": "ogv1c",
             "wall_bl": [3,4,7,6],
             "periodic_bl": [6],
-            "pitch": 40.39
+            "pitch": 40.39,
+            "chord_length": 70.0,
+            "inlet_bl": [1,2],
+            "outlet_bl": [8,9]
         }
+
     },
     "simulator": {
         "ref_input_num": "examples/LRN-CASCADE/cascade_musicaa_base/param.ini",
         "ref_input_mesh": "examples/LRN-CASCADE/cascade_musicaa_base/param_blocks.ini",
-        "deform_cmd" : "./musicaa",
-        "exec_cmd" : "mpiexec -n 51 ./musicaa"
+        "ref_input_num_rans": "examples/LRN-CASCADE/cascade_musicaa_base/param_rans.ini",
+        "ref_input_feos": "examples/LRN-CASCADE/cascade_musicaa_base/feos_air.ini",
+        "preprocess_cmd" : "./musicaa",
+        "exec_cmd" : "mpiexec -n 51 ./musicaa",
+
+        "sim_args": {
+            "nprocs": 51,
+            "niter": 100000,
+            "niter_stats": 10000,
+            "is_interp_F": "False",
+            "nprocs_F": 204
+        },
+        "post_process": {
+            "inlet_measurements_x1": -20.0,
+            "inlet_measurements_x2": -20.0,
+            "outlet_measurements_x1":  20.0,
+            "outlet_measurements_x2":  20.0
+        }
     }
 }

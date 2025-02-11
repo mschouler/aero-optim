@@ -7,6 +7,7 @@ import shutil
 import signal
 import subprocess
 import argparse
+import numpy as np
 
 from types import FrameType
 
@@ -235,21 +236,53 @@ def replace_in_file(fname: str, sim_args: dict):
         file.write(filedata)
 
 
-def modify_next_line_in_file(fname: str, location: str, modif: str):
+def custom_input(fname: str, args: dict):
+    """
+    **Writes** a customized input file.
+    """
+    for key, value in args.items():
+        modify_next_line_in_file(fname, key, f"{value}")
+
+
+def modify_next_line_in_file(fname: str, pattern: str, modif: str):
     """
     Overwrites the next line within the file with the argument.
     """
-    with open(fname, 'r') as file:
-        filedata = file.readlines()
-    # Iterate through the lines and find the line containing location
-    for i, line in enumerate(filedata):
-        if location in line:
-            # Ensure the next line exists
-            if i + 1 < len(filedata):
-                filedata[i + 1] = modif + '\n'
-    # Write the modified content back to the file
-    with open(fname, 'w') as file:
-        file.writelines(filedata)
+    try:
+        with open(fname, 'r') as file:
+            filedata = file.readlines()
+        # Iterate through the lines and find the line containing pattern
+        for i, line in enumerate(filedata):
+            if pattern in line:
+                # Ensure the next line exists
+                if i + 1 < len(filedata):
+                    filedata[i + 1] = modif + '\n'
+        # Write the modified content back to the file
+        with open(fname, 'w') as file:
+            file.writelines(filedata)
+
+    except Exception as e:
+        return f"Error reading file: {e}"  # Handle potential file read errors
+
+
+def read_next_line_in_file(fname: str, pattern: str) -> str:
+    """
+    Reads the next line within the file.
+    """
+    try:
+        with open(fname, "r") as file:
+            filedata = file.readlines()
+
+        # Iterate through the lines and find the line containing pattern
+        for i, line in enumerate(filedata):
+            if pattern in line:
+                # Ensure the next line exists
+                if i + 1 < len(filedata):
+                    return filedata[i + 1].strip()  # Remove any extra newlines
+        return "pattern not found in file"  # Default error message
+
+    except Exception as e:
+        return f"Error reading file: {e}"  # Handle potential file read errors
 
 
 def rm_filelist(deletion_list: list[str]):
@@ -293,3 +326,19 @@ def ln_filelist(in_files: list[str], out_files: list[str]):
             print(f"WARNING -- {e}, symlink will be forced")
             os.symlink(in_f, "tmplink")
             os.rename("tmplink", out_f)
+
+
+def find_closest_index(range_value: np.ndarray, target_value: float) -> int:
+    """
+    **Returns** the index of the closest element to targe_value within range.
+    """
+    closest_index = 0
+    closest_difference = abs(range_value[0] - target_value)
+
+    for i in range(1, len(range_value)):
+        difference = abs(range_value[i] - target_value)
+        if difference < closest_difference:
+            closest_difference = difference
+            closest_index = i
+
+    return closest_index

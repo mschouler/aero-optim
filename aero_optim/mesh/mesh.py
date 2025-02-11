@@ -4,9 +4,10 @@ import math
 import os
 import numpy as np
 import pandas
+import re
 
 from abc import ABC, abstractmethod
-from aero_optim.utils import from_dat, check_dir
+from aero_optim.utils import from_dat, check_dir, read_next_line_in_file
 
 logger = logging.getLogger(__name__)
 
@@ -338,7 +339,7 @@ class MeshMusicaa(ABC):
         self.header: int = config["study"].get("header", 2)
         # mesh params
         self.wall_bl: list[int] = config["plot3D"]["mesh"].get("wall_bl", [0])
-        self.mesh_info = self.get_info_mesh()
+        self.block_info = self.get_block_info()
         self.pitch: int = config["plot3D"]["mesh"].get('pitch', 1)
         self.periodic_bl: list[int] = config["plot3D"]["mesh"].get("periodic_bl", [0])
         self.mesh_name: str = config["plot3D"]["mesh"].get("mesh_name", self.outfile)
@@ -349,40 +350,46 @@ class MeshMusicaa(ABC):
         """
         return os.path.join(outdir, "MESH", f'musicaa_{self.outfile}')
 
-    def get_info_mesh(self) -> dict:
+    def get_block_info(self) -> dict:
         """
-        **Returns** a dictionnary containing relevant information on the mesh
+        **Returns** a dictionnary containing relevant information on the blocks
         used by MUSICAA: number of blocks, block size.
-        Note: this element is automatically produced by MUSICAA, and need not be
-        created manually.
         """
-        mesh_info = {}
+        block_info = {}
 
-        # read relevant lines
-        f = open(f'{self.dat_dir}/info.ini', 'r')
-        lines = f.readlines()
-        mesh_info["nbloc"] = int(lines[0].split()[4])
-        for ind in range(mesh_info["nbloc"]):
-            mesh_info["nx_bl" + str(ind + 1)] = int(lines[1 + ind].split()[5])
-            mesh_info["ny_bl" + str(ind + 1)] = int(lines[1 + ind].split()[6])
-            mesh_info["nz_bl" + str(ind + 1)] = int(lines[1 + ind].split()[7])
+        # get number of blocks
+        nbl_ = read_next_line_in_file(os.path.join(self.dat_dir, "param_blocks.ini"),
+                                      "Number of Blocks")
+        nbl = re.findall(r"\d+", nbl_)[0]
 
-        return mesh_info
+        # iterate for each block
+        for bl in range(nbl):
+            bl += 1
+            pattern = f"! Block #{bl}"
+            with open("param_blocks.ini", "r") as f:
+                filedata = f.readlines()
+            for i, line in enumerate(filedata):
+                if pattern in line:
+                    block_info[f"nx_bl{bl}"] = re.findall(r"\d+", filedata[i + 3])[0]
+                    block_info[f"ny_bl{bl}"] = re.findall(r"\d+", filedata[i + 4])[0]
+                    block_info[f"nz_bl{bl}"] = re.findall(r"\d+", filedata[i + 5])[0]
+
+        return block_info
 
     def read_bl(self, bl: int) -> np.ndarray:
         """
         **Returns** an array containing the block coordinates.
         """
-        coord_list = []
         # read block coordinates
         with open(f'{self.dat_dir}/{self.outfile}_bl{bl}.x', 'r') as f:
             a = pandas.read_csv(f).to_numpy()
 
         # get block size
-        nx = self.mesh_info[f"nx_bl{bl}"]
-        ny = self.mesh_info[f"ny_bl{bl}"]
+        nx = self.block_info[f"nx_bl{bl}"]
+        ny = self.block_info[f"ny_bl{bl}"]
 
         # convert coordinates to a regular 2D array
+        coord_list = []
         for line in a[1:]:
             b = line[0].split(' ')
             for element in b:
@@ -417,8 +424,8 @@ class MeshMusicaa(ABC):
         for bl in self.wall_bl:
 
             # get block dimensions
-            nx = self.mesh_info[f'nx_bl{bl}']
-            ny = self.mesh_info[f'ny_bl{bl}']
+            nx = self.block_info[f'nx_bl{bl}']
+            ny = self.block_info[f'ny_bl{bl}']
             nz = 1
 
             # open file and write specific format
@@ -453,7 +460,7 @@ class MeshMusicaa(ABC):
 
             # read block coordinates
             coords = self.read_bl(bl)
-            nx = self.mesh_info[f'nx_bl{bl}']
+            nx = self.block_info[f'nx_bl{bl}']
 
             # save only wall (located at j=0)
             coords_wall_x.append(coords[:nx, 0])
