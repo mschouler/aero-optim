@@ -395,7 +395,7 @@ class CustomSimulator(Simulator):
 
         # return pressure loss coefficient
         return (inlet_mixed_out_state["p0_bar"] - outlet_mixed_out_state["p0_bar"]) /\
-            (inlet_mixed_out_state["p0_bar"] - outlet_mixed_out_state["p_bar"])
+            (inlet_mixed_out_state["p0_bar"] - inlet_mixed_out_state["p_bar"])
 
     def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
         """
