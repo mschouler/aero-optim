@@ -2,8 +2,6 @@ import logging
 import subprocess
 import os
 import numpy as np
-import signal
-import time
 import shutil
 import scipy.interpolate as si
 import re
@@ -11,10 +9,7 @@ import re
 from aero_optim.utils import custom_input, find_closest_index
 from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.simulator.simulator import Simulator
-from aero_optim.optim.optimizer import Optimizer
 from aero_optim.utils import from_dat, check_dir
-from aero_optim.geom import (get_area, get_camber_th, get_chords, get_circle, get_circle_centers,
-                             get_cog, get_radius_violation, split_profile, plot_profile, plot_sides)
 
 """
 This script contains various customizations of the aero_optim module
@@ -58,7 +53,7 @@ class CustomMesh(MeshMusicaa):
         # read profile
         profile = from_dat(self.dat_file)
 
-        # create musicaa_<outfile>_pert_bl*.x files
+        # create musicaa_<outfile>_bl*.x files
         mesh_dir = self.write_deformed_mesh_edges(profile, self.outdir)
 
         # deform mesh with MUSICAA
@@ -78,16 +73,29 @@ class CustomMesh(MeshMusicaa):
         # indicate in/output directory and name
         musicaa_mesh_dir = os.path.relpath(mesh_dir, self.dat_dir)
         args.update({"Directory for perturbed grid files": f"'{musicaa_mesh_dir}/'"})
-        args.update({"Name for perturbed grid files", f"'{self.outfile}'"})
+        args.update({"Name for perturbed grid files": f"'{self.outfile}'"})
 
         # modify param.ini
-        custom_input(self.config["simulator"]["ref_input_num"], args)
+        custom_input(self.config["simulator"]["ref_input"], args)
 
         # execute MUSICAA to deform mesh
         os.chdir(self.dat_dir)
         preprocess_cmd = self.config["simulator"]["preprocess_cmd"]
-        subprocess.Popen(preprocess_cmd, env=os.environ)
+        out_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.out")
+        err_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.err")
+        with open(out_message, "wb") as out:
+            with open(err_message, "wb") as err:
+                logger.info(f"deform mesh for {mesh_dir.split('/')[-1]}")
+                proc = subprocess.Popen(preprocess_cmd,
+                                        env=os.environ,
+                                        stdin=subprocess.DEVNULL,
+                                        stdout=out,
+                                        stderr=err,
+                                        universal_newlines=True)
         os.chdir(self.cwd)
+
+        # wait to finish
+        proc.communicate()
 
 
 # class CustomOptimizer(Optimizer):
