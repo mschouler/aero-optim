@@ -5,6 +5,8 @@ import numpy as np
 import shutil
 import scipy.interpolate as si
 import re
+import pandas as pd
+from typing import Callable
 
 from aero_optim.utils import custom_input, find_closest_index
 from aero_optim.mesh.mesh import MeshMusicaa
@@ -72,8 +74,10 @@ class CustomMesh(MeshMusicaa):
 
         # indicate in/output directory and name
         musicaa_mesh_dir = os.path.relpath(mesh_dir, self.dat_dir)
-        args.update({"Directory for perturbed grid files": f"'{musicaa_mesh_dir}/'"})
-        args.update({"Name for perturbed grid files": f"'{self.outfile}'"})
+        args.update({"Directory for grid files": "'.'"})
+        args.update({"Name for grid files": self.config['plot3D']['mesh']['mesh_name']})
+        args.update({"Directory for perturbed grid files": f"'{musicaa_mesh_dir}'"})
+        args.update({"Name for perturbed grid files": self.outfile})
 
         # modify param.ini
         custom_input(self.config["simulator"]["ref_input"], args)
@@ -85,7 +89,7 @@ class CustomMesh(MeshMusicaa):
         err_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.err")
         with open(out_message, "wb") as out:
             with open(err_message, "wb") as err:
-                logger.info(f"deform mesh for {mesh_dir.split('/')[-1]}")
+                logger.info(f"deform mesh for {mesh_dir}")
                 proc = subprocess.Popen(preprocess_cmd,
                                         env=os.environ,
                                         stdin=subprocess.DEVNULL,
@@ -254,13 +258,15 @@ class CustomSimulator(Simulator):
             ({'gid': gid, 'cid': cid, 'meshfile': meshfile, 'restart': restart}, subprocess).
 
         - restart (int): how many times a simulation is allowed to be restarted in case of failure.
-        - mesh_info (dict): contains information on multi-block mesh used by MUSICAA
+        - mesh_info (dict): dictionary containing information about mesh. Only accessible once the
+                            simulation has at least started or finished.
         """
         super().__init__(config)
+        # simulator related
         self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
         self.restart: int = config["simulator"].get("restart", 0)
-        # get mesh info
-        self.mesh_info: dict = self.get_mesh_info()
+        # mesh related
+        self.mesh_info: dict = {}
 
     def process_config(self):
         """
@@ -296,6 +302,7 @@ class CustomSimulator(Simulator):
             self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
                 dict_id, sim_outdir
             )
+            print(self.df_dict.items())
             logger.info(f"g{gid}, c{cid}: loaded pre-existing results from files")
         except FileNotFoundError:
             # Pre-process
@@ -318,38 +325,48 @@ class CustomSimulator(Simulator):
         check_dir(sim_outdir)
 
         # copy files and executable to directory
-        shutil.copy(self.config["simulator"]["ref_input_num"], sim_outdir)
+        shutil.copy(self.config["simulator"]["ref_input"], sim_outdir)
         shutil.copy(self.config["simulator"]["ref_input_mesh"], sim_outdir)
-        shutil.copy(self.solver_name, sim_outdir)
-        logger.info(f"{self.config['simulator']['ref_input_num']},     \
-                      {self.config['simulator']['ref_input_mesh']} and \
-                      {self.solver_name} copied to {sim_outdir}")
+        shutil.copy(os.path.join(self.config["simulator"]["path_to_solver"],
+                                 self.solver_name), sim_outdir)
+        logger.info((f"{self.config['simulator']['ref_input']}, "
+                     f"{self.config['simulator']['ref_input_mesh']} and "
+                     f"{self.solver_name} copied to {sim_outdir}"))
 
         # modify solver input file: delete half-cell at block boundaries
         args: dict = {}
-        args.update({"from_interp": "0", "Coarse grid": "F 0", "Perturb grid": "F"})
+        args.update({"from_interp": "0"})
         args.update({"Half-cell": "T", "Coarse grid": "F 0", "Perturb grid": "F"})
         args.update({"Directory for grid files":
-                     f"{os.path.relpath(path_to_meshfile, sim_outdir)}"})
+                     f"'{os.path.relpath(path_to_meshfile, sim_outdir)}'"})
         args.update({"Name for grid files": meshfile})
         custom_input(os.path.join(sim_outdir,
-                                  self.config["simulator"]["ref_input_num"]).split("/")[-1], args)
+                                  self.config["simulator"]["ref_input"].split("/")[-1]), args)
+
+        # copy any other solver expected files
+        shutil.copy(self.config["simulator"]["ref_input_rans"], sim_outdir)
+        shutil.copy(self.config["simulator"]["ref_input_feos"], sim_outdir)
 
         # execute MUSICAA to delete half-cell
         os.chdir(sim_outdir)
         preprocess_cmd = self.config["simulator"]["preprocess_cmd"]
-        subprocess.Popen(preprocess_cmd, env=os.environ)
-        logger.info(f"Half-cell deleted in {sim_outdir}")
+        with open(f"{self.solver_name}_g{gid}_c{cid}_half-cell.out", "wb") as out:
+            with open(f"{self.solver_name}_g{gid}_c{cid}_half-cell.err", "wb") as err:
+                logger.info(f"delete mesh half-cell for g{gid}, c{cid} with {self.solver_name}")
+                proc = subprocess.Popen(preprocess_cmd,
+                                        env=os.environ,
+                                        stdin=subprocess.DEVNULL,
+                                        stdout=out,
+                                        stderr=err,
+                                        universal_newlines=True)
+        # wait to finish
+        proc.communicate()
 
         # modify solver input file: mode from_scratch
         args.update({"from_interp": "1"})
-        custom_input(self.config["simulator"]["ref_input_num"].split("/")[-1], args)
+        custom_input(self.config["simulator"]["ref_input"].split("/")[-1], args)
         logger.info(f"changed execution mode to 1 in {sim_outdir}")
         os.chdir(self.cwd)
-
-        # copy any other solver expected files
-        shutil.copy(self.config["simulator"]["ref_input_num_rans"], sim_outdir)
-        shutil.copy(self.config["simulator"]["ref_input_feos"], sim_outdir)
 
         return sim_outdir
 
@@ -385,25 +402,64 @@ class CustomSimulator(Simulator):
         """
         **Updates** the list of simulations under execution and **returns** its length.
         """
-        # will call post-process if simulation ended, otherwise it waits
-        logger.debug("Function 'monitor_sim_progress' not yet implemented")
+        finished_sim = []
+        # loop over the list of simulation processes
+        for id, (dict_id, p_id) in enumerate(self.sim_pro):
+            returncode = p_id.poll()
+            if returncode is None:
+                pass  # simulation still running
+            elif returncode == 0:
+                logger.info(f"simulation {dict_id} finished")
+                finished_sim.append(id)
+                sim_outdir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
+                self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
+                    dict_id, sim_outdir
+                )
+                break
+            else:
+                if dict_id["restart"] < self.restart:
+                    logger.error(f"ERROR -- simulation {dict_id} crashed and will be restarted")
+                    finished_sim.append(id)
+                    sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
+                    shutil.rmtree(sim_out_dir, ignore_errors=True)
+                    self.execute_sim(
+                        dict_id["meshfile"], dict_id["gid"], dict_id["cid"], dict_id["restart"] + 1
+                    )
+                else:
+                    raise Exception(f"ERROR -- simulation {dict_id} crashed")
+        # update the list of active processes
+        self.sim_pro = [tup for id, tup in enumerate(self.sim_pro) if id not in finished_sim]
+        return len(self.sim_pro)
 
     def post_process(self, dict_id: dict, sim_outdir: str) -> str:
         """
         **Post-processes** the results of a terminated simulation.
-        Here, the mixed-out oultet pressure coefficient is the QoI.
+        **Returns** the extracted results in a DataFrame.
         """
-        # compute inlet mixed-out pressure
-        inlet_data = self.extract_measurement_line(sim_outdir, "inlet")
-        inlet_mixed_out_state = self.mixed_out(inlet_data)
-
-        # compute oulet mixed-out pressure
-        outlet_data = self.extract_measurement_line(sim_outdir, "outlet")
-        outlet_mixed_out_state = self.mixed_out(outlet_data)
-
-        # return pressure loss coefficient
-        return (inlet_mixed_out_state["p0_bar"] - outlet_mixed_out_state["p0_bar"]) /\
-            (inlet_mixed_out_state["p0_bar"] - inlet_mixed_out_state["p_bar"])
+        qty_list: list[list[float]] = []
+        head_list: list[str] = []
+        # loop over the post-processing arguments to extract from the results
+        for qty in self.post_process_args["outputs"]:
+            # check if the method for computing qty exists
+            try:
+                get_value: Callable = getattr(self, qty)
+                value = get_value(sim_outdir)
+            except AttributeError:
+                raise Exception(f"ERROR -- method for computing {qty} does not exist")
+            try:
+                # compute simulation results
+                qty_list.append(value)
+                head_list.append(qty)
+            except Exception as e:
+                logger.warning(f"could not compute {qty} in {sim_outdir}")
+                logger.warning(f"exception {e} was raised")
+        # pd.Series allows columns of different lengths
+        df = pd.DataFrame({head_list[i]: pd.Series(qty_list[i]) for i in range(len(qty_list))})
+        logger.info(
+            f"g{dict_id['gid']}, c{dict_id['cid']} converged in {len(df)} it."
+        )
+        logger.info(f"last values:\n{df.tail(n=1).to_string(index=False)}")
+        return df
 
     def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
         """
@@ -418,7 +474,7 @@ class CustomSimulator(Simulator):
         """
         **Reads** simulation grid coordinates.
         """
-        # get mesh dimensions
+        # get mesh_info
         nx = self.mesh_info[f"nx_bl{bl}"]
         ny = self.mesh_info[f"ny_bl{bl}"]
         ngh = self.mesh_info["ngh"]
@@ -455,10 +511,10 @@ class CustomSimulator(Simulator):
         z_mom = np.mean(data["rho*uw_interp"])
 
         # conservation of energy
-        feos_dict = self.get_feos_info()
-        gam = feos_dict["Equivalent gamma"]
-        R = feos_dict["Gas constant"]
-        e = R * gam / (gam - 1) * np.mean(data["rhou_interp"] * data["T_interp"]) +\
+        gam = data["gam"]
+        R = data["R"]
+        e = data["R"] * data["gam"] / (data["gam"] - 1) *\
+            np.mean(data["rhou_interp"] * data["T_interp"]) +\
             0.5 * np.mean(data["rhou_interp"] * (data["uu_interp"]
                                                  + data["vv_interp"]
                                                  + data["ww_interp"]))
@@ -485,8 +541,25 @@ class CustomSimulator(Simulator):
                            "V2_bar": V2_bar,
                            "M_bar": M_bar,
                            "p0_bar": p0_bar}
+        print(p_bar, p0_bar)
 
         return mixed_out_state
+
+    def pressure_loss_coeff(self, sim_outdir: str) -> float:
+        """
+        **Post-processes** the results of a terminated simulation.
+        **Returns** the extracted results in a DataFrame.
+        """
+        # compute inlet mixed-out pressure
+        inlet_data = self.extract_measurement_line(sim_outdir, "inlet")
+        inlet_mixed_out_state = self.mixed_out(inlet_data)
+
+        # compute oulet mixed-out pressure
+        outlet_data = self.extract_measurement_line(sim_outdir, "outlet")
+        outlet_mixed_out_state = self.mixed_out(outlet_data)
+
+        return (inlet_mixed_out_state["p0_bar"] - outlet_mixed_out_state["p0_bar"]) /\
+               (inlet_mixed_out_state["p0_bar"] - inlet_mixed_out_state["p_bar"])
 
     def kill_all(self):
         """
@@ -494,35 +567,72 @@ class CustomSimulator(Simulator):
         """
         logger.debug("Function 'kill_all' not yet implemented")
 
-    def read_stats_bl(self, sim_outdir: str, bl_list: list[str]) -> dict:
+    def read_stats_bl(self, sim_outdir: str, bl_list: list[int], var_list: list[str]) -> dict:
         """
         **Reads** statistics of MUSICAA computation block from stats*_bl*.bin.
         """
-        data = {}
+        # list of variables in file
+        vars1 = ["rho", "u", "v", "w", "p", "T", "rhou", "rhov", "rhow", "rhoe",
+                 "rho**2", "uu", "vv", "ww", "uv", "uw", "vw", "vT", "p**2", "T**2",
+                 "mu", "divloc", "divloc**2"]
+        vars2 = ["e", "h", "c", "s", "M", "0.5*q", "g", "la", "cp", "cv",
+                 "prr", "eck", "rho*dux", "rho*duy", "rho*duz", "rho*dvx", "rho*dvy",
+                 "rho*dvz", "rho*dwx", "rho*dwy", "rho*dwz", "p*div", "rho*div", "b1",
+                 "b2", "b3", "rhoT", "uT", "vT", "e**2", "h**2", "c**2", "s**2",
+                 "qq/cc2", "g**2", "mu**2", "la**2", "cv**2", "cp**2", "prr**2", "eck**2",
+                 "p*u", "p*v", "s*u", "s*v", "p*rho", "h*rho", "T*p", "p*s", "T*s", "rho*s",
+                 "g*rho", "g*p", "g*s", "g*T", "g*u", "g*v", "p*dux", "p*dvy", "p*dwz",
+                 "p*duy", "p*dvx", "rho*div**2", "dux**2", "duy**2", "duz**2", "dvx**2",
+                 "dvy**2", "dvz**2", "dwx**2", "dwy**2", "dwz**2", "b1**2", "b2**2", "b3**2",
+                 "rho*b1", "rho*b2", "rho*b3", "rho*uu", "rho*vv", "rho*ww",
+                 "rho*T**2", "rho*b1**2", "rho*b2**2", "rho*b3**2", "rho*uv", "rho*uw",
+                 "rho*vw", "rho*vT", "rho*u**2*v", "rho*v**3", "rho*w**2*v", "rho*v**2*u",
+                 "rho*dux**2", "rho*dvy**2", "rho*dwz**2", "rho*duy*dvx", "rho*duz*dwx",
+                 "rho*dvz*dwy", "u**3", "p**3", "u**4", "p**4", "Frhou", "Frhov", "Frhow",
+                 "Grhov", "Grhow", "Hrhow", "Frhovu", "Frhouu", "Frhovv", "Frhoww",
+                 "Grhovu", "Grhovv", "Grhoww", "Frhou_dux", "Frhou_dvx", "Frhov_dux",
+                 "Frhov_duy", "Frhov_dvx", "Frhov_dvy", "Frhow_duz", "Frhow_dvz",
+                 "Frhow_dwx", "Grhov_duy", "Grhov_dvy", "Grhow_duz", "Grhow_dvz",
+                 "Grhow_dwy", "Hrhow_dwz", "la*dTx", "la*dTy", "la*dTz",
+                 "h*u", "h*v", "h*w", "rho*h*u", "rho*h*v", "rho*h*w", "rho*u**3",
+                 "rho*v**3", "rho*w**3", "rho*w**2*u",
+                 "h0", "e0", "s0", "T0", "p0", "rho0", "mut"]
+        all_vars = [vars1, vars2]
 
         # loop over blocks
-        for bl in bl_list:
-            # get filename
-            filename = os.path.join(sim_outdir, f"stats1_bl{bl}.bin")
-            f = open(filename, "r")
+        data = {}
+        stats = 1
+        for vars in all_vars:
+            for bl in bl_list:
+                # get filename
+                filename = os.path.join(sim_outdir, f"stats{stats}_bl{bl}.bin")
 
-            # get block dimensions
-            nx = self.mesh_info[f"nx_bl{bl}"]
-            ny = self.mesh_info[f"ny_bl{bl}"]
+                # get block dimensions
+                nx = self.mesh_info[f"nx_bl{bl}"]
+                ny = self.mesh_info[f"ny_bl{bl}"]
 
-            # list of variables in file
-            var_list = ["rho", "u", "v", "w", "p", "T", "rhou", "rhov", "rhow", "rhoe",
-                        "rho**2", "uu", "vv", "ww", "uv", "uw", "vw", "vT", "p**2", "T**2",
-                        "mu", "divloc", "divloc**2"]
+                # read and store
+                if stats == 1:
+                    data[f"block_{bl}"] = {}
+                f = open(filename, "rb")
+                dtype = np.dtype("f8")
+                for var in vars:
+                    data[f"block_{bl}"][var] = np.fromfile(
+                        f, dtype=dtype, count=nx * ny).reshape((nx, ny), order="F")
+                f.close()
 
-            # read and store
-            data[f"block_{bl}"] = {}
-            f = open(filename, "rb")
-            dtype = np.dtype("f8")
-            for var in var_list:
-                data[f"block_{bl}"][var] = np.fromfile(
-                    f, dtype=dtype, count=nx * ny).reshape((nx, ny), order="F")
-            f.close()
+                # keep only those provided in var_list
+                unwanted = set(data[f"block_{bl}"]) - set(var_list)
+                for unwanted_key in unwanted:
+                    if unwanted_key != "x" and unwanted_key != "y":
+                        del data[f"block_{bl}"][unwanted_key]
+
+            stats += 1
+
+        # add fluid properties
+        feos_dict = self.get_feos_info(sim_outdir)
+        data["gam"] = feos_dict["Equivalent gamma"]
+        data["R"] = feos_dict["Gas constant"]
 
         return data
 
@@ -531,29 +641,27 @@ class CustomSimulator(Simulator):
         Extract data along measurement line.
         """
         if location == "inlet":
-            bl_list = self.config["mesh"]["inlet_bl"]
+            bl_list = self.config["plot3D"]["mesh"]["inlet_bl"]
         else:
-            bl_list = self.config["mesh"]["outlet_bl"]
+            bl_list = self.config["plot3D"]["mesh"]["outlet_bl"]
+
+        # get mesh information
+        self.get_mesh_info(sim_outdir)
 
         # get time-averaged block data
-        data = self.read_stats_bl(sim_outdir, bl_list)
+        var_list_interp = ["uu", "vv", "ww", "rhou", "rho*uu", "rho*uv", "rho*uw", "p", "T"]
+        data = self.read_stats_bl(sim_outdir, bl_list, var_list_interp)
 
         # get coordinates
         for bl in bl_list:
             data[f"block_{bl}"]["x"], data[f"block_{bl}"]["y"] = self.read_bl(sim_outdir, bl)
 
-        # data useful to compute mixed-out state
-        var_list_interp = ["uu", "vv", "ww", "rhou", "rhouv", "rhouw", "p", "T"]
-        unwanted = set(data) - set(var_list_interp)
-        for unwanted_key in unwanted:
-            del data[unwanted_key]
-
         # interpolation line definition
-        x1 = self.config["simulator"]["post_process"][f"{location}_measurements_x1"]
-        x2 = self.config["simulator"]["post_process"][f"{location}_measurements_x2"]
+        x1 = self.config["simulator"]["post_process"]["measurement_lines"][f"{location}_x1"]
+        x2 = self.config["simulator"]["post_process"]["measurement_lines"][f"{location}_x2"]
         closest_index = find_closest_index(data[f"block_{bl_list[0]}"]["x"][:, 0], x1)
         y1 = data[f"block_{bl_list[0]}"]["y"][closest_index, :].min()
-        y2 = y1 + self.config["mesh"]["pitch"]
+        y2 = y1 + self.config["plot3D"]["mesh"]["pitch"]
         lims = [x1, y1, x2, y2]
 
         # interpolate all variables
@@ -594,39 +702,35 @@ class CustomSimulator(Simulator):
         """
         **Reads** the feos_*.ini file from MUSICAA.
         """
-        # read file
-        with open(os.path.join(sim_outdir, "feos_air.ini"), "r") as f:
-            lines = f.readlines()
-
         # regular expression to match lines with a name and a corresponding value
         pattern = re.compile(r"([A-Za-z\s]+)\.{2,}\s*(\S+)")
 
         # iterate over each line and apply the regex pattern
         feos_dict = {}
-        for match in pattern.finditer(lines):
-            name = match.group(1).strip()
-            value = match.group(2)
-            feos_dict[name] = value
+        with open(os.path.join(sim_outdir, "feos_air.ini"), 'r') as file:
+            for line in file:
+                match = pattern.search(line)
+                if match:
+                    key = match.group(1).strip()
+                    value = match.group(2)
+                    feos_dict[key] = float(value)
 
         return feos_dict
 
-    def get_mesh_info(self) -> dict:
+    def get_mesh_info(self, sim_outdir: str) -> dict:
         """
         **Returns** a dictionnary containing relevant information on the mesh
         used by MUSICAA: number of blocks, block size, number of ghost points.
         Note: this element is automatically produced by MUSICAA, and need not be
         created manually.
         """
-        mesh_info = {}
-
         # read relevant lines
-        with open(os.path.join(self.dat_dir, "info.ini"), "r") as f:
+        self.mesh_info = {}
+        with open(os.path.join(sim_outdir, "info.ini"), "r") as f:
             lines = f.readlines()
-        mesh_info["nbloc"] = int(lines[0].split()[4])
-        for ind in range(mesh_info["nbloc"]):
-            mesh_info["nx_bl" + str(ind + 1)] = int(lines[1 + ind].split()[5])
-            mesh_info["ny_bl" + str(ind + 1)] = int(lines[1 + ind].split()[6])
-            mesh_info["nz_bl" + str(ind + 1)] = int(lines[1 + ind].split()[7])
-        mesh_info["ngh"] = int(lines[ind + 8].split()[-1])
-
-        return mesh_info
+        self.mesh_info["nbloc"] = int(lines[0].split()[4])
+        for ind in range(self.mesh_info["nbloc"]):
+            self.mesh_info["nx_bl" + str(ind + 1)] = int(lines[1 + ind].split()[5])
+            self.mesh_info["ny_bl" + str(ind + 1)] = int(lines[1 + ind].split()[6])
+            self.mesh_info["nz_bl" + str(ind + 1)] = int(lines[1 + ind].split()[7])
+        self.mesh_info["ngh"] = int(lines[ind + 9].split()[-1])
