@@ -25,7 +25,7 @@ def main():
     # instantiate custom mesh class
     MeshClass = get_custom_class(custom_file, "CustomMesh") if custom_file else None
     if not MeshClass:
-        raise Exception("ERROR -- either provide a 2D profile, or a valid CustomMesh class.")
+        raise Exception("ERROR -- please provide a CustomMesh class.")
     mesh = MeshClass(config)
 
     # build mesh
