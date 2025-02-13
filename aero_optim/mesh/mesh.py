@@ -358,21 +358,21 @@ class MeshMusicaa(ABC):
         block_info = {}
 
         # get number of blocks
-        nbl_ = read_next_line_in_file(os.path.join(self.dat_dir, "param_blocks.ini"),
-                                      "Number of Blocks")
-        nbl = re.findall(r"\d+", nbl_)[0]
+        filename = os.path.join(self.dat_dir, "param_blocks.ini")
+        nbl_ = read_next_line_in_file(filename, "Number of Blocks")
+        nbl = int(re.findall(r"\d+", nbl_)[0])
 
         # iterate for each block
         for bl in range(nbl):
             bl += 1
             pattern = f"! Block #{bl}"
-            with open("param_blocks.ini", "r") as f:
+            with open(filename, "r") as f:
                 filedata = f.readlines()
             for i, line in enumerate(filedata):
                 if pattern in line:
-                    block_info[f"nx_bl{bl}"] = re.findall(r"\d+", filedata[i + 3])[0]
-                    block_info[f"ny_bl{bl}"] = re.findall(r"\d+", filedata[i + 4])[0]
-                    block_info[f"nz_bl{bl}"] = re.findall(r"\d+", filedata[i + 5])[0]
+                    block_info[f"nx_bl{bl}"] = int(re.findall(r"\d+", filedata[i + 3])[0])
+                    block_info[f"ny_bl{bl}"] = int(re.findall(r"\d+", filedata[i + 4])[0])
+                    block_info[f"nz_bl{bl}"] = int(re.findall(r"\d+", filedata[i + 5])[0])
 
         return block_info
 
@@ -429,7 +429,7 @@ class MeshMusicaa(ABC):
             nz = 1
 
             # open file and write specific format
-            mesh_file = f"{mesh_dir}/{self.mesh_name}_g{gid}_c{cid}_pert_edges_bl{bl}.x"
+            mesh_file = f"{mesh_dir}/{self.mesh_name}_g{gid}_c{cid}_edges_bl{bl}.x"
             with open(mesh_file, "w") as f:
                 f.write('1\n')
                 f.write(str(str(nx) + '  ' + str(ny) + '  ' + str(nz) + '\n'))
