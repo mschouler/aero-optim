@@ -104,6 +104,8 @@ def main():
         "-s", "--sampler", type=str, help="sampling technique [lhs, halton, sobol]", default="lhs")
     parser.add_argument(
         "-d", "--delta", type=str, default=None, help="Delta: 'D10 D20 .. D2nc'")
+    parser.add_argument(
+        "-p", "--pad", type=str, default="1 1", help="padding: p1, p2")
     args = parser.parse_args()
 
     check_file(args.file)
@@ -119,7 +121,8 @@ def main():
     #  |  -> project the new profile back into the original referential
     seed = 1234
     ncontrol = args.ncontrol
-    ffd = FFD_2D(args.file, ncontrol)
+    padding = tuple(map(int, args.pad.split()))
+    ffd = FFD_2D(args.file, ncontrol, pad=padding)
     if not args.delta:
         sampler = get_sampler(args.sampler, ncontrol, seed)
         sample = sampler.random(n=args.nprofile)
