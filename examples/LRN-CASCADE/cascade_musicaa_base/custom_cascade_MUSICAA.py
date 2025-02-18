@@ -8,10 +8,10 @@ import re
 import pandas as pd
 from typing import Callable
 
-from aero_optim.utils import custom_input, find_closest_index
+from aero_optim.utils import (custom_input, find_closest_index, from_dat, check_dir,
+                              read_next_line_in_file, round)
 from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.simulator.simulator import Simulator
-from aero_optim.utils import from_dat, check_dir
 
 """
 This script contains various customizations of the aero_optim module
@@ -258,6 +258,14 @@ class CustomSimulator(Simulator):
             ({'gid': gid, 'cid': cid, 'meshfile': meshfile, 'restart': restart}, subprocess).
 
         - restart (int): how many times a simulation is allowed to be restarted in case of failure.
+        - CFL (float): CFL number read from the param.ini file in the working directory.
+        - lower_CFL (float): lower CFL number in case computation crashes, computed with
+                             lower_CFL = CFL / divide_CFL_by in config.json file.
+        - ndeb_RANS (int): iteration from which the RANS model is computed.
+        - nprint (int): every iteration at which MUSICAA prints information to screen. Used for
+                        the residuals frequency !!! hard-coded in MUSICAA !!!
+        - convergence_order (float): order of convergence required for steady computations.
+        - computation_type (str): type of computation (steady/unsteady)
         - mesh_info (dict): dictionary containing information about mesh. Only accessible once the
                             simulation has at least started or finished.
         """
@@ -265,6 +273,18 @@ class CustomSimulator(Simulator):
         # simulator related
         self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
         self.restart: int = config["simulator"].get("restart", 0)
+        self.CFL: float = float(read_next_line_in_file(config["simulator"]["ref_input"], "CFL"))
+        self.lower_CFL: float = self.CFL
+        self.ndeb_RANS: int = int(read_next_line_in_file(config["simulator"]["ref_input"],
+                                                         "ndeb_RANS"))
+        self.ndeb_stats: int = 0
+        self.nprint: int = int(re.findall(r'\b\d+\b',
+                                          read_next_line_in_file(config["simulator"]["ref_input"],
+                                                                 "screen"))[0])
+        self.convergence_order: float = config["simulator"].get("convergence_order", 4)
+        self.computation_type: str = read_next_line_in_file(config["simulator"]["ref_input"],
+                                                            "Turbulence modelling: ")
+        self.computation_type = "unsteady" if self.computation_type == "N" else "steady"
         # mesh related
         self.mesh_info: dict = {}
 
@@ -288,7 +308,12 @@ class CustomSimulator(Simulator):
         """
         self.solver_name = "musicaa"
 
-    def execute_sim(self, meshfile: str = "", gid: int = 0, cid: int = 0, restart: int = 0):
+    def execute_sim(self,
+                    meshfile: str = "",
+                    gid: int = 0,
+                    cid: int = 0,
+                    restart: int = 0,
+                    is_stats: bool = False):
         """
         **Pre-processes** and **executes** a MUSICAA simulation.
         """
@@ -296,18 +321,29 @@ class CustomSimulator(Simulator):
         if gid not in self.df_dict:
             self.df_dict[gid] = {}
 
-        try:
+        if not is_stats:
+            try:
+                sim_outdir = self.get_sim_outdir(gid, cid)
+                dict_id: dict = {"gid": gid, "cid": cid, "meshfile": meshfile}
+                self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
+                    dict_id, sim_outdir
+                )
+                logger.info(f"g{gid}, c{cid}: loaded pre-existing results from files")
+            except FileNotFoundError:
+                # Pre-process
+                sim_outdir = self.pre_process(meshfile, gid, cid)
+                # if computation has crashed, restart with lower CFL
+                if restart > 0:
+                    args: dict = {"CFL": self.lower_CFL}
+                    custom_input(os.path.join(sim_outdir,
+                                 self.config["simulator"]["ref_input"].split("/")[-1]), args)
+                    self.CFL = self.lower_CFL
+                # Execution
+                self.execute(sim_outdir, gid, cid, meshfile, restart)
+
+        else:
+            # continue computation for statistics
             sim_outdir = self.get_sim_outdir(gid, cid)
-            dict_id: dict = {"gid": gid, "cid": cid, "meshfile": meshfile}
-            self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
-                dict_id, sim_outdir
-            )
-            print(self.df_dict.items())
-            logger.info(f"g{gid}, c{cid}: loaded pre-existing results from files")
-        except FileNotFoundError:
-            # Pre-process
-            sim_outdir = self.pre_process(meshfile, gid, cid)
-            # Execution
             self.execute(sim_outdir, gid, cid, meshfile, restart)
 
     def pre_process(self, meshfile: str, gid: int, cid: int) -> tuple[str, list[str]]:
@@ -336,6 +372,8 @@ class CustomSimulator(Simulator):
         # modify solver input file: delete half-cell at block boundaries
         args: dict = {}
         args.update({"from_interp": "0"})
+        args.update({"Max number of temporal iterations": "9999999 3000.0"})
+        args.update({"Iteration number to start statistics": "9999999"})
         args.update({"Half-cell": "T", "Coarse grid": "F 0", "Perturb grid": "F"})
         args.update({"Directory for grid files":
                      f"'{os.path.relpath(path_to_meshfile, sim_outdir)}'"})
@@ -406,22 +444,48 @@ class CustomSimulator(Simulator):
         # loop over the list of simulation processes
         for id, (dict_id, p_id) in enumerate(self.sim_pro):
             returncode = p_id.poll()
+            sim_outdir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
+            # initialize computation type
+            if "is_stats" not in dict_id:
+                dict_id.update({"is_stats": False})
+
             if returncode is None:
-                pass  # simulation still running
+                # check results convergence
+                converged, self.ndeb_stats = self.check_convergence(sim_outdir, dict_id)
+                if converged:
+                    self.stop_MUSICAA(sim_outdir)
+                else:
+                    pass  # simulation still running
+
             elif returncode == 0:
-                logger.info(f"simulation {dict_id} finished")
-                finished_sim.append(id)
-                sim_outdir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
-                self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
-                    dict_id, sim_outdir
-                )
+                # check if statistics files exist
+                if os.path.isfile(os.path.join(sim_outdir, "stats1_bl1.bin")):
+                    logger.info(f"simulation {dict_id} finished")
+                    finished_sim.append(id)
+                    self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
+                        dict_id, sim_outdir
+                    )
+                # else continue computation to gather statistics
+                else:
+                    finished_sim.append(id)
+                    logger.info(f"simulation {dict_id} continued for statistics")
+                    dict_id.update({"is_stats": True})
+                    self.pre_process_stats(sim_outdir)
+                    self.execute_sim(
+                        dict_id["meshfile"], dict_id["gid"], dict_id["cid"],
+                        dict_id["restart"], dict_id["is_stats"]
+                    )
                 break
+
             else:
                 if dict_id["restart"] < self.restart:
-                    logger.error(f"ERROR -- simulation {dict_id} crashed and will be restarted")
+                    # reduce CFL
+                    self.lower_CFL /= self.config['simulator']['divide_CFL_by']
+                    logger.error((f"ERROR -- simulation {dict_id} crashed with CFL={self.CFL} "
+                                  f"and will be restarted with lower CFL="
+                                  f"{self.lower_CFL}"))
                     finished_sim.append(id)
-                    sim_out_dir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
-                    shutil.rmtree(sim_out_dir, ignore_errors=True)
+                    shutil.rmtree(sim_outdir, ignore_errors=True)
                     self.execute_sim(
                         dict_id["meshfile"], dict_id["gid"], dict_id["cid"], dict_id["restart"] + 1
                     )
@@ -541,7 +605,6 @@ class CustomSimulator(Simulator):
                            "V2_bar": V2_bar,
                            "M_bar": M_bar,
                            "p0_bar": p0_bar}
-        print(p_bar, p0_bar)
 
         return mixed_out_state
 
@@ -734,3 +797,121 @@ class CustomSimulator(Simulator):
             self.mesh_info["ny_bl" + str(ind + 1)] = int(lines[1 + ind].split()[6])
             self.mesh_info["nz_bl" + str(ind + 1)] = int(lines[1 + ind].split()[7])
         self.mesh_info["ngh"] = int(lines[ind + 9].split()[-1])
+
+    def get_residuals(self, sim_outdir: str) -> dict:
+        """
+        **Returns** residuals from ongoing computations.
+        """
+        res = {'nn': [], 'Rho': [], 'Rhou': [], 'Rhov': [], 'Rhoe': [], 'RANS_var': []}
+        f = open(f"{sim_outdir}/residuals.bin", "rb")
+        i4_dtype = np.dtype('<i4')
+        i8_dtype = np.dtype('<i8')
+        f8_dtype = np.dtype('<f8')
+        it = 1
+        while True:
+            try:
+                if it == 1:
+                    np.fromfile(f, dtype=i4_dtype, count=1)
+                else:
+                    np.fromfile(f, dtype=i8_dtype, count=1)
+                res['nn'].append(np.fromfile(f, dtype=i4_dtype, count=1)[0])
+                # read arg
+                np.fromfile(f, dtype=f8_dtype, count=1)
+                res['Rho'].append(np.fromfile(f, dtype=f8_dtype, count=1)[0])
+                # read arg
+                np.fromfile(f, dtype=f8_dtype, count=1)
+                res['Rhou'].append(np.fromfile(f, dtype=f8_dtype, count=1)[0])
+                # read arg
+                np.fromfile(f, dtype=f8_dtype, count=1)
+                res['Rhov'].append(np.fromfile(f, dtype=f8_dtype, count=1)[0])
+                # read arg
+                np.fromfile(f, dtype=f8_dtype, count=1)
+                res['Rhoe'].append(np.fromfile(f, dtype=f8_dtype, count=1)[0])
+                if it * self.nprint > self.ndeb_RANS:
+                    # read arg
+                    np.fromfile(f, dtype=f8_dtype, count=1)
+                    res['RANS_var'].append(np.fromfile(f, dtype=f8_dtype, count=1)[0])
+                it += 1
+            except IndexError:
+                break
+        return res
+
+    def check_residuals(self, sim_outdir: str) -> tuple[bool, int]:
+        """
+        **Returns** True if residual convergence criterion is met. If so,
+        the iteration at which statistics are started is returned, otherwise
+        the current iteration is returned.
+        """
+        # if residuals.bin file exists
+        try:
+            res = self.get_residuals(sim_outdir)
+            unwanted = ["nn"]
+            if res["nn"][-1] < self.ndeb_RANS:
+                nvars = 4
+                unwanted.append("RANS_var")
+            else:
+                nvars = 5
+            # compute current order of convergence for each variable
+            nvars_converged = 0
+            res_max = []
+            for var in set(res) - set(unwanted):
+                res_max.append(max(res[var]) - min(res[var]))
+                if max(res[var]) - min(res[var]) > self.convergence_order:
+                    nvars_converged += 1
+
+            if res["nn"][-1] > self.ndeb_RANS:
+                print((f"it: {res['nn'][-1]}; "
+                       f"lowest convergence order = {round(min(res_max), 'down', 2)}"))
+                if nvars_converged == nvars:
+                    return True, round(res['nn'][-1], "up", -3)
+                else:
+                    return False, round(res['nn'][-1], "up", -3)
+            else:
+                print((f"it: {res['nn'][-1]}; RANS starts at it: {self.ndeb_RANS}"))
+                return False, round(res['nn'][-1], "up", -3)
+
+        except (FileNotFoundError, ValueError, IndexError):
+            return False, 0
+
+    def check_stats(self, sim_outdir: str) -> bool:
+        """
+        **Returns** True if MUSICAA statistics convergence criterion is met.
+        """
+        # some code
+
+    def check_convergence(self, sim_outdir: str, dict_id: dict) -> tuple[bool, int]:
+        """
+        **Returns** True if MUSICAA computation convergence criterion is met. If so,
+        returns
+        """
+        if self.computation_type == "steady":
+            if not dict_id["is_stats"]:
+                return self.check_residuals(sim_outdir)
+            else:
+                return False, 0
+        else:
+            return "Unsteady convergence criterion to be implemented."
+
+    def pre_process_stats(self, sim_outdir: str):
+        """
+        **Pre-processes** computation for statistics computations.
+        """
+        # modify param.ini file
+        args = {}
+        args.update({"from_field": "2"})
+        args.update({"Iteration number to start statistics": f"{self.ndeb_stats + 1}"})
+        if self.computation_type == "steady":
+            args.update({"Max number of temporal iterations": "2 3000.0"})
+        elif self.computation_type == "unsteady":
+            args.update({"Max number of temporal iterations": "9999999 3000.0"})
+        custom_input(os.path.join(sim_outdir,
+                                  self.config["simulator"]["ref_input"].split("/")[-1]
+                                  ), args)
+
+    def stop_MUSICAA(self, sim_outdir: str):
+        """
+        **Stops** MUSICAA during execution.
+        """
+        # send signal to MUSICAA if convergence reached
+        with open(f"{sim_outdir}/stop", "w") as stop:
+            stop.write("stop")

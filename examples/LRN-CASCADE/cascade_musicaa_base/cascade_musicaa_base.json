@@ -27,6 +27,9 @@
         "preprocess_cmd" : "./musicaa",
         "exec_cmd" : "mpiexec -n 51 ./musicaa",
         "path_to_solver": "examples/LRN-CASCADE/cascade_musicaa_base/",
+        "restart": 5,
+        "divide_CFL_by": 1.2,
+        "convergence_order": 4,
 
         "sim_args": {
             "nprocs": 51,

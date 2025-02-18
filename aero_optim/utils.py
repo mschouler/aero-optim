@@ -6,8 +6,8 @@ import os.path
 import shutil
 import signal
 import subprocess
-import argparse
 import numpy as np
+import math
 
 from types import FrameType
 
@@ -327,3 +327,14 @@ def find_closest_index(range_value: np.ndarray, target_value: float) -> int:
             closest_index = i
 
     return closest_index
+
+
+def round(n: int | float, direction: str, decimals: int = 0) -> int | float:
+    """
+    **Returns** the ceiling/floor rounded value of a given number.
+    """
+    multiplier = 10**decimals
+    if direction == "up":
+        return math.ceil(n * multiplier) / multiplier
+    else:
+        return math.floor(n * multiplier) / multiplier
