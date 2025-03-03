@@ -303,7 +303,7 @@ class MeshMusicaa(ABC):
     """
     This class implements an abstract meshing class for the solver MUSICAA.
     """
-    def __init__(self, config: dict, datfile: str = ""):
+    def __init__(self, config: dict, datfile: str = "", just_get_block_info: bool = False):
         """
         Instantiates the abstract MeshMusicaa object.
 
@@ -317,7 +317,7 @@ class MeshMusicaa(ABC):
         - dat_dir (str): path to input_geometry.dat.
         - outdir (str): path/to/outputdirectory
         - outfile (str): the core name of all outputed files e.g. outfile.log, outfile.mesh, etc.
-        - header (int): the number of header lines in dat_file.
+        - header (int): the number of    header lines in dat_file.
         - mesh_name (str): name of the mesh files (******_bl1.x)
         - wall_bl (list[int]): list containing the blocks adjacent to the geometry to be optimized.
                    The block numbers should be ordered following the curvilinear abscissae of
@@ -331,18 +331,22 @@ class MeshMusicaa(ABC):
         """
         self.cwd: str = os.getcwd()
         self.config = config
-        # study params
-        self.dat_file: str = datfile if datfile else config["study"]["file"]
-        self.dat_dir = '/'.join(self.dat_file.split('/')[:-1])
-        self.outdir: str = config["study"]["outdir"]
-        self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
-        self.header: int = config["study"].get("header", 2)
-        # mesh params
-        self.wall_bl: list[int] = config["plot3D"]["mesh"].get("wall_bl", [0])
-        self.block_info = self.get_block_info()
-        self.pitch: int = config["plot3D"]["mesh"].get('pitch', 1)
-        self.periodic_bl: list[int] = config["plot3D"]["mesh"].get("periodic_bl", [0])
-        self.mesh_name: str = config["plot3D"]["mesh"].get("mesh_name", self.outfile)
+        if just_get_block_info:
+            self.dat_dir = config["dat_dir"]
+            self.block_info = self.get_block_info()
+        else:
+            # study params
+            self.dat_file: str = datfile if datfile else config["study"]["file"]
+            self.dat_dir = '/'.join(self.dat_file.split('/')[:-1])
+            self.outdir: str = config["study"]["outdir"]
+            self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
+            self.header: int = config["study"].get("header", 2)
+            # mesh params
+            self.wall_bl: list[int] = config["plot3D"]["mesh"].get("wall_bl", [0])
+            self.block_info = self.get_block_info()
+            self.pitch: int = config["plot3D"]["mesh"].get('pitch', 1)
+            self.periodic_bl: list[int] = config["plot3D"]["mesh"].get("periodic_bl", [0])
+            self.mesh_name: str = config["plot3D"]["mesh"].get("mesh_name", self.outfile)
 
     def write_mesh(self, outdir: str) -> str:
         """
@@ -353,27 +357,98 @@ class MeshMusicaa(ABC):
     def get_block_info(self) -> dict:
         """
         **Returns** a dictionnary containing relevant information on the blocks
-        used by MUSICAA: number of blocks, block size.
+        used by MUSICAA: number of blocks, block size, snapshots.
         """
-        block_info = {}
+        block_info: dict = {}
 
         # get number of blocks
         filename = os.path.join(self.dat_dir, "param_blocks.ini")
         nbl_ = read_next_line_in_file(filename, "Number of Blocks")
         nbl = int(re.findall(r"\d+", nbl_)[0])
+        block_info["nbl"] = nbl
 
         # iterate for each block
+        total_nb_points = 0
+        total_nb_lines = 0
+        total_nb_planes = 0
+        with open(filename, "r") as f:
+            filedata = f.readlines()
         for bl in range(nbl):
             bl += 1
             pattern = f"! Block #{bl}"
-            with open(filename, "r") as f:
-                filedata = f.readlines()
+            block_info[f"block_{bl}"] = {}
             for i, line in enumerate(filedata):
                 if pattern in line:
-                    block_info[f"nx_bl{bl}"] = int(re.findall(r"\d+", filedata[i + 3])[0])
-                    block_info[f"ny_bl{bl}"] = int(re.findall(r"\d+", filedata[i + 4])[0])
-                    block_info[f"nz_bl{bl}"] = int(re.findall(r"\d+", filedata[i + 5])[0])
-
+                    block_info[f"block_{bl}"]["nx"] = int(re.findall(r"\d+", filedata[i + 3])[0])
+                    block_info[f"block_{bl}"]["ny"] = int(re.findall(r"\d+", filedata[i + 4])[0])
+                    block_info[f"block_{bl}"]["nz"] = int(re.findall(r"\d+", filedata[i + 5])[0])
+                    # get eventual sensors if any
+                    nb_snaps = int(re.findall(r"\d+", filedata[i + 16])[0])
+                    block_info[f"block_{bl}"]["nb_snaps"] = nb_snaps
+                    block_info[f"block_{bl}"]["nb_points"] = 0
+                    block_info[f"block_{bl}"]["nb_lines"] = 0
+                    block_info[f"block_{bl}"]["nb_planes"] = 0
+                    point_nb = 0
+                    line_nb = 0
+                    plane_nb = 0
+                    if nb_snaps > 0:
+                        for snap in range(nb_snaps):
+                            snap += 1
+                            info_snap = [int(dim) for dim in re.findall(r"\d+",
+                                                                        filedata[i + 20 + snap])]
+                            nx1, nx2 = info_snap[0], info_snap[1]
+                            ny1, ny2 = info_snap[2], info_snap[3]
+                            nz1, nz2 = info_snap[4], info_snap[5]
+                            freq = info_snap[6]
+                            nvars = info_snap[7]
+                            snap_type = "plane"
+                            snap = plane_nb + 1
+                            param_freq = 2
+                            if (
+                                (nx1 == nx2 and ny1 == ny2)
+                                or (nx1 == nx2 and nz1 == nz2)
+                                or (ny1 == ny2 and nz1 == nz2)
+                            ):
+                                snap_type = "line"
+                                snap = line_nb + 1
+                                param_freq = 1
+                                if (nx1 == nx2 and ny1 == ny2 and nz1 == nz2):
+                                    snap_type = "point"
+                                    snap = point_nb + 1
+                                    param_freq = 0
+                            if freq == 0:
+                                # frequency is prescribed in param.ini
+                                freq = int(read_next_line_in_file(
+                                    os.path.join(self.dat_dir, "param.ini"),
+                                    "Snapshot frequencies")[param_freq])
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"] = {}
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nx1"] = nx1
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nx2"] = nx2
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["ny1"] = ny1
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["ny2"] = ny2
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nz1"] = nz1
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nz2"] = nz2
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["freq"] = freq
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nvars"] = nvars
+                            var_list = filedata[i + 21 + snap].split()[-nvars:]
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["var_list"] = var_list
+                            position = point_nb + line_nb + plane_nb
+                            block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["position"] = position
+                            if snap_type == "point":
+                                point_nb += 1
+                                total_nb_points += 1
+                            if snap_type == "line":
+                                line_nb += 1
+                                total_nb_lines += 1
+                            if snap_type == "plane":
+                                plane_nb += 1
+                                total_nb_planes += 1
+                        block_info[f"block_{bl}"]["nb_points"] = point_nb
+                        block_info[f"block_{bl}"]["nb_lines"] = line_nb
+                        block_info[f"block_{bl}"]["nb_planes"] = plane_nb
+        block_info["total_nb_points"] = total_nb_points
+        block_info["total_nb_lines"] = total_nb_lines
+        block_info["total_nb_planes"] = total_nb_planes
         return block_info
 
     def read_bl(self, bl: int) -> np.ndarray:
@@ -385,15 +460,15 @@ class MeshMusicaa(ABC):
             a = pandas.read_csv(f).to_numpy()
 
         # get block size
-        nx = self.block_info[f"nx_bl{bl}"]
-        ny = self.block_info[f"ny_bl{bl}"]
+        nx = self.block_info[f"block_{bl}"]["nx"]
+        ny = self.block_info[f"block_{bl}"]["ny"]
 
         # convert coordinates to a regular 2D array
         coord_list = []
         for line in a[1:]:
-            b = line[0].split(' ')
+            b = line[0].split(" ")
             for element in b:
-                if element != '':
+                if element != "":
                     coord_list.append(np.float64(element))
 
         # extract 2D mesh and store
@@ -424,8 +499,8 @@ class MeshMusicaa(ABC):
         for bl in self.wall_bl:
 
             # get block dimensions
-            nx = self.block_info[f'nx_bl{bl}']
-            ny = self.block_info[f'ny_bl{bl}']
+            nx = self.block_info[f"block_{bl}"]["nx"]
+            ny = self.block_info[f"block_{bl}"]["ny"]
             nz = 1
 
             # open file and write specific format
@@ -460,7 +535,7 @@ class MeshMusicaa(ABC):
 
             # read block coordinates
             coords = self.read_bl(bl)
-            nx = self.block_info[f'nx_bl{bl}']
+            nx = self.block_info[f"block_{bl}"]["nx"]
 
             # save only wall (located at j=0)
             coords_wall_x.append(coords[:nx, 0])

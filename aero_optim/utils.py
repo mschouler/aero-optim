@@ -329,12 +329,14 @@ def find_closest_index(range_value: np.ndarray, target_value: float) -> int:
     return closest_index
 
 
-def round(n: int | float, direction: str, decimals: int = 0) -> int | float:
+def round_number(n: int | float, direction: str = "", decimals: int = 0) -> int | float:
     """
     **Returns** the ceiling/floor rounded value of a given number.
     """
     multiplier = 10**decimals
     if direction == "up":
         return math.ceil(n * multiplier) / multiplier
-    else:
+    elif direction == "down":
         return math.floor(n * multiplier) / multiplier
+    else:
+        return round(n, decimals)
