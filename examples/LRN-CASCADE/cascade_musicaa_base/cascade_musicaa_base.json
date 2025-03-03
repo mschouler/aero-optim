@@ -29,15 +29,11 @@
         "path_to_solver": "examples/LRN-CASCADE/cascade_musicaa_base/",
         "restart": 5,
         "divide_CFL_by": 1.2,
-        "convergence_order": 4,
-
-        "sim_args": {
-            "nprocs": 51,
-            "niter": 100000,
-            "niter_stats": 10000,
-            "is_interp_F": "False",
-            "nprocs_F": 204
-        },
+        "residual_convergence_order": 0.2,
+        "transient_convergence_percent_mean": 1,
+        "transient_convergence_percent_rms": 10,
+        "nb_ftt_before_criterion": 3,
+        "Boudet_criterion_type": "original",
 
         "post_process": {
             "measurement_lines": {

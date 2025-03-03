@@ -9,7 +9,7 @@ import pandas as pd
 from typing import Callable
 
 from aero_optim.utils import (custom_input, find_closest_index, from_dat, check_dir,
-                              read_next_line_in_file, round)
+                              read_next_line_in_file, round_number, cp_filelist)
 from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.simulator.simulator import Simulator
 
@@ -26,7 +26,7 @@ class CustomMesh(MeshMusicaa):
     This class implements a mesh routine for a compressor cascade geometry when using MUSICAA.
     This solver requires strctured coincident blocks with a unique frontier on each boundary.
     """
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, just_get_block_info: bool = False):
         """
         Instantiates the CascadeMeshMusicaa object.
 
@@ -45,7 +45,7 @@ class CustomMesh(MeshMusicaa):
                         surrounds the blade
 
         """
-        super().__init__(config)
+        super().__init__(config, just_get_block_info=just_get_block_info)
 
     def build_mesh(self):
         """
@@ -264,12 +264,23 @@ class CustomSimulator(Simulator):
         - ndeb_RANS (int): iteration from which the RANS model is computed.
         - nprint (int): every iteration at which MUSICAA prints information to screen. Used for
                         the residuals frequency !!! hard-coded in MUSICAA !!!
-        - convergence_order (float): order of convergence required for steady computations.
+        - residual_convergence_order (float): order of convergence required for steady computations.
         - computation_type (str): type of computation (steady/unsteady)
-        - mesh_info (dict): dictionary containing information about mesh. Only accessible once the
-                            simulation has at least started or finished.
+        - transient_convergence_percent (float): percentage of variation allowed for mean and rms
+                                                 to find end of unsteady transient.
+        - transient_convergence_percent_mean (float): same for mean
+        - transient_convergence_percent_rms (float): same for rms
+        - Boudet_criterion_type (str): the type of the unsteady transient convergence criterion.
+        - nb_ftt_before_criterion (int): number of flow-through times (f.t.t) to pass before
+                                         computing the Boudet criterion
+        - only_compute_mean_crit (bool): if True, only the mean Boudet criterion is computed to
+                                         asses transient convergence. This is the case when
+                                         initializing the 2D computation since rms makes no sense
+        - sim_info (dict): dictionary containing information about the computations.
+                           Only accessible once the simulation has at least started or finished.
         """
         super().__init__(config)
+        self.config: dict = config
         # simulator related
         self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
         self.restart: int = config["simulator"].get("restart", 0)
@@ -277,16 +288,26 @@ class CustomSimulator(Simulator):
         self.lower_CFL: float = self.CFL
         self.ndeb_RANS: int = int(read_next_line_in_file(config["simulator"]["ref_input"],
                                                          "ndeb_RANS"))
-        self.ndeb_stats: int = 0
         self.nprint: int = int(re.findall(r'\b\d+\b',
                                           read_next_line_in_file(config["simulator"]["ref_input"],
                                                                  "screen"))[0])
-        self.convergence_order: float = config["simulator"].get("convergence_order", 4)
+        self.residual_convergence_order: float \
+            = config["simulator"].get("residual_convergence_order", 4)
         self.computation_type: str = read_next_line_in_file(config["simulator"]["ref_input"],
-                                                            "Turbulence modelling: ")
+                                                            "DES without subgrid")
         self.computation_type = "unsteady" if self.computation_type == "N" else "steady"
+        self.transient_convergence_percent_mean: float \
+            = config["simulator"].get("transient_convergence_percent_mean", 0.1)
+        self.transient_convergence_percent_rms: float \
+            = config["simulator"].get("transient_convergence_percent_rms", 10)
+        self.Boudet_criterion_type: bool = config["simulator"].get("Boudet_criterion_type",
+                                                                   "original")
+        self.nb_ftt_before_criterion: bool = config["simulator"].get("nb_ftt_before_criterion",
+                                                                     4)
+        self.only_compute_mean_crit = False
         # mesh related
-        self.mesh_info: dict = {}
+        self.sim_info: dict = {}
+        self.block_info: dict = {}
 
     def process_config(self):
         """
@@ -297,8 +318,8 @@ class CustomSimulator(Simulator):
             raise Exception(f"ERROR -- no <exec_cmd> entry in {self.config['simulator']}")
         if "ref_input" not in self.config["simulator"]:
             raise Exception(f"ERROR -- no <ref_input> entry in {self.config['simulator']}")
-        if "sim_args" not in self.config["simulator"]:
-            logger.debug(f"no <sim_args> entry in {self.config['simulator']}")
+        if "mesh" not in self.config["plot3D"]:
+            logger.debug(f"no <mesh> entry in {self.config['plot3D']}")
         if "post_process" not in self.config["simulator"]:
             logger.debug(f"no <post_process> entry in {self.config['simulator']}")
 
@@ -313,7 +334,9 @@ class CustomSimulator(Simulator):
                     gid: int = 0,
                     cid: int = 0,
                     restart: int = 0,
-                    is_stats: bool = False):
+                    is_stats: bool = False,
+                    ndeb_stats: int = 0,
+                    is_init_unsteady_3D: bool = False):
         """
         **Pre-processes** and **executes** a MUSICAA simulation.
         """
@@ -321,7 +344,26 @@ class CustomSimulator(Simulator):
         if gid not in self.df_dict:
             self.df_dict[gid] = {}
 
-        if not is_stats:
+        if is_stats:
+            # continue computation for statistics
+            sim_outdir = self.get_sim_outdir(gid, cid)
+            self.pre_process_stats(sim_outdir, ndeb_stats)
+            self.execute(sim_outdir, gid, cid, meshfile, restart)
+            # update new simulation info
+            self.sim_pro[-1][0].update({"is_stats": True})
+            self.sim_pro[-1][0].update({"ndeb_stats": ndeb_stats})
+            self.sim_pro[-1][0].update({"is_init_unsteady_3D": False})
+
+        elif is_init_unsteady_3D:
+            # initialize unsteady computation from 2D to 3D
+            sim_outdir = self.get_sim_outdir(gid, cid)
+            self.pre_process_init_unsteady(sim_outdir, "3D")
+            self.execute(sim_outdir, gid, cid, meshfile, restart)
+            # update new simulation info
+            self.sim_pro[-1][0].update({"is_init_unsteady_2D": False})
+            self.sim_pro[-1][0].update({"is_init_unsteady_3D": True})
+
+        else:
             try:
                 sim_outdir = self.get_sim_outdir(gid, cid)
                 dict_id: dict = {"gid": gid, "cid": cid, "meshfile": meshfile}
@@ -329,22 +371,22 @@ class CustomSimulator(Simulator):
                     dict_id, sim_outdir
                 )
                 logger.info(f"g{gid}, c{cid}: loaded pre-existing results from files")
+
             except FileNotFoundError:
                 # Pre-process
                 sim_outdir = self.pre_process(meshfile, gid, cid)
+
+                # if starting unsteady computation, pre-process to initialize in 2D
+                if self.computation_type == "unsteady":
+                    self.pre_process_init_unsteady(sim_outdir, "2D")
+
                 # if computation has crashed, restart with lower CFL
                 if restart > 0:
                     args: dict = {"CFL": self.lower_CFL}
-                    custom_input(os.path.join(sim_outdir,
-                                 self.config["simulator"]["ref_input"].split("/")[-1]), args)
+                    custom_input(os.path.join(sim_outdir, "param.ini"), args)
                     self.CFL = self.lower_CFL
                 # Execution
                 self.execute(sim_outdir, gid, cid, meshfile, restart)
-
-        else:
-            # continue computation for statistics
-            sim_outdir = self.get_sim_outdir(gid, cid)
-            self.execute(sim_outdir, gid, cid, meshfile, restart)
 
     def pre_process(self, meshfile: str, gid: int, cid: int) -> tuple[str, list[str]]:
         """
@@ -378,6 +420,8 @@ class CustomSimulator(Simulator):
         args.update({"Directory for grid files":
                      f"'{os.path.relpath(path_to_meshfile, sim_outdir)}'"})
         args.update({"Name for grid files": meshfile})
+        if self.computation_type == "steady":
+            args.update({"Compute residuals": "T"})
         custom_input(os.path.join(sim_outdir,
                                   self.config["simulator"]["ref_input"].split("/")[-1]), args)
 
@@ -423,7 +467,8 @@ class CustomSimulator(Simulator):
         os.chdir(sim_outdir)
         with open(f"{self.solver_name}_g{gid}_c{cid}.out", "wb") as out:
             with open(f"{self.solver_name}_g{gid}_c{cid}.err", "wb") as err:
-                logger.info(f"execute simulation g{gid}, c{cid} with {self.solver_name}")
+                logger.info((f"execute {self.computation_type} simulation "
+                             f"g{gid}, c{cid} with {self.solver_name}"))
                 proc = subprocess.Popen(self.exec_cmd,
                                         env=os.environ,
                                         stdin=subprocess.DEVNULL,
@@ -445,36 +490,62 @@ class CustomSimulator(Simulator):
         for id, (dict_id, p_id) in enumerate(self.sim_pro):
             returncode = p_id.poll()
             sim_outdir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
+            # get mesh info
+            mesh = CustomMesh({"dat_dir": sim_outdir}, just_get_block_info=True)
+            self.block_info = mesh.block_info
             # initialize computation type
             if "is_stats" not in dict_id:
                 dict_id.update({"is_stats": False})
+            if "is_init_unsteady_2D" not in dict_id and self.computation_type == "unsteady":
+                dict_id.update({"is_init_unsteady_2D": True})
+                dict_id.update({"is_init_unsteady_3D": False})
 
-            if returncode is None:
+            if returncode is None and ("stop" not in dict_id):
                 # check results convergence
-                converged, self.ndeb_stats = self.check_convergence(sim_outdir, dict_id)
+                self.only_compute_mean_crit = False
+                if "is_init_unsteady_2D" in dict_id and dict_id["is_init_unsteady_2D"]:
+                    self.only_compute_mean_crit = True
+                converged, niter = self.check_convergence(sim_outdir, dict_id)
+                dict_id.update({"niter": niter})
                 if converged:
                     self.stop_MUSICAA(sim_outdir)
+                    dict_id.update({"stop": True})
                 else:
                     pass  # simulation still running
 
             elif returncode == 0:
                 # check if statistics files exist
                 if os.path.isfile(os.path.join(sim_outdir, "stats1_bl1.bin")):
-                    logger.info(f"simulation {dict_id} finished")
+                    logger.info(f"{self.computation_type} simulation {dict_id} finished")
                     finished_sim.append(id)
                     self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
                         dict_id, sim_outdir
                     )
-                # else continue computation to gather statistics
                 else:
                     finished_sim.append(id)
-                    logger.info(f"simulation {dict_id} continued for statistics")
-                    dict_id.update({"is_stats": True})
-                    self.pre_process_stats(sim_outdir)
-                    self.execute_sim(
-                        dict_id["meshfile"], dict_id["gid"], dict_id["cid"],
-                        dict_id["restart"], dict_id["is_stats"]
-                    )
+                    # if unsteady computation initialized in 2D
+                    if self.computation_type == "unsteady" and dict_id["is_init_unsteady_2D"]:
+                        logger.info((f"unsteady 2D initialization {dict_id} finished, "
+                                     "executing 3D initialization"))
+                        dict_id.update({"is_init_unsteady_2D": False})
+                        dict_id.update({"is_init_unsteady_3D": True})
+                        self.execute_sim(
+                            dict_id["meshfile"], dict_id["gid"], dict_id["cid"],
+                            dict_id["restart"],
+                            is_init_unsteady_3D=dict_id["is_init_unsteady_3D"]
+                        )
+                    # else gather statistics
+                    else:
+                        logger.info((f"{self.computation_type} simulation {dict_id}"
+                                     "continued for statistics"))
+                        dict_id.update({"is_stats": True})
+                        dict_id.update({"ndeb_stats": dict_id["niter"]})
+                        self.execute_sim(
+                            dict_id["meshfile"], dict_id["gid"], dict_id["cid"],
+                            dict_id["restart"],
+                            is_stats=dict_id["is_stats"],
+                            ndeb_stats=dict_id["ndeb_stats"]
+                        )
                 break
 
             else:
@@ -484,6 +555,19 @@ class CustomSimulator(Simulator):
                     logger.error((f"ERROR -- simulation {dict_id} crashed with CFL={self.CFL} "
                                   f"and will be restarted with lower CFL="
                                   f"{self.lower_CFL}"))
+
+                    temp_dir = "examples/LRN-CASCADE/cascade_musicaa_base/"
+                    with open(os.path.join(sim_outdir,
+                                           f"{self.solver_name}_g0_c0.out"), "r") as out:
+                        text = out.readlines()
+                        with open(os.path.join(temp_dir, "temp.out"), "w") as tout:
+                            tout.writelines(text)
+                    with open(os.path.join(sim_outdir,
+                                           f"{self.solver_name}_g0_c0.err"), "r") as err:
+                        text = err.readlines()
+                        with open(os.path.join(temp_dir, "temp.err"), "w") as terr:
+                            terr.writelines(text)
+
                     finished_sim.append(id)
                     shutil.rmtree(sim_outdir, ignore_errors=True)
                     self.execute_sim(
@@ -538,10 +622,10 @@ class CustomSimulator(Simulator):
         """
         **Reads** simulation grid coordinates.
         """
-        # get mesh_info
-        nx = self.mesh_info[f"nx_bl{bl}"]
-        ny = self.mesh_info[f"ny_bl{bl}"]
-        ngh = self.mesh_info["ngh"]
+        # get sim_info
+        nx = self.sim_info[f"block_{bl}"]["nx"]
+        ny = self.sim_info[f"block_{bl}"]["ny"]
+        ngh = self.sim_info["ngh"]
         nx_ext = nx + 2 * ngh
         ny_ext = ny + 2 * ngh
 
@@ -671,8 +755,8 @@ class CustomSimulator(Simulator):
                 filename = os.path.join(sim_outdir, f"stats{stats}_bl{bl}.bin")
 
                 # get block dimensions
-                nx = self.mesh_info[f"nx_bl{bl}"]
-                ny = self.mesh_info[f"ny_bl{bl}"]
+                nx = self.sim_info[f"block_{bl}"]["nx"]
+                ny = self.sim_info[f"block_{bl}"]["ny"]
 
                 # read and store
                 if stats == 1:
@@ -693,9 +777,9 @@ class CustomSimulator(Simulator):
             stats += 1
 
         # add fluid properties
-        feos_dict = self.get_feos_info(sim_outdir)
-        data["gam"] = feos_dict["Equivalent gamma"]
-        data["R"] = feos_dict["Gas constant"]
+        feos_info = self.get_feos_info(sim_outdir)
+        data["gam"] = feos_info["Equivalent gamma"]
+        data["R"] = feos_info["Gas constant"]
 
         return data
 
@@ -708,8 +792,8 @@ class CustomSimulator(Simulator):
         else:
             bl_list = self.config["plot3D"]["mesh"]["outlet_bl"]
 
-        # get mesh information
-        self.get_mesh_info(sim_outdir)
+        # get simulation information
+        self.get_sim_info(sim_outdir)
 
         # get time-averaged block data
         var_list_interp = ["uu", "vv", "ww", "rhou", "rho*uu", "rho*uv", "rho*uw", "p", "T"]
@@ -769,18 +853,18 @@ class CustomSimulator(Simulator):
         pattern = re.compile(r"([A-Za-z\s]+)\.{2,}\s*(\S+)")
 
         # iterate over each line and apply the regex pattern
-        feos_dict = {}
-        with open(os.path.join(sim_outdir, "feos_air.ini"), 'r') as file:
+        feos_info = {}
+        with open(os.path.join(sim_outdir, "feos_air.ini"), "r") as file:
             for line in file:
                 match = pattern.search(line)
                 if match:
                     key = match.group(1).strip()
                     value = match.group(2)
-                    feos_dict[key] = float(value)
+                    feos_info[key] = float(value)
 
-        return feos_dict
+        return feos_info
 
-    def get_mesh_info(self, sim_outdir: str) -> dict:
+    def get_sim_info(self, sim_outdir: str) -> dict:
         """
         **Returns** a dictionnary containing relevant information on the mesh
         used by MUSICAA: number of blocks, block size, number of ghost points.
@@ -788,15 +872,70 @@ class CustomSimulator(Simulator):
         created manually.
         """
         # read relevant lines
-        self.mesh_info = {}
         with open(os.path.join(sim_outdir, "info.ini"), "r") as f:
             lines = f.readlines()
-        self.mesh_info["nbloc"] = int(lines[0].split()[4])
-        for ind in range(self.mesh_info["nbloc"]):
-            self.mesh_info["nx_bl" + str(ind + 1)] = int(lines[1 + ind].split()[5])
-            self.mesh_info["ny_bl" + str(ind + 1)] = int(lines[1 + ind].split()[6])
-            self.mesh_info["nz_bl" + str(ind + 1)] = int(lines[1 + ind].split()[7])
-        self.mesh_info["ngh"] = int(lines[ind + 9].split()[-1])
+        self.sim_info["nbloc"] = int(lines[0].split()[4])
+        for bl in range(self.sim_info["nbloc"]):
+            bl += 1
+            self.sim_info[f"block_{bl}"] = {}
+            self.sim_info[f"block_{bl}"]["nx"] = int(lines[bl].split()[5])
+            self.sim_info[f"block_{bl}"]["ny"] = int(lines[bl].split()[6])
+            self.sim_info[f"block_{bl}"]["nz"] = int(lines[bl].split()[7])
+        self.sim_info["ngh"] = int(lines[bl + 8].split()[-1])
+        self.sim_info["dt"] = float(lines[bl + 9].split()[-1])
+
+    def get_sensors(self, sim_outdir: str, just_get_niter: bool = False) -> dict:
+        """
+        **Returns** the sensors time signals as a dictionnary, both point and line types.
+        """
+        # iterate over sensors
+        sensors: dict = {}
+        sensors["total_nb_points"] = self.block_info["total_nb_points"]
+        sensors["total_nb_lines"] = self.block_info["total_nb_lines"]
+        nbl = self.block_info["nbl"]
+        for bl in range(nbl):
+            bl += 1
+            for sensor_type, nb_sensors in [("point", "nb_points"), ("line", "nb_lines")]:
+                for sensor_nb in range(self.block_info[f"block_{bl}"][nb_sensors]):
+                    sensor_nb += 1
+                    sensors = self.read_sensor(sim_outdir, sensors, sensor_type,
+                                               bl, sensor_nb, just_get_niter)
+                    if just_get_niter:
+                        return sensors
+        return sensors
+
+    def read_sensor(self,
+                    sim_outdir: str,
+                    sensors: dict,
+                    sensor_type: str,
+                    bl: int,
+                    sensor_nb: int,
+                    just_get_niter: bool = False) -> np.array:
+        """
+        **Returns** data from a sensor.
+        """
+        dtype = np.dtype("f8")
+        nvars = self.block_info[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"]["nvars"]
+        freq = self.block_info[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"]["freq"]
+        nz1 = self.block_info[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"]["nz1"]
+        nz2 = self.block_info[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"]["nz2"]
+        nz = 1 + nz2 - nz1
+
+        # open file and collect data
+        f = open(
+            os.path.join(sim_outdir,
+                         f"{sensor_type}_{str(sensor_nb).rjust(3, '0')}_bl{bl}.bin"),
+            "r")
+        data = np.fromfile(f, dtype=dtype, count=-1)
+        niter_sensor = data.size // nvars
+        niter = data.size // nvars * freq
+        sensors["niter"] = niter
+        if just_get_niter:
+            return sensors
+        data = data[:niter_sensor * nvars].reshape((niter_sensor, nvars, nz))
+        sensors[f"block_{bl}"] = {}
+        sensors[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"] = data.copy()
+        return sensors
 
     def get_residuals(self, sim_outdir: str) -> dict:
         """
@@ -846,43 +985,268 @@ class CustomSimulator(Simulator):
         try:
             res = self.get_residuals(sim_outdir)
             unwanted = ["nn"]
-            if res["nn"][-1] < self.ndeb_RANS:
-                nvars = 4
-                unwanted.append("RANS_var")
-            else:
-                nvars = 5
+            # if file not empty
+            try:
+                niter = res["nn"][-1]
+                if niter <= self.ndeb_RANS:
+                    nvars = 4
+                    unwanted.append("RANS_var")
+                else:
+                    nvars = 5
+            except IndexError:
+                return False, 0
+
             # compute current order of convergence for each variable
             nvars_converged = 0
             res_max = []
             for var in set(res) - set(unwanted):
                 res_max.append(max(res[var]) - min(res[var]))
-                if max(res[var]) - min(res[var]) > self.convergence_order:
+                if max(res[var]) - min(res[var]) > self.residual_convergence_order:
                     nvars_converged += 1
-
-            if res["nn"][-1] > self.ndeb_RANS:
-                print((f"it: {res['nn'][-1]}; "
-                       f"lowest convergence order = {round(min(res_max), 'down', 2)}"))
+            if niter > self.ndeb_RANS:
+                print((f"it: {niter}; "
+                       f"lowest convergence order = {round_number(min(res_max), 'down', 2)}"))
                 if nvars_converged == nvars:
-                    return True, round(res['nn'][-1], "up", -3)
+                    return True, int(round_number(niter, "up", -3))
                 else:
-                    return False, round(res['nn'][-1], "up", -3)
+                    return False, int(round_number(niter, "up", -3))
             else:
-                print((f"it: {res['nn'][-1]}; RANS starts at it: {self.ndeb_RANS}"))
-                return False, round(res['nn'][-1], "up", -3)
+                print((f"it: {niter}; RANS starts at it: {self.ndeb_RANS}"))
+                return False, int(round_number(niter, "up", -3))
 
-        except (FileNotFoundError, ValueError, IndexError):
+        except FileNotFoundError:
             return False, 0
+
+    def check_transient(self, sim_outdir: str, dict_id: dict) -> tuple[bool, int]:
+        """
+        **Returns** True if transient ending criterion is met.
+        If criterion is met, the iteration at which statistics are started is returned, otherwise
+        the current iteration is returned.
+        """
+        try:
+            # read the first sensor to get current iteration
+            sensors = self.get_sensors(sim_outdir, just_get_niter=True)
+            niter = sensors["niter"]
+        except FileNotFoundError:
+            # computation not started
+            return False, 0
+
+        # the checking frequency is set to one f.t.t = L_ref/u_ref
+        feos_info = self.get_feos_info(sim_outdir)
+        Mach_ref = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+                                                "Reference Mach"))
+        T_ref = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+                                             "Reference temperature"))
+        c_ref = np.sqrt(feos_info["Equivalent gamma"] * feos_info["Gas constant"] * T_ref)
+        u_ref = c_ref * Mach_ref
+        Lgrid = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+                                             "Scaling value for the grid Lgrid"))
+        L_ref = self.config["plot3D"]["mesh"]["chord_length"]
+        if Lgrid != 0:
+            L_ref = L_ref * Lgrid
+        ftt = L_ref / u_ref
+        self.get_sim_info(sim_outdir)
+        niter_ftt = int(ftt / self.sim_info["dt"])
+
+        # proceed if this criterion has not already been checked
+        # and if at least 4 periods have passed (see J. Boudet (2018))
+        try:
+            if (
+                niter // niter_ftt > dict_id["n_convergence_check"]
+                and niter // niter_ftt >= self.nb_ftt_before_criterion
+            ):
+                dict_id["n_convergence_check"] += 1
+                return self.Boudet_crit(sim_outdir, niter_ftt)
+            # already checked
+            else:
+                return False, 0
+        except KeyError:
+            dict_id.update({"n_convergence_check": self.nb_ftt_before_criterion - 1})
+            return False, 0
+
+    def Boudet_crit(self, sim_outdir: str, niter_ftt: int) -> tuple[bool, int]:
+        """
+        **Returns** (True, iteration to start statistics) if transient ending criterion is met:
+        see J. Boudet (2018): https://doi.org/10.1007/s11630-015-0752-8
+        """
+        # get sensors
+        sensors = self.get_sensors(sim_outdir)
+        converged: list[int] = []
+        global_crit: list[float] = []
+        for block in (key for key in sensors if key.startswith("block")):
+            bl = int(block.split("_")[-1])
+            for sensor_type, nb_sensors in [("point", "nb_points"), ("line", "nb_lines")]:
+                for sensor_nb in range(self.block_info[f"block_{bl}"][nb_sensors]):
+                    sensor_nb += 1
+                    sensor = sensors[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"].copy()
+                    # moving average to avoid temporary convergence
+                    mov_avg_crit: list[float] = []
+                    for sample in range(self.nb_ftt_before_criterion):
+                        sample = -sample * niter_ftt - 1
+                        sensor = sensor[:sample]
+                        crit, niter = self.compute_Boudet_crit(sensor)
+                        mov_avg_crit.append(crit)
+
+                    # if threshold w.r.t mean only or rms too
+                    if self.only_compute_mean_crit:
+                        transient_convergence_percent = self.transient_convergence_percent_mean
+                    else:
+                        transient_convergence_percent = self.transient_convergence_percent_rms
+
+                    # check if converged
+                    print(mov_avg_crit)
+                    mov_avg = sum(mov_avg_crit) / len(mov_avg_crit)
+                    if sum(mov_avg_crit) / len(mov_avg_crit) < transient_convergence_percent:
+                        is_converged = True
+                    else:
+                        is_converged = False
+                    converged.append(is_converged)
+                    global_crit.append(mov_avg)
+
+                    # # if threshold w.r.t mean only or rms too
+                    # if self.only_compute_mean_crit:
+                    #     transient_convergence_percent = self.transient_convergence_percent_mean
+                    # else:
+                    #     transient_convergence_percent = self.transient_convergence_percent_rms
+                    # crit, niter = self.compute_Boudet_crit(sensor)
+                    # if crit < transient_convergence_percent:
+                    #     is_converged = True
+                    # else:
+                    #     is_converged = False
+                    # converged.append(is_converged)
+                    # global_crit.append(crit)
+
+        print((f"it: {sensors['niter']}; "
+               f"max transient variation = {round_number(max(global_crit), 'closest', 2)}%"))
+        if sum(converged) == sensors["total_nb_points"] + sensors["total_nb_lines"]:
+            return True, round_number(niter, "up", -3)
+        else:
+            return False, 0
+
+    def compute_Boudet_crit(self, sensor: np.ndarray) -> dict:
+        """
+        **Returns** (True, iteration to start statistics) if transient ending criterion is met:
+        see J. Boudet (2018): https://doi.org/10.1007/s11630-015-0752-8
+        This criterion is here modified in an attempt to reduce the unused simulation
+        time from 3 additional transients to 1 (in practice ~2) by considering thirds
+        of the second half rather than quarters of the whole.
+        The longer the transient, the more efficient this approach.
+        In the end, a geometric mean of both criteria is retained.
+        """
+        # shape of array: (niter, nvars, nz)
+        niter = sensor.shape[0]
+        nvars = sensor.shape[1]
+        nz = sensor.shape[2]
+
+        # get mean, rms and quarters
+        quarter = niter // 4
+        mean = np.mean(sensor, axis=(0, 2))
+        sensor_squared = (sensor - mean[np.newaxis, :, np.newaxis])**2
+        if niter % 4 == 0:
+            mean_quarters = sensor.reshape((4, quarter, nvars, nz))
+            rms_quarters = sensor_squared.reshape((4, quarter, nvars, nz))
+        else:
+            mean_quarters = np.zeros((4, quarter, nvars, nz))
+            rms_quarters = np.zeros((4, quarter, nvars, nz))
+            mean_quarters[0] = sensor[:quarter]
+            mean_quarters[1] = sensor[quarter:2 * quarter]
+            mean_quarters[2] = sensor[2 * quarter:3 * quarter]
+            mean_quarters[3] = sensor[3 * quarter:4 * quarter]
+            rms_quarters[0] = sensor_squared[:quarter]
+            rms_quarters[1] = sensor_squared[quarter:2 * quarter]
+            rms_quarters[2] = sensor_squared[2 * quarter:3 * quarter]
+            rms_quarters[3] = sensor_squared[3 * quarter:4 * quarter]
+        mean_quarters = np.mean(mean_quarters, axis=(1, 3))
+        rms_quarters = np.mean(np.sqrt(np.mean(rms_quarters, axis=1)), axis=-1)
+
+        # compute criterion
+        crit = []
+        for var in range(nvars):
+            mean_crit = [abs((mean_quarters[1, var] - mean_quarters[2, var])
+                         / mean_quarters[3, var]),
+                         abs((mean_quarters[1, var] - mean_quarters[3, var])
+                         / mean_quarters[3, var]),
+                         abs((mean_quarters[2, var] - mean_quarters[3, var])
+                         / mean_quarters[3, var])
+                         ]
+            rms_crit = [abs((rms_quarters[1, var] - rms_quarters[2, var])
+                        / rms_quarters[3, var]),
+                        abs((rms_quarters[1, var] - rms_quarters[3, var])
+                        / rms_quarters[3, var]),
+                        abs((rms_quarters[2, var] - rms_quarters[3, var])
+                        / rms_quarters[3, var])
+                        ]
+            if self.only_compute_mean_crit:
+                crit.append(max(mean_crit) * 100)
+            else:
+                crit.append(max(max(mean_crit), max(rms_crit)) * 100)
+        # return if original Boudet criterion requested
+        if self.Boudet_criterion_type == "original":
+            return max(crit), niter
+
+        # get mean, rms and quarters
+        half = niter // 2
+        sixth = half // 3
+        mean = np.mean(sensor, axis=(0, 2))
+        sensor_squared = (sensor - mean[np.newaxis, :, np.newaxis])**2
+        if niter % 6 == 0:
+            mean_sixths = sensor[half:].reshape((3, sixth, nvars, nz))
+            rms_sixths = sensor_squared[half:].reshape((3, sixth, nvars, nz))
+        else:
+            mean_sixths = np.zeros((3, sixth, nvars, nz))
+            rms_sixths = np.zeros((3, sixth, nvars, nz))
+            mean_sixths[0] = sensor[:sixth]
+            mean_sixths[1] = sensor[sixth:2 * sixth]
+            mean_sixths[2] = sensor[2 * sixth:3 * sixth]
+            rms_sixths[0] = sensor_squared[:sixth]
+            rms_sixths[1] = sensor_squared[sixth:2 * sixth]
+            rms_sixths[2] = sensor_squared[2 * sixth:3 * sixth]
+        mean_sixths = np.mean(mean_sixths, axis=(1, 3))
+        rms_sixths = np.mean(np.sqrt(np.mean(rms_sixths, axis=1)), axis=-1)
+
+        # compute criterion
+        crit_modif = []
+        for var in range(nvars):
+            mean_crit = [abs((mean_sixths[0, var] - mean_sixths[1, var])
+                         / mean_sixths[2, var]),
+                         abs((mean_sixths[0, var] - mean_sixths[2, var])
+                         / mean_sixths[2, var]),
+                         abs((mean_sixths[1, var] - mean_sixths[2, var])
+                         / mean_sixths[2, var])
+                         ]
+            rms_crit = [abs((rms_sixths[0, var] - rms_sixths[1, var])
+                        / rms_sixths[2, var]),
+                        abs((rms_sixths[0, var] - rms_sixths[2, var])
+                        / rms_sixths[2, var]),
+                        abs((rms_sixths[1, var] - rms_sixths[2, var])
+                        / rms_sixths[2, var])
+                        ]
+            if self.only_compute_mean_crit:
+                crit_modif.append(max(mean_crit) * 100)
+            else:
+                crit_modif.append(max(max(mean_crit), max(rms_crit)) * 100)
+        # return if modified Boudet criterion requested
+        if self.Boudet_criterion_type == "modified":
+            return max(crit_modif), niter
+
+        # compute geometric mean if requested
+        if self.Boudet_criterion_type == "mean":
+            crit_mean = [abs(crit_Boudet * crit_modif[i]) / (crit_Boudet * crit_modif[i])
+                         * np.sqrt(abs(crit_Boudet * crit_modif[i])) for
+                         i, crit_Boudet in enumerate(crit)]
+            return max(crit_mean), niter
 
     def check_stats(self, sim_outdir: str) -> bool:
         """
-        **Returns** True if MUSICAA statistics convergence criterion is met.
+        **Returns** True if MUSICAA statistics convergence criterion is met:
+        see J. Boudet (2018): https://doi.org/10.1007/s11630-015-0752-8
         """
-        # some code
+        # compute stats convergence
 
     def check_convergence(self, sim_outdir: str, dict_id: dict) -> tuple[bool, int]:
         """
         **Returns** True if MUSICAA computation convergence criterion is met. If so,
-        returns
+        returns current iteration number to start statistics.
         """
         if self.computation_type == "steady":
             if not dict_id["is_stats"]:
@@ -890,16 +1254,19 @@ class CustomSimulator(Simulator):
             else:
                 return False, 0
         else:
-            return "Unsteady convergence criterion to be implemented."
+            if not dict_id["is_stats"]:
+                return self.check_transient(sim_outdir, dict_id)
+            else:
+                return "Unsteady convergence criterion to be implemented."
 
-    def pre_process_stats(self, sim_outdir: str):
+    def pre_process_stats(self, sim_outdir: str, ndeb_stats: int):
         """
-        **Pre-processes** computation for statistics computations.
+        **Pre-processes** computation for statistics.
         """
         # modify param.ini file
         args = {}
         args.update({"from_field": "2"})
-        args.update({"Iteration number to start statistics": f"{self.ndeb_stats + 1}"})
+        args.update({"Iteration number to start statistics": f"{ndeb_stats + 1}"})
         if self.computation_type == "steady":
             args.update({"Max number of temporal iterations": "2 3000.0"})
         elif self.computation_type == "unsteady":
@@ -907,6 +1274,96 @@ class CustomSimulator(Simulator):
         custom_input(os.path.join(sim_outdir,
                                   self.config["simulator"]["ref_input"].split("/")[-1]
                                   ), args)
+
+    def pre_process_init_unsteady(self, sim_outdir: str, dimension: str):
+        """
+        **Pre-processes** unsteady computation to initialize with 2D or 3D simulation.
+        """
+        args = {}
+        if dimension == "2D":
+            # modify param.ini file
+            args.update({"Implicit Residual Smoothing": "2"})
+            args.update({"Residual smoothing parameter": "0.42 0.1 0.005 0.00025 0.0000125"})
+            is_SF = read_next_line_in_file(self.config["simulator"]["ref_input"],
+                                           ("Selective Filtering: is_SF"
+                                           "[T:SF; F:artifical viscosity]"))
+            if is_SF:
+                coeff = 0.2
+                coeff_shock = 0.2
+            else:
+                coeff = 1.0
+                coeff_shock = 1.0
+            args.update({("(between 0 and 1 for SF, recommended"
+                        "value 0.1 / around 1.0 for art.visc)"): f"{coeff}"})
+            args.update({"Indicator is_shock and Coefficient of low-order term":
+                         f"T {coeff_shock}"})
+            args.update({"Switch of Edoh": "T"})
+            args.update({"Shock sensor: Ducros sensor": "T 0.5"})
+            custom_input(os.path.join(sim_outdir,
+                                      self.config["simulator"]["ref_input"].split("/")[-1]
+                                      ), args)
+            # modify param_blocks.ini file: 3D->2D
+            self.change_dimensions_param_blocks(sim_outdir)
+        else:
+            # copy original param.ini and param_blocks.ini files to directory
+            cp_filelist([self.config["simulator"]["ref_input"],
+                         self.config["simulator"]["ref_input_mesh"]], [sim_outdir] * 2)
+
+    def change_dimensions_param_blocks(self, sim_outdir: str):
+        """
+        **Modifies** the param_blocks.ini file of a given simulation to 2D.
+        """
+        # file and block info
+        filename = os.path.join(sim_outdir, "param_blocks.ini")
+        mesh = CustomMesh({"dat_dir": sim_outdir}, just_get_block_info=True)
+        self.block_info = mesh.block_info
+        nbl = self.block_info["nbl"]
+
+        with open(filename, "r") as f:
+            filedata = f.readlines()
+        # iterate over each block
+        for bl in range(nbl):
+            bl += 1
+            pattern = f"! Block #{bl}"
+            for i, line in enumerate(filedata):
+                if pattern in line:
+                    # change mesh dimension
+                    filedata[i + 5] = "      1          1     |  K-direction\n"
+                    # if point sensors located at nz!=1, change to nz=1
+                    nb_points = self.block_info[f"block_{bl}"]["nb_points"]
+                    if nb_points > 0:
+                        for point_nb in range(nb_points):
+                            point_nb += 1
+                            if self.block_info[f"block_{bl}"][f"point_{point_nb}"]["nz1"] != 1:
+                                position \
+                                    = self.block_info[f"block_{bl}"][(f"point_"
+                                                                      f"{point_nb}")]["position"]
+                                var_list \
+                                    = self.block_info[f"block_{bl}"][(f"point_"
+                                                                      f"{point_nb}")]["var_list"]
+                                info_snap = [int(dim) for dim in
+                                             re.findall(r"\d+", filedata[i + 21 + position])]
+                                info_snap[4], info_snap[5] = 1, 1
+                                replacement = "   " + "    ".join([str(j) for j in info_snap]) \
+                                    + "    " + " ".join(var_list) + "\n"
+                                filedata[i + 21 + position] = replacement
+                    # if line sensors, change to points
+                    nb_lines = self.block_info[f"block_{bl}"]["nb_lines"]
+                    if nb_lines > 0:
+                        for line_nb in range(nb_lines):
+                            line_nb += 1
+                            position \
+                                = self.block_info[f"block_{bl}"][f"line_{line_nb}"]["position"]
+                            var_list \
+                                = self.block_info[f"block_{bl}"][f"line_{line_nb}"]["var_list"]
+                            info_snap = [int(dim) for dim in
+                                         re.findall(r"\d+", filedata[i + 21 + position])]
+                            info_snap[4], info_snap[5] = 1, 1
+                            replacement = "   " + "    ".join([str(j) for j in info_snap]) \
+                                + "    " + " ".join(var_list) + "\n"
+                            filedata[i + 21 + position] = replacement
+        with open(filename, "w") as f:
+            f.writelines(filedata)
 
     def stop_MUSICAA(self, sim_outdir: str):
         """
