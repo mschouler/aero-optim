@@ -9,7 +9,7 @@ import pandas as pd
 from typing import Callable
 
 from aero_optim.utils import (custom_input, find_closest_index, from_dat, check_dir,
-                              read_next_line_in_file, round_number, cp_filelist)
+                              read_next_line_in_file, round_number, cp_filelist, rm_filelist)
 from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.simulator.simulator import Simulator
 
@@ -257,6 +257,10 @@ class CustomSimulator(Simulator):
             It has the following form:
             ({'gid': gid, 'cid': cid, 'meshfile': meshfile, 'restart': restart}, subprocess).
 
+        # Simulation related
+        # ------------------
+        - sim_pro (list[tuple[dict, subprocess.Popen[str]]]): list containing current running
+          processes.
         - restart (int): how many times a simulation is allowed to be restarted in case of failure.
         - CFL (float): CFL number read from the param.ini file in the working directory.
         - lower_CFL (float): lower CFL number in case computation crashes, computed with
@@ -266,16 +270,25 @@ class CustomSimulator(Simulator):
                         the residuals frequency !!! hard-coded in MUSICAA !!!
         - residual_convergence_order (float): order of convergence required for steady computations.
         - computation_type (str): type of computation (steady/unsteady)
-        - transient_convergence_percent (float): percentage of variation allowed for mean and rms
+
+        # Convergence criteria
+        # --------------------
+        - residual_convergence_order (float): order of convergence required for steady computations.
+        - unsteady_convergence_percent (float): percentage of variation allowed for mean and rms
                                                  to find end of unsteady transient.
-        - transient_convergence_percent_mean (float): same for mean
-        - transient_convergence_percent_rms (float): same for rms
+        - unsteady_convergence_percent_mean (float): same for mean
+        - unsteady_convergence_percent_rms (float): same for rms
         - Boudet_criterion_type (str): the type of the unsteady transient convergence criterion.
         - nb_ftt_before_criterion (int): number of flow-through times (f.t.t) to pass before
                                          computing the Boudet criterion
+        - nb_ftt_mov_avg (int): number of flow-through times (f.t.t) to perform Boudet convergence
+                                criterion moving average on.
         - only_compute_mean_crit (bool): if True, only the mean Boudet criterion is computed to
                                          asses transient convergence. This is the case when
                                          initializing the 2D computation since rms makes no sense
+
+        # Mesh related
+        # ------------
         - sim_info (dict): dictionary containing information about the computations.
                            Only accessible once the simulation has at least started or finished.
         """
@@ -296,14 +309,27 @@ class CustomSimulator(Simulator):
         self.computation_type: str = read_next_line_in_file(config["simulator"]["ref_input"],
                                                             "DES without subgrid")
         self.computation_type = "unsteady" if self.computation_type == "N" else "steady"
-        self.transient_convergence_percent_mean: float \
-            = config["simulator"].get("transient_convergence_percent_mean", 0.1)
-        self.transient_convergence_percent_rms: float \
-            = config["simulator"].get("transient_convergence_percent_rms", 10)
-        self.Boudet_criterion_type: bool = config["simulator"].get("Boudet_criterion_type",
-                                                                   "original")
-        self.nb_ftt_before_criterion: bool = config["simulator"].get("nb_ftt_before_criterion",
-                                                                     4)
+        # convergence criteria
+        self.residual_convergence_order: float \
+            = config["simulator"]["convergence_criteria"].get("residual_convergence_order", 4)
+        self.unsteady_convergence_percent_mean: float \
+            = config["simulator"]["convergence_criteria"].get("unsteady_convergence_percent_mean",
+                                                              1)
+        self.unsteady_convergence_percent_rms: float \
+            = config["simulator"]["convergence_criteria"].get("unsteady_convergence_percent_rms",
+                                                              10)
+        self.Boudet_criterion_type: bool \
+            = config["simulator"]["convergence_criteria"].get("Boudet_criterion_type", "original")
+        self.nb_ftt_before_criterion: int \
+            = config["simulator"]["convergence_criteria"].get("nb_ftt_before_criterion", 10)
+        self.nb_ftt_mov_avg: int \
+            = config["simulator"]["convergence_criteria"].get("nb_ftt_mov_avg", 4)
+        self.max_niter_init_2D: int \
+            = config["simulator"]["convergence_criteria"].get("max_niter_init_2D", 999999)
+        self.max_niter_init_3D: int \
+            = config["simulator"]["convergence_criteria"].get("max_niter_init_3D", 999999)
+        self.max_niter_stats: int \
+            = config["simulator"]["convergence_criteria"].get("max_niter_stats", 999999)
         self.only_compute_mean_crit = False
         # mesh related
         self.sim_info: dict = {}
@@ -335,7 +361,6 @@ class CustomSimulator(Simulator):
                     cid: int = 0,
                     restart: int = 0,
                     is_stats: bool = False,
-                    ndeb_stats: int = 0,
                     is_init_unsteady_3D: bool = False):
         """
         **Pre-processes** and **executes** a MUSICAA simulation.
@@ -518,6 +543,8 @@ class CustomSimulator(Simulator):
                 if os.path.isfile(os.path.join(sim_outdir, "stats1_bl1.bin")):
                     logger.info(f"{self.computation_type} simulation {dict_id} finished")
                     finished_sim.append(id)
+                    # clean directory of line sensors
+                    rm_filelist([os.path.join(sim_outdir, "line*")])
                     self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
                         dict_id, sim_outdir
                     )
@@ -529,6 +556,8 @@ class CustomSimulator(Simulator):
                                      "executing 3D initialization"))
                         dict_id.update({"is_init_unsteady_2D": False})
                         dict_id.update({"is_init_unsteady_3D": True})
+                        # clean directory of point sensors
+                        rm_filelist([os.path.join(sim_outdir, "point*")])
                         self.execute_sim(
                             dict_id["meshfile"], dict_id["gid"], dict_id["cid"],
                             dict_id["restart"],
@@ -539,7 +568,9 @@ class CustomSimulator(Simulator):
                         logger.info((f"{self.computation_type} simulation {dict_id}"
                                      "continued for statistics"))
                         dict_id.update({"is_stats": True})
-                        dict_id.update({"ndeb_stats": dict_id["niter"]})
+                        # clean directory of line sensors
+                        if self.computation_type == "unsteady":
+                            rm_filelist([os.path.join(sim_outdir, "line*")])
                         self.execute_sim(
                             dict_id["meshfile"], dict_id["gid"], dict_id["cid"],
                             dict_id["restart"],
