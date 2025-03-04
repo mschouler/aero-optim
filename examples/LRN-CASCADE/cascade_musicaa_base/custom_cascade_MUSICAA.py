@@ -895,6 +895,33 @@ class CustomSimulator(Simulator):
 
         return feos_info
 
+    def get_time_info(self, sim_outdir: str) -> dict:
+        """
+        **Reads** the time.ini file from MUSICAA.
+        """
+        # regular expression to match lines with a name and a corresponding value
+        pattern = re.compile(r"(\d{4}_\d{4})\s*=\s*(\d+)\s*([\d\.]+)\s*([\d\.E+-]+)")
+
+        # iterate over each line and apply the regex pattern
+        time_info: dict = {}
+        with open(os.path.join(sim_outdir, "time.ini"), "r") as file:
+            for line in file:
+                match = pattern.search(line)
+                if match:
+                    timestamp = match.group(1)
+                    iter = int(match.group(2))
+                    cputot = float(match.group(3))
+                    time = float(match.group(4))
+
+                    # Store the extracted values in the dictionary
+                    time_info[timestamp] = {
+                        'iter': iter,
+                        'cputot': cputot,
+                        'time': time
+                    }
+            time_info["niter_total"] = iter
+        return time_info
+
     def get_sim_info(self, sim_outdir: str) -> dict:
         """
         **Returns** a dictionnary containing relevant information on the mesh
@@ -1395,6 +1422,28 @@ class CustomSimulator(Simulator):
                             filedata[i + 21 + position] = replacement
         with open(filename, "w") as f:
             f.writelines(filedata)
+
+    def get_niter_ftt(self, sim_outdir: str) -> int:
+        """
+        **Returns** the number of iterations per flow-through time (ftt)
+        """
+        # f.t.t = L_ref/u_ref
+        feos_info = self.get_feos_info(sim_outdir)
+        Mach_ref = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+                                                "Reference Mach"))
+        T_ref = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+                                             "Reference temperature"))
+        c_ref = np.sqrt(feos_info["Equivalent gamma"] * feos_info["Gas constant"] * T_ref)
+        u_ref = c_ref * Mach_ref
+        Lgrid = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+                                             "Scaling value for the grid Lgrid"))
+        L_ref = self.config["plot3D"]["mesh"]["chord_length"]
+        if Lgrid != 0:
+            L_ref = L_ref * Lgrid
+        ftt = L_ref / u_ref
+        self.get_sim_info(sim_outdir)
+
+        return int(ftt / self.sim_info["dt"])
 
     def stop_MUSICAA(self, sim_outdir: str):
         """
