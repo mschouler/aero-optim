@@ -29,11 +29,18 @@
         "path_to_solver": "examples/LRN-CASCADE/cascade_musicaa_base/",
         "restart": 5,
         "divide_CFL_by": 1.2,
-        "residual_convergence_order": 0.2,
-        "transient_convergence_percent_mean": 1,
-        "transient_convergence_percent_rms": 10,
-        "nb_ftt_before_criterion": 3,
-        "Boudet_criterion_type": "original",
+
+        "convergence_criteria": {
+            "residual_convergence_order": 0.2,
+            "Boudet_criterion_type": "mean",
+            "nb_ftt_before_criterion": 10,
+            "nb_ftt_mov_avg": 4,
+            "unsteady_convergence_percent_mean": 1,
+            "unsteady_convergence_percent_rms": 5,
+            "max_niter_init_2D": 200000,
+            "max_niter_init_3D": 100000,
+            "max_niter_stats": 200000
+        },
 
         "post_process": {
             "measurement_lines": {
