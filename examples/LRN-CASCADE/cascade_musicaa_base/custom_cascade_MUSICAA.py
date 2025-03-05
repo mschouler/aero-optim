@@ -1142,9 +1142,11 @@ class CustomSimulator(Simulator):
                     sensor_copy = sensors[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"].copy()
                     # moving average to avoid temporary convergence
                     mov_avg_crit: list[float] = []
-                    for sample in range(self.nb_ftt_mov_avg):
-                        sample = -sample * niter_ftt - 1
-                        sensor = sensor_copy[:sample]
+                    for sample_nb in range(self.nb_ftt_mov_avg):
+                        sample_size = sample_nb * niter_ftt + 1
+                        sensor = sensor_copy[:-sample_size]
+                        if sensors["niter"] < sample_size + niter_ftt:
+                            break
                         crit = compute_crit(sensor)
                         mov_avg_crit.append(crit)
 
