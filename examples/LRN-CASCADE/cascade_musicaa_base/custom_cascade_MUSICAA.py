@@ -540,7 +540,7 @@ class CustomSimulator(Simulator):
                         if (
                             (dict_id["is_init_unsteady_2D"] and niter >= self.max_niter_init_2D)
                             or (dict_id["is_init_unsteady_3D"] and niter >= self.max_niter_init_3D)
-                            or (dict_id["max_niter_stats"] and niter >= self.max_niter_stats)
+                            or (niter >= self.max_niter_stats)
                         ):
                             self.stop_MUSICAA(sim_outdir)
                     else:
@@ -583,7 +583,7 @@ class CustomSimulator(Simulator):
                         self.execute_sim(
                             dict_id["meshfile"], dict_id["gid"], dict_id["cid"],
                             dict_id["restart"],
-                            is_stats=dict_id["is_stats"]
+                            is_stats=True
                         )
                 break
 
@@ -1177,9 +1177,12 @@ class CustomSimulator(Simulator):
                     #     is_converged = False
                     # converged.append(is_converged)
                     # global_crit.append(crit)
-
-        print((f"it: {sensors['niter']}; "
-               f"max transient variation = {round_number(max(global_crit), 'closest', 2)}%"))
+        if dict_id["is_stats"]:
+            print((f"it: {sensors['niter']}; "
+                   f"max statistics variation = {round_number(max(global_crit), 'closest', 2)}%"))
+        else:
+            print((f"it: {sensors['niter']}; "
+                   f"max transient variation = {round_number(max(global_crit), 'closest', 2)}%"))
         if sum(converged) == sensors["total_nb_points"] + sensors["total_nb_lines"]:
             return True, sensors["niter"]
         else:
@@ -1254,8 +1257,8 @@ class CustomSimulator(Simulator):
         sensor = sensor[half:]
         sensor_squared = sensor_squared[half:]
         if niter % 6 == 0:
-            mean_sixths = sensor[half:].reshape((3, sixth, nvars, nz))
-            rms_sixths = sensor_squared[half:].reshape((3, sixth, nvars, nz))
+            mean_sixths = sensor.reshape((3, sixth, nvars, nz))
+            rms_sixths = sensor_squared.reshape((3, sixth, nvars, nz))
         else:
             mean_sixths = np.zeros((3, sixth, nvars, nz))
             rms_sixths = np.zeros((3, sixth, nvars, nz))
