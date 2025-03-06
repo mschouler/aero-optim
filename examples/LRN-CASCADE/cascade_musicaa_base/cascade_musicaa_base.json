@@ -3,8 +3,8 @@
         "custom_file": "custom_cascade_MUSICAA.py",
         "study_type": "cascade",
         "ffd_type": "ffd_2d",
-        "file_": "ogv1c.dat",
-        "file": "ogv1c_g0_c0.dat",
+        "file": "ogv1c.dat",
+        "file_": "ogv1c_g0_c0.dat",
         "outdir": "output"
     },
     "gmsh": {},
@@ -34,8 +34,8 @@
         "ref_input_mesh": "param_blocks.ini",
         "ref_input_rans": "param_rans.ini",
         "ref_input_feos": "feos_air.ini",
-        "preprocess_cmd" : "/home/mschouler/bin/musicaa",
-        "exec_cmd" : "mpiexec -n 51 /home/mschouler/bin/musicaa",
+        "preprocess_cmd" : "/home/matar/bin/musicaa",
+        "exec_cmd" : "mpiexec -n 51 /home/matar/bin/musicaa",
         "path_to_solver": ".",
         "restart": 5,
         "divide_CFL_by": 1.2,
@@ -60,7 +60,7 @@
                 "outlet_x1":  87.25188,
                 "outlet_x2":  87.25188
             },
-            "outputs": ["pressure_loss_coeff"]
+            "outputs": ["LossCoef"]
         }
     }
 }

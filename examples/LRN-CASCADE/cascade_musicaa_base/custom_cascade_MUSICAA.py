@@ -26,7 +26,7 @@ class CustomMesh(MeshMusicaa):
     This class implements a mesh routine for a compressor cascade geometry when using MUSICAA.
     This solver requires strctured coincident blocks with a unique frontier on each boundary.
     """
-    def __init__(self, config: dict, *args, **kwargs):
+    def __init__(self, config: dict, datfile: str = ""):
         """
         Instantiates the CascadeMeshMusicaa object.
 
@@ -45,7 +45,7 @@ class CustomMesh(MeshMusicaa):
                         surrounds the blade
 
         """
-        super().__init__(config)
+        super().__init__(config, datfile)
 
     def build_mesh(self):
         """
@@ -431,8 +431,6 @@ class CustomSimulator(Simulator):
         # copy files and executable to directory
         shutil.copy(self.config["simulator"]["ref_input"], sim_outdir)
         shutil.copy(self.config["simulator"]["ref_input_mesh"], sim_outdir)
-        shutil.copy(os.path.join(self.config["simulator"]["path_to_solver"],
-                                 self.solver_name), sim_outdir)
         logger.info((f"{self.config['simulator']['ref_input']}, "
                      f"{self.config['simulator']['ref_input_mesh']} and "
                      f"{self.solver_name} copied to {sim_outdir}"))
@@ -556,12 +554,6 @@ class CustomSimulator(Simulator):
                     logger.info(f"{self.computation_type} simulation {dict_id} finished")
                     finished_sim.append(id)
                     # clean directory of line sensors
-
-
-                    # rm_filelist([os.path.join(sim_outdir, "line*")])
-
-
-
                     self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
                         dict_id, sim_outdir
                     )
@@ -739,7 +731,7 @@ class CustomSimulator(Simulator):
 
         return mixed_out_state
 
-    def pressure_loss_coeff(self, sim_outdir: str) -> float:
+    def LossCoef(self, sim_outdir: str) -> float:
         """
         **Post-processes** the results of a terminated simulation.
         **Returns** the extracted results in a DataFrame.

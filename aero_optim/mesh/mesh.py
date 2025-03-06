@@ -452,7 +452,7 @@ class MeshMusicaa(ABC):
         """
         **Returns** path/to/MESH/musicaa_<outfile>/ .
         """
-        return os.path.join(mesh_dir, "MESH", f'musicaa_{self.outfile}')
+        return os.path.join(mesh_dir, f'musicaa_{self.outfile}/{self.outfile}')
 
     def read_bl(self, bl: int) -> np.ndarray:
         """
@@ -485,7 +485,6 @@ class MeshMusicaa(ABC):
             self,
             profile: np.ndarray,
             outdir: str,
-            gid: int = 0, cid: int = 0
     ) -> str:
         """
         **Writes** the deformed profile in a format such that the MUSICAA solver
@@ -507,7 +506,7 @@ class MeshMusicaa(ABC):
             nz = 1
 
             # open file and write specific format
-            mesh_file = f"{mesh_dir}/{self.mesh_name}_g{gid}_c{cid}_edges_bl{bl}.x"
+            mesh_file = f"{mesh_dir}/{self.outfile}_edges_bl{bl}.x"
             with open(mesh_file, "w") as f:
                 f.write('1\n')
                 f.write(str(str(nx) + '  ' + str(ny) + '  ' + str(nz) + '\n'))
