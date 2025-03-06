@@ -529,12 +529,12 @@ class CustomSimulator(Simulator):
             if returncode is None:
                 # check results convergence
                 self.only_compute_mean_crit = False
-                if (
-                    "is_init_unsteady_2D" in dict_id
-                    and dict_id["is_init_unsteady_2D"]
-                    or dict_id["is_init_unsteady_3D"]
-                ):
-                    self.only_compute_mean_crit = True
+                if "is_init_unsteady_2D" in dict_id:
+                    if (
+                        dict_id["is_init_unsteady_2D"]
+                        or dict_id["is_init_unsteady_3D"]
+                    ):
+                        self.only_compute_mean_crit = True
                 converged, niter = self.check_convergence(sim_outdir, dict_id)
                 if converged:
                     self.stop_MUSICAA(sim_outdir)
