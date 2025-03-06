@@ -37,6 +37,7 @@
             "nb_ftt_mov_avg": 4,
             "unsteady_convergence_percent_mean": 1,
             "unsteady_convergence_percent_rms": 5,
+            "QoIs_convergence_order": 4,
             "max_niter_init_2D": 200000,
             "max_niter_init_3D": 100000,
             "max_niter_stats": 200000

@@ -273,6 +273,8 @@ class CustomSimulator(Simulator):
         # Convergence criteria
         # --------------------
         - residual_convergence_order (float): order of convergence required for steady computations.
+        - QoIs_convergence_order (float): order of convergence required for unsteady computation
+                                          QoIs statistics.
         - unsteady_convergence_percent (float): percentage of variation allowed for mean and rms
                                                  to find end of unsteady transient.
         - unsteady_convergence_percent_mean (float): same for mean
@@ -309,6 +311,8 @@ class CustomSimulator(Simulator):
         # convergence criteria
         self.residual_convergence_order: float \
             = config["simulator"]["convergence_criteria"].get("residual_convergence_order", 4)
+        self.QoIs_convergence_order: float \
+            = config["simulator"]["convergence_criteria"].get("QoIs_convergence_order", 4)
         self.unsteady_convergence_percent_mean: float \
             = config["simulator"]["convergence_criteria"].get("unsteady_convergence_percent_mean",
                                                               1)
@@ -553,7 +557,12 @@ class CustomSimulator(Simulator):
                     logger.info(f"{self.computation_type} simulation {dict_id} finished")
                     finished_sim.append(id)
                     # clean directory of line sensors
-                    rm_filelist([os.path.join(sim_outdir, "line*")])
+
+
+                    # rm_filelist([os.path.join(sim_outdir, "line*")])
+
+
+
                     self.df_dict[dict_id["gid"]][dict_id["cid"]] = self.post_process(
                         dict_id, sim_outdir
                     )
@@ -1041,12 +1050,15 @@ class CustomSimulator(Simulator):
                 break
         return res
 
-    def check_residuals(self, sim_outdir: str) -> tuple[bool, int]:
+    def check_residuals(self, sim_outdir: str, dict_id: dict) -> tuple[bool, int]:
         """
         **Returns** True if residual convergence criterion is met. If so,
         the iteration at which statistics are started is returned, otherwise
         the current iteration is returned.
         """
+        if dict_id["is_stats"]:
+            return False, 0
+
         # if residuals.bin file exists
         try:
             res = self.get_residuals(sim_outdir)
@@ -1096,21 +1108,53 @@ class CustomSimulator(Simulator):
             return False, 0
 
         # proceed if this criterion has not already been checked
-        # and if at least 4 periods have passed (see J. Boudet (2018))
         niter_ftt = self.get_niter_ftt(sim_outdir)
         try:
-            if (
-                sensors["niter"] // niter_ftt > dict_id["n_convergence_check"]
-                and sensors["niter"] // niter_ftt >= self.nb_ftt_before_criterion
-            ):
-                dict_id["n_convergence_check"] += 1
-                return self.unsteady_crit(sim_outdir, dict_id, niter_ftt)
-            # already checked
+            if sensors["niter"] // niter_ftt >= dict_id["n_convergence_check"]:
+                if dict_id["is_stats"]:
+                    # check if QoIs have converged
+                    dict_id["n_convergence_check"] += 1
+                    return self.QoI_convergence(sim_outdir), sensors["niter"]
+                else:
+                    # check if unsteady criteria are met
+                    if sensors["niter"] // niter_ftt >= self.nb_ftt_before_criterion:
+                        dict_id["n_convergence_check"] += 1
+                        return self.unsteady_crit(sim_outdir, dict_id, niter_ftt)
             else:
                 return False, sensors["niter"]
+
         except KeyError:
-            dict_id.update({"n_convergence_check": self.nb_ftt_before_criterion - 1})
+            if dict_id["is_stats"]:
+                dict_id.update({"n_convergence_check": 0})
+            else:
+                dict_id.update({"n_convergence_check": self.nb_ftt_before_criterion})
             return False, sensors["niter"]
+
+    def QoI_convergence(self, sim_outdir: str, dict_id: dict) -> tuple[bool, int]:
+        """
+        **Returns** (True, iteration) if statistics of the QoIs have converged.
+        """
+        # compute QoIs and save to file
+        new_QoIs_df = self.post_process(dict_id, sim_outdir)
+        filename = os.path.join(sim_outdir, "QoI_convergence.dat")
+        if dict_id["n_convergence_check"] == 1:
+            # first time computing the QoIs (need at least 2 steps to compute residual)
+            new_QoIs_df.to_csv(filename)
+            return False
+        try:
+            QoIs_df = pd.read_csv(filename)
+            QoIs_df.append(new_QoIs_df)
+        except FileExistsError:
+            QoIs_df = new_QoIs_df
+        QoIs_df.to_csv(filename)
+        QoIs = np.array(new_QoIs_df)
+
+        # compute QoI residuals over QoIs
+        res = -np.log10(np.abs(2 * (QoIs[-1, :] - QoIs[-2, :]) / (QoIs[-1, :] + QoIs[-2, :])))
+        if np.mean(res > self.QoIs_convergence_order) >= QoIs.shape[-1]:
+            return True
+        else:
+            return False
 
     def unsteady_crit(self,
                       sim_outdir: str,
@@ -1158,25 +1202,12 @@ class CustomSimulator(Simulator):
 
                     # check if converged
                     mov_avg = sum(mov_avg_crit) / len(mov_avg_crit)
-                    if sum(mov_avg_crit) / len(mov_avg_crit) < unsteady_convergence_percent:
+                    if mov_avg < unsteady_convergence_percent:
                         is_converged = True
                     else:
                         is_converged = False
                     converged.append(is_converged)
                     global_crit.append(mov_avg)
-
-                    # # if threshold w.r.t mean only or rms too
-                    # if self.only_compute_mean_crit:
-                    #     unsteady_convergence_percent = self.unsteady_convergence_percent_mean
-                    # else:
-                    #     unsteady_convergence_percent = self.unsteady_convergence_percent_rms
-                    # crit, niter = self.compute_Boudet_crit(sensor)
-                    # if crit < unsteady_convergence_percent:
-                    #     is_converged = True
-                    # else:
-                    #     is_converged = False
-                    # converged.append(is_converged)
-                    # global_crit.append(crit)
         if dict_id["is_stats"]:
             print((f"it: {sensors['niter']}; "
                    f"max statistics variation = {round_number(max(global_crit), 'closest', 2)}%"))
@@ -1334,10 +1365,12 @@ class CustomSimulator(Simulator):
         # compute criterion
         crit = []
         for var in range(nvars):
+            mean_var = 0.5 * (mean_halves[0, var] + mean_halves[1, var])
+            rms_var = 0.5 * (rms_halves[0, var] + rms_halves[1, var])
             mean_crit = abs((mean_halves[0, var] - mean_halves[1, var])
-                            / mean_halves[1, var])
+                            / mean_var)
             rms_crit = abs((rms_halves[0, var] - rms_halves[1, var])
-                           / rms_halves[1, var])
+                           / rms_var)
             if self.only_compute_mean_crit:
                 crit.append(mean_crit * 100)
             else:
@@ -1351,10 +1384,7 @@ class CustomSimulator(Simulator):
         returns current iteration number to start statistics.
         """
         if self.computation_type == "steady":
-            if not dict_id["is_stats"]:
-                return self.check_residuals(sim_outdir)
-            else:
-                return False, 0
+            return self.check_residuals(sim_outdir, dict_id)
         else:
             return self.check_unsteady_crit(sim_outdir, dict_id)
 
@@ -1374,9 +1404,14 @@ class CustomSimulator(Simulator):
             args.update({"Max number of temporal iterations": "2 3000.0"})
         elif self.computation_type == "unsteady":
             args.update({"Max number of temporal iterations": "9999999 3000.0"})
-        custom_input(os.path.join(sim_outdir,
-                                  self.config["simulator"]["ref_input"].split("/")[-1]
-                                  ), args)
+            # add frequency for QoI convergence check: will ask MUSICAA to output stats files
+            niter_ftt = self.get_niter_ftt(sim_outdir)
+            freqs = read_next_line_in_file(os.path.join(sim_outdir, "param.ini"),
+                                           "Output frequencies: screen / stats / fields")
+            freqs = freqs.split()
+            args.update({"Output frequencies: screen / stats / fields":
+                         f"{freqs[0]} {freqs[1]} {niter_ftt}"})
+        custom_input(os.path.join(sim_outdir, "param.ini"), args)
 
     def pre_process_init_unsteady(self, sim_outdir: str,
                                   dimension: str,
