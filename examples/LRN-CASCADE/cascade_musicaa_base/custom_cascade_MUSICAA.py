@@ -10,7 +10,7 @@ from typing import Callable
 
 from aero_optim.utils import (custom_input, find_closest_index, from_dat, check_dir,
                               read_next_line_in_file, round_number, cp_filelist, rm_filelist)
-from aero_optim.mesh.mesh import MeshMusicaa
+from aero_optim.mesh.mesh import MeshMusicaa, get_block_info
 from aero_optim.simulator.simulator import Simulator
 
 """
@@ -26,7 +26,7 @@ class CustomMesh(MeshMusicaa):
     This class implements a mesh routine for a compressor cascade geometry when using MUSICAA.
     This solver requires strctured coincident blocks with a unique frontier on each boundary.
     """
-    def __init__(self, config: dict, just_get_block_info: bool = False):
+    def __init__(self, config: dict, *args, **kwargs):
         """
         Instantiates the CascadeMeshMusicaa object.
 
@@ -45,7 +45,7 @@ class CustomMesh(MeshMusicaa):
                         surrounds the blade
 
         """
-        super().__init__(config, just_get_block_info=just_get_block_info)
+        super().__init__(config)
 
     def build_mesh(self):
         """
@@ -507,7 +507,7 @@ class CustomSimulator(Simulator):
             ({"gid": gid, "cid": cid, "meshfile": meshfile, "restart": restart}, proc)
         )
 
-    def monitor_sim_progress(self) -> str:
+    def monitor_sim_progress(self) -> int:
         """
         **Updates** the list of simulations under execution and **returns** its length.
         """
@@ -517,8 +517,7 @@ class CustomSimulator(Simulator):
             returncode = p_id.poll()
             sim_outdir = self.get_sim_outdir(dict_id["gid"], dict_id["cid"])
             # get mesh info
-            mesh = CustomMesh({"dat_dir": sim_outdir}, just_get_block_info=True)
-            self.block_info = mesh.block_info
+            self.block_info = get_block_info(sim_outdir)
             # initialize computation type
             if "is_stats" not in dict_id:
                 dict_id.update({"is_stats": False})
@@ -939,7 +938,7 @@ class CustomSimulator(Simulator):
             time_info["niter_total"] = iter
         return time_info
 
-    def get_sim_info(self, sim_outdir: str) -> dict:
+    def get_sim_info(self, sim_outdir: str):
         """
         **Returns** a dictionnary containing relevant information on the mesh
         used by MUSICAA: number of blocks, block size, number of ghost points.
@@ -1465,8 +1464,7 @@ class CustomSimulator(Simulator):
         """
         # file and block info
         filename = os.path.join(sim_outdir, "param_blocks.ini")
-        mesh = CustomMesh({"dat_dir": sim_outdir}, just_get_block_info=True)
-        self.block_info = mesh.block_info
+        self.block_info = get_block_info(sim_outdir)
         nbl = self.block_info["nbl"]
 
         with open(filename, "r") as f:
