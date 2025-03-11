@@ -13,7 +13,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from aero_optim.utils import (custom_input, find_closest_index, from_dat, check_dir,
-                              read_next_line_in_file)
+                              read_next_line_in_file, cp_filelist)
 from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.simulator.simulator import Simulator
 from aero_optim.optim.evolution import PymooEvolution
@@ -312,17 +312,17 @@ def LossCoef(sim_outdir: str, args: dict) -> float:
     **Returns** the extracted results in a DataFrame.
     """
     # extract arguments
-    inlet_bl_list = args["inlet_bl_list"]
+    inlet_bl = args["inlet_bl"]
     inlet_lims = args["inlet_lims"]
-    outlet_bl_list = args["outlet_bl_list"]
+    outlet_bl = args["outlet_bl"]
     outlet_lims = args["outlet_lims"]
 
     # compute inlet mixed-out pressure
-    inlet_data = extract_measurement_line(sim_outdir, inlet_bl_list, inlet_lims)
+    inlet_data = extract_measurement_line(sim_outdir, inlet_bl, inlet_lims)
     inlet_mixed_out_state = mixed_out(inlet_data)
 
     # compute oulet mixed-out pressure
-    outlet_data = extract_measurement_line(sim_outdir, outlet_bl_list, outlet_lims)
+    outlet_data = extract_measurement_line(sim_outdir, outlet_bl, outlet_lims)
     outlet_mixed_out_state = mixed_out(outlet_data)
 
     return (inlet_mixed_out_state["p0_bar"] - outlet_mixed_out_state["p0_bar"]) /\
@@ -646,6 +646,9 @@ class CustomSimulator(Simulator):
         logger.info(f"changed execution mode to 1 in {sim_outdir}")
         os.chdir(self.cwd)
 
+        # create local config file
+        cp_filelist(["config.json"], [sim_outdir])
+
         return sim_outdir
 
     def execute(
@@ -828,7 +831,7 @@ class CustomSimulator(Simulator):
         args: dict = {}
 
         # inlet
-        bl_list = self.config["plot3D"]["mesh"]["inlet_bl_list"]
+        bl_list = self.config["plot3D"]["mesh"]["inlet_bl"]
         x1 = self.config["simulator"]["post_process"]["measurement_lines"]["inlet_x1"]
         x2 = self.config["simulator"]["post_process"]["measurement_lines"]["inlet_x2"]
         x, y = read_bl(sim_outdir, bl_list[0])
@@ -836,11 +839,11 @@ class CustomSimulator(Simulator):
         y1 = y[closest_index, :].min()
         y2 = y1 + self.config["plot3D"]["mesh"]["pitch"]
         inlet_lims = [x1, y1, x2, y2]
-        args["inlet_bl_list"] = bl_list
+        args["inlet_bl"] = bl_list
         args["inlet_lims"] = inlet_lims
 
         # outlet
-        bl_list = self.config["plot3D"]["mesh"]["outlet_bl_list"]
+        bl_list = self.config["plot3D"]["mesh"]["outlet_bl"]
         x1 = self.config["simulator"]["post_process"]["measurement_lines"]["outlet_x1"]
         x2 = self.config["simulator"]["post_process"]["measurement_lines"]["outlet_x2"]
         x, y = read_bl(sim_outdir, bl_list[0])
@@ -848,7 +851,7 @@ class CustomSimulator(Simulator):
         y1 = y[closest_index, :].min()
         y2 = y1 + self.config["plot3D"]["mesh"]["pitch"]
         outlet_lims = [x1, y1, x2, y2]
-        args["outlet_bl_list"] = bl_list
+        args["outlet_bl"] = bl_list
         args["outlet_lims"] = outlet_lims
 
         return args
