@@ -106,6 +106,28 @@ def get_time_info(sim_outdir: str) -> dict:
     return time_info
 
 
+def get_niter_ftt(sim_outdir: str, L_ref: float) -> int:
+    """
+    **Returns** the number of iterations per flow-through time (ftt)
+    """
+    # f.t.t = L_ref/u_ref
+    feos_info = get_feos_info(sim_outdir)
+    Mach_ref = float(read_next_line_in_file("param.ini",
+                                            "Reference Mach"))
+    T_ref = float(read_next_line_in_file("param.ini",
+                                         "Reference temperature"))
+    c_ref = np.sqrt(feos_info["Equivalent gamma"] * feos_info["Gas constant"] * T_ref)
+    u_ref = c_ref * Mach_ref
+    Lgrid = float(read_next_line_in_file("param.ini",
+                                         "Scaling value for the grid Lgrid"))
+    if Lgrid != 0:
+        L_ref = L_ref * Lgrid
+    ftt = L_ref / u_ref
+    sim_info = get_sim_info(sim_outdir)
+
+    return int(ftt / sim_info["dt"])
+
+
 def read_bl(sim_outdir: str, bl: int) -> tuple[np.ndarray, np.ndarray]:
     """
     **Reads** simulation grid coordinates.
@@ -304,6 +326,39 @@ def line_interp(data: dict, var: str, lims: list[float], bl_list: list[int]) -> 
                              (x_interp, y_interp), method="linear")
 
     return var_interp
+
+
+def args_LossCoef(sim_outdir: str, config: dict) -> dict:
+    """
+    **Returns** a dictionary containing the required arguments for LossCoef.
+    """
+    args: dict = {}
+
+    # inlet
+    bl_list = config["plot3D"]["mesh"]["inlet_bl"]
+    x1 = config["simulator"]["post_process"]["measurement_lines"]["inlet_x1"]
+    x2 = config["simulator"]["post_process"]["measurement_lines"]["inlet_x2"]
+    x, y = read_bl(sim_outdir, bl_list[0])
+    closest_index = find_closest_index(x[:, 0], x1)
+    y1 = y[closest_index, :].min()
+    y2 = y1 + config["plot3D"]["mesh"]["pitch"]
+    inlet_lims = [x1, y1, x2, y2]
+    args["inlet_bl"] = bl_list
+    args["inlet_lims"] = inlet_lims
+
+    # outlet
+    bl_list = config["plot3D"]["mesh"]["outlet_bl"]
+    x1 = config["simulator"]["post_process"]["measurement_lines"]["outlet_x1"]
+    x2 = config["simulator"]["post_process"]["measurement_lines"]["outlet_x2"]
+    x, y = read_bl(sim_outdir, bl_list[0])
+    closest_index = find_closest_index(x[:, 0], x1)
+    y1 = y[closest_index, :].min()
+    y2 = y1 + config["plot3D"]["mesh"]["pitch"]
+    outlet_lims = [x1, y1, x2, y2]
+    args["outlet_bl"] = bl_list
+    args["outlet_lims"] = outlet_lims
+
+    return args
 
 
 def LossCoef(sim_outdir: str, args: dict) -> float:
@@ -603,9 +658,9 @@ class CustomSimulator(Simulator):
         # copy files and executable to directory
         shutil.copy(self.config["simulator"]["ref_input"], sim_outdir)
         shutil.copy(self.config["simulator"]["ref_input_mesh"], sim_outdir)
-        logger.info((f"{self.config['simulator']['ref_input']}, "
-                     f"{self.config['simulator']['ref_input_mesh']} and "
-                     f"{self.solver_name} copied to {sim_outdir}"))
+        logger.info((f"{self.config['simulator']['ref_input']} and "
+                     f"{self.config['simulator']['ref_input_mesh']} "
+                     f"copied to {sim_outdir}"))
 
         # modify solver input file: delete half-cell at block boundaries
         args: dict = {}
@@ -823,38 +878,6 @@ class CustomSimulator(Simulator):
             self.outdir, f"{self.solver_name.upper()}",
             f"{self.solver_name}_g{gid}_c{cid}"
         )
-
-    def args_LossCoef(self, sim_outdir) -> dict:
-        """
-        **Returns** a dictionary containing the required arguments for LossCoef.
-        """
-        args: dict = {}
-
-        # inlet
-        bl_list = self.config["plot3D"]["mesh"]["inlet_bl"]
-        x1 = self.config["simulator"]["post_process"]["measurement_lines"]["inlet_x1"]
-        x2 = self.config["simulator"]["post_process"]["measurement_lines"]["inlet_x2"]
-        x, y = read_bl(sim_outdir, bl_list[0])
-        closest_index = find_closest_index(x[:, 0], x1)
-        y1 = y[closest_index, :].min()
-        y2 = y1 + self.config["plot3D"]["mesh"]["pitch"]
-        inlet_lims = [x1, y1, x2, y2]
-        args["inlet_bl"] = bl_list
-        args["inlet_lims"] = inlet_lims
-
-        # outlet
-        bl_list = self.config["plot3D"]["mesh"]["outlet_bl"]
-        x1 = self.config["simulator"]["post_process"]["measurement_lines"]["outlet_x1"]
-        x2 = self.config["simulator"]["post_process"]["measurement_lines"]["outlet_x2"]
-        x, y = read_bl(sim_outdir, bl_list[0])
-        closest_index = find_closest_index(x[:, 0], x1)
-        y1 = y[closest_index, :].min()
-        y2 = y1 + self.config["plot3D"]["mesh"]["pitch"]
-        outlet_lims = [x1, y1, x2, y2]
-        args["outlet_bl"] = bl_list
-        args["outlet_lims"] = outlet_lims
-
-        return args
 
     # def read_bl(self, sim_outdir: str, bl: int) -> tuple[np.ndarray, np.ndarray]:
     #     """
@@ -1335,7 +1358,7 @@ class CustomSimulator(Simulator):
     #     try:
     #         QoIs_df = pd.read_csv(filename)
     #         QoIs_df.append(new_QoIs_df)
-    #     except FileExistsError:
+    #     except FileNotFoundError:
     #         QoIs_df = new_QoIs_df
     #     QoIs_df.to_csv(filename)
     #     QoIs = np.array(new_QoIs_df)
