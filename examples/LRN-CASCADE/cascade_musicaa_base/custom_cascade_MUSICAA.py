@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 from aero_optim.utils import (custom_input, find_closest_index, from_dat, check_dir,
                               read_next_line_in_file, cp_filelist)
 from aero_optim.mesh.mesh import MeshMusicaa
-from aero_optim.simulator.simulator import Simulator
+# from aero_optim.simulator.simulator import Simulator
+from aero_optim.simulator.simulator import WolfSimulator
 from aero_optim.optim.evolution import PymooEvolution
 from aero_optim.optim.optimizer import WolfOptimizer
 from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
@@ -241,7 +242,7 @@ def read_stats_bl(sim_outdir: str, bl_list: list[int], var_list: list[str]) -> d
     all_vars = [vars1, vars2]
 
     # loop over blocks
-    data = {}
+    data: dict = {}
     stats = 1
     for vars in all_vars:
         for bl in bl_list:
@@ -465,13 +466,14 @@ class CustomMesh(MeshMusicaa):
         proc.communicate()
 
 
-class CustomSimulator(Simulator):
+# class CustomSimulator(Simulator):
+class CustomSimulator(WolfSimulator):
     """
     This class implements a simulator for the CFD code MUSICAA.
     """
     def __init__(self, config: dict):
         """
-        Instantiates the MusicaaSimulator object.
+        Instantiates the WolfSimulator object.
 
         **Input**
 
@@ -702,13 +704,14 @@ class CustomSimulator(Simulator):
         os.chdir(self.cwd)
 
         # create local config file
-        cp_filelist(["config.json"], [sim_outdir])
+        cp_filelist(["cascade_musicaa_base.json"], [os.path.join(sim_outdir, "config.json")])
 
-        return sim_outdir
+        return sim_outdir, self.exec_cmd
 
     def execute(
             self,
             sim_outdir: str,
+            exec_cmd: str,
             gid: int,
             cid: int,
             meshfile: str,
@@ -723,7 +726,7 @@ class CustomSimulator(Simulator):
             with open(f"{self.solver_name}_g{gid}_c{cid}.err", "wb") as err:
                 logger.info((f"execute {self.computation_type} simulation "
                              f"g{gid}, c{cid} with {self.solver_name}"))
-                proc = subprocess.Popen(self.exec_cmd,
+                proc = subprocess.Popen(exec_cmd,
                                         env=os.environ,
                                         stdin=subprocess.DEVNULL,
                                         stdout=out,
@@ -837,7 +840,7 @@ class CustomSimulator(Simulator):
     #     self.sim_pro = [tup for id, tup in enumerate(self.sim_pro) if id not in finished_sim]
     #     return len(self.sim_pro)
 
-    def post_process(self, dict_id: dict, sim_outdir: str) -> str:
+    def _post_process(self, dict_id: dict, sim_outdir: str) -> str:
         """
         **Post-processes** the results of a terminated simulation.
         **Returns** the extracted results in a DataFrame.
@@ -850,7 +853,7 @@ class CustomSimulator(Simulator):
             try:
                 # get arguments
                 get_args: Callable = globals()[f"args_{qty}"]
-                args = get_args(sim_outdir)
+                args = get_args(sim_outdir, self.config)
                 get_value: Callable = globals()[qty]
                 value = get_value(sim_outdir, args)
             except AttributeError:
@@ -869,6 +872,21 @@ class CustomSimulator(Simulator):
         )
         logger.info(f"last values:\n{df.tail(n=1).to_string(index=False)}")
         return df
+
+    def post_process(self, dict_id: dict, sim_out_dir: str) -> dict[str, pd.DataFrame]:
+        """
+        **Post-processes** the results of a terminated triple simulation.</br>
+        **Returns** the extracted results in a dictionary of DataFrames.
+
+        Note:
+            there are two QoIs: loss_ADP and loss_OP = 1/2(loss_OP1 + loss_OP2)
+            to be extracted from: sim_out_dir/ADP, sim_out_dir/OP1  and sim_out_dir/OP2
+        """
+        df_sub_dict: dict[str, pd.DataFrame] = {}
+        for fname in ["ADP", "OP1", "OP2"]:
+            logger.debug(f"post_process g{dict_id['gid']}, c{dict_id['cid']} {fname}..")
+            df_sub_dict[fname] = self._post_process(dict_id, os.path.join(sim_out_dir, fname))
+        return df_sub_dict
 
     def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
         """
@@ -970,11 +988,11 @@ class CustomSimulator(Simulator):
     #     return (inlet_mixed_out_state["p0_bar"] - outlet_mixed_out_state["p0_bar"]) /\
     #            (inlet_mixed_out_state["p0_bar"] - inlet_mixed_out_state["p_bar"])
 
-    def kill_all(self):
-        """
-        **Kills** all active processes.
-        """
-        logger.debug("Function 'kill_all' not yet implemented")
+    # def kill_all(self):
+    #     """
+    #     **Kills** all active processes.
+    #     """
+    #     logger.debug("Function 'kill_all' not yet implemented")
 
     # def read_stats_bl(self, sim_outdir: str, bl_list: list[int], var_list: list[str]) -> dict:
     #     """

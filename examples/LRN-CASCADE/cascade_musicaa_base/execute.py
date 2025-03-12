@@ -11,8 +11,8 @@ import json
 from typing import Callable
 
 from aero_optim.mesh.mesh import get_block_info
-from custom_cascade_MUSICAA import get_feos_info, get_sim_info, get_time_info
-from aero_optim.utils import (cp_filelist, round_number,
+from custom_cascade_MUSICAA import get_time_info, get_niter_ftt
+from aero_optim.utils import (cp_filelist, round_number, rm_filelist,
                               read_next_line_in_file, custom_input)
 
 FAILURE: int = 1
@@ -31,13 +31,15 @@ def execute_steady(config: dict):
     """
 
     # execute computation
+    config.update({"is_stats": False})
     proc = execute(MUSICAA)
     monitor_sim_progress(proc, config, "steady")
 
     # gather statistics
-    pre_process_stats("steady")
+    config.update({"is_stats": True})
+    pre_process_stats(config, "steady")
     proc = execute(MUSICAA)
-    monitor_sim_progress(proc, config, "steady", "stats")
+    monitor_sim_progress(proc, config, "steady")
 
 
 def execute_unsteady(config: dict):
@@ -46,6 +48,7 @@ def execute_unsteady(config: dict):
     """
 
     # initialize LES with a fully developed 2D field
+    config.update({"is_stats": False})
     pre_process_init_unsteady("2D")
     proc = execute(MUSICAA)
     monitor_sim_progress(proc, config, "unsteady", "init_2D")
@@ -56,9 +59,10 @@ def execute_unsteady(config: dict):
     monitor_sim_progress(proc, config, "unsteady", "init_3D")
 
     # gather statistics
-    pre_process_stats("unsteady")
+    config.update({"is_stats": True})
+    pre_process_stats(config, "unsteady")
     proc = execute(MUSICAA)
-    monitor_sim_progress(proc, config, "unsteady", "stats")
+    monitor_sim_progress(proc, config, "unsteady")
 
 
 def execute(exec_cmd: str):
@@ -68,8 +72,7 @@ def execute(exec_cmd: str):
     # submit computation
     with open("musicaa.out", "wb") as out:
         with open("musicaa.err", "wb") as err:
-            logger.info("initialize ADP unsteady simulation")
-            proc = subprocess.Popen(exec_cmd,
+            proc = subprocess.Popen(exec_cmd.split(),
                                     env=os.environ,
                                     stdin=subprocess.DEVNULL,
                                     stdout=out,
@@ -81,20 +84,18 @@ def execute(exec_cmd: str):
 def monitor_sim_progress(proc: subprocess.Popen,
                          config: dict,
                          computation_type: str,
-                         computation_step: str = ""):
+                         unsteady_step: str = ""):
     """
     **Monitors** a simulation.
     """
     # get simulation arguments
     restart = config["simulator"].get("restart", 5)
     divide_CFL_by = config["simulator"].get("divide_CFL_by", 1.2)
-    config.update({"is_stats": False})
-    if computation_step == "init_2D":
+    if unsteady_step == "init_2D":
         max_niter = config["simulator"].get("max_niter_init_2D", 200000)
-    elif computation_step == "init_3D":
+    elif unsteady_step == "init_3D":
         max_niter = config["simulator"].get("max_niter_init_3D", 200000)
-    elif computation_step == "stats":
-        config.update({"is_stats": True})
+    if config["is_stats"]:
         max_niter = config["simulator"].get("max_niter_stats", 200000)
     else:
         config.update({"max_niter_steady_reached": False})
@@ -107,20 +108,21 @@ def monitor_sim_progress(proc: subprocess.Popen,
         if returncode is None:
             converged, niter = check_convergence(config, computation_type)
             if converged or niter >= max_niter:
-                stop_MUSICAA()
+                stop_MUSICAA("./")
                 if computation_type == "steady":
                     config.update({"max_niter_steady_reached": True})
-            del config["n_convergence_check"]
+                del config["n_convergence_check"]
 
         # computation has crashed
         elif returncode > 0:
             if current_restart < restart:
                 # reduce CFL
-                CFL = int(read_next_line_in_file("param.ini", "CFL"))
+                CFL = float(read_next_line_in_file("param.ini", "CFL"))
                 lower_CFL = CFL / divide_CFL_by
                 logger.error((f"ERROR -- init_unsteady_2D crashed with CFL={CFL} "
                               f"and will be restarted with lower CFL="
                               f"{lower_CFL}"))
+                rm_filelist(["plane*"])
                 proc = execute(MUSICAA)
             else:
                 raise Exception(f"ERROR -- {computation_type} simulation crashed")
@@ -128,28 +130,6 @@ def monitor_sim_progress(proc: subprocess.Popen,
         # computation has completed
         elif returncode == 0:
             break
-
-
-def get_niter_ftt(sim_outdir: str, L_ref: float) -> int:
-    """
-    **Returns** the number of iterations per flow-through time (ftt)
-    """
-    # f.t.t = L_ref/u_ref
-    feos_info = get_feos_info(sim_outdir)
-    Mach_ref = float(read_next_line_in_file("param.ini",
-                                            "Reference Mach"))
-    T_ref = float(read_next_line_in_file("param.ini",
-                                         "Reference temperature"))
-    c_ref = np.sqrt(feos_info["Equivalent gamma"] * feos_info["Gas constant"] * T_ref)
-    u_ref = c_ref * Mach_ref
-    Lgrid = float(read_next_line_in_file("param.ini",
-                                         "Scaling value for the grid Lgrid"))
-    if Lgrid != 0:
-        L_ref = L_ref * Lgrid
-    ftt = L_ref / u_ref
-    sim_info = get_sim_info(sim_outdir)
-
-    return int(ftt / sim_info["dt"])
 
 
 def stop_MUSICAA(sim_outdir: str):
@@ -190,7 +170,7 @@ def read_sensor(sim_outdir: str,
                 sensor_type: str,
                 bl: int,
                 sensor_nb: int,
-                just_get_niter: bool = False) -> np.array:
+                just_get_niter: bool = False) -> dict:
     """
     **Returns** data from a sensor.
     """
@@ -218,16 +198,11 @@ def read_sensor(sim_outdir: str,
     return sensors
 
 
-def get_residuals(sim_outdir: str, config: dict) -> dict:
+def get_residuals(sim_outdir: str, nprint: int, ndeb_RANS: int) -> dict:
     """
     **Returns** residuals from ongoing computations.
     """
-    nprint: int = int(re.findall(r'\b\d+\b',
-                                 read_next_line_in_file("param.ini",
-                                                        "screen"))[0])
-    ndeb_RANS: int = int(read_next_line_in_file("param.ini",
-                                                "ndeb_RANS"))
-    res = {'nn': [], 'Rho': [], 'Rhou': [], 'Rhov': [], 'Rhoe': [], 'RANS_var': []}
+    res: dict = {'nn': [], 'Rho': [], 'Rhou': [], 'Rhov': [], 'Rhoe': [], 'RANS_var': []}
     f = open(f"{sim_outdir}/residuals.bin", "rb")
     i4_dtype = np.dtype('<i4')
     i8_dtype = np.dtype('<i8')
@@ -273,11 +248,16 @@ def check_residuals(config: dict) -> tuple[bool, int]:
     residual_convergence_order = convergence_criteria.get("residual_convergence_order", 4)
     if config["is_stats"]:
         return False, 0
+    nprint = int(re.findall(r'\b\d+\b',
+                            read_next_line_in_file("param.ini",
+                                                   "screen"))[0])
     ndeb_RANS = int(read_next_line_in_file("param.ini", "ndeb_RANS"))
+    if "n_convergence_check" not in config.keys():
+        config.update({"n_convergence_check": 1})
 
     # if residuals.bin file exists
     try:
-        res = get_residuals("./", config)
+        res = get_residuals("./", nprint, ndeb_RANS)
         unwanted = ["nn"]
         # if file not empty
         try:
@@ -290,26 +270,33 @@ def check_residuals(config: dict) -> tuple[bool, int]:
         except IndexError:
             return False, 0
 
-        # compute current order of convergence for each variable
-        nvars_converged = 0
-        res_max = []
-        for var in set(res) - set(unwanted):
-            res_max.append(max(res[var]) - min(res[var]))
-            if max(res[var]) - min(res[var]) > residual_convergence_order:
-                nvars_converged += 1
-        if niter > ndeb_RANS:
-            print((f"it: {niter}; "
-                   f"lowest convergence order = {round_number(min(res_max), 'down', 2)}"))
-            if nvars_converged == nvars:
-                return True, niter
+        # proceed if this criterion has not already been checked
+        if niter // nprint >= config["n_convergence_check"]:
+
+            # compute current order of convergence for each variable
+            config["n_convergence_check"] += 1
+            nvars_converged = 0
+            res_max = []
+            for var in set(res) - set(unwanted):
+                res_max.append(max(res[var]) - min(res[var]))
+                if max(res[var]) - min(res[var]) > residual_convergence_order:
+                    nvars_converged += 1
+
+            if niter > ndeb_RANS:
+                print((f"it: {niter}; "
+                       f"lowest convergence order = {round_number(min(res_max), 'down', 2)}"))
+                if nvars_converged == nvars:
+                    return True, niter
+                else:
+                    return False, niter
             else:
+                print((f"it: {niter}; RANS starts at it: {ndeb_RANS}"))
                 return False, niter
         else:
-            print((f"it: {niter}; RANS starts at it: {ndeb_RANS}"))
             return False, niter
 
     except FileNotFoundError:
-        return False, niter
+        return False, 0
 
 
 def check_unsteady_crit(config: dict) -> tuple[bool, int]:
@@ -341,20 +328,19 @@ def check_unsteady_crit(config: dict) -> tuple[bool, int]:
                 if sensors["niter"] // niter_ftt >= nb_ftt_before_criterion:
                     config["n_convergence_check"] += 1
                     return unsteady_crit("./", config, block_info, niter_ftt)
-        else:
-            return False, sensors["niter"]
 
     except KeyError:
         if config["is_stats"]:
             config.update({"n_convergence_check": 0})
         else:
             config.update({"n_convergence_check": nb_ftt_before_criterion})
-        return False, sensors["niter"]
+
+    return False, sensors["niter"]
 
 
 def QoI_convergence(sim_outdir: str,
                     config: dict,
-                    block_info: dict) -> tuple[bool, int]:
+                    block_info: dict) -> bool:
     """
     **Returns** (True, iteration) if statistics of the QoIs have converged.
     """
@@ -373,10 +359,15 @@ def QoI_convergence(sim_outdir: str,
     try:
         QoIs_df = pd.read_csv(filename)
         QoIs_df.concat(new_QoIs_df)
-    except FileExistsError:
+    except FileNotFoundError:
         QoIs_df = new_QoIs_df
     QoIs_df.to_csv(filename)
     QoIs = np.array(new_QoIs_df)
+
+    # clear directory of unused restart<time_stamp>_bl*.bin files
+    time_info = get_time_info(sim_outdir)
+    restarts = [f"restart{time_stamp}_bl*" for time_stamp in time_info.keys()]
+    rm_filelist([os.path.join(sim_outdir, restart) for restart in restarts])
 
     # compute QoI residuals
     res = 2 * (QoIs[1:, :] - QoIs[:-1, :]) / (QoIs[1:, :] + QoIs[:-1, :])
@@ -467,7 +458,7 @@ def unsteady_crit(sim_outdir: str,
         return False, sensors["niter"]
 
 
-def compute_QoIs(config: dict) -> str:
+def compute_QoIs(config: dict) -> pd.DataFrame:
     """
     **Returns** the QoIs during computation in a DataFrame.
     """
@@ -479,7 +470,7 @@ def compute_QoIs(config: dict) -> str:
         try:
             # get arguments
             get_args: Callable = globals()[f"args_{qty}"]
-            args = get_args("./")
+            args = get_args("./", config)
             get_value: Callable = globals()[qty]
             value = get_value("./", args)
         except AttributeError:
@@ -521,21 +512,21 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
     mean = np.mean(sensor, axis=(0, 2))
     sensor_squared = (sensor - mean[np.newaxis, :, np.newaxis])**2
     if niter % 4 == 0:
-        mean_quarters = sensor.reshape((4, quarter, nvars, nz))
-        rms_quarters = sensor_squared.reshape((4, quarter, nvars, nz))
+        mean_quarters_ = sensor.reshape((4, quarter, nvars, nz))
+        rms_quarters_ = sensor_squared.reshape((4, quarter, nvars, nz))
     else:
-        mean_quarters = np.zeros((4, quarter, nvars, nz))
-        rms_quarters = np.zeros((4, quarter, nvars, nz))
-        mean_quarters[0] = sensor[:quarter]
-        mean_quarters[1] = sensor[quarter:2 * quarter]
-        mean_quarters[2] = sensor[2 * quarter:3 * quarter]
-        mean_quarters[3] = sensor[3 * quarter:4 * quarter]
-        rms_quarters[0] = sensor_squared[:quarter]
-        rms_quarters[1] = sensor_squared[quarter:2 * quarter]
-        rms_quarters[2] = sensor_squared[2 * quarter:3 * quarter]
-        rms_quarters[3] = sensor_squared[3 * quarter:4 * quarter]
-    mean_quarters = np.mean(mean_quarters, axis=(1, 3))
-    rms_quarters = np.mean(np.sqrt(np.mean(rms_quarters, axis=1)), axis=-1)
+        mean_quarters_ = np.zeros((4, quarter, nvars, nz))
+        rms_quarters_ = np.zeros((4, quarter, nvars, nz))
+        mean_quarters_[0] = sensor[:quarter]
+        mean_quarters_[1] = sensor[quarter:2 * quarter]
+        mean_quarters_[2] = sensor[2 * quarter:3 * quarter]
+        mean_quarters_[3] = sensor[3 * quarter:4 * quarter]
+        rms_quarters_[0] = sensor_squared[:quarter]
+        rms_quarters_[1] = sensor_squared[quarter:2 * quarter]
+        rms_quarters_[2] = sensor_squared[2 * quarter:3 * quarter]
+        rms_quarters_[3] = sensor_squared[3 * quarter:4 * quarter]
+    mean_quarters = np.mean(mean_quarters_, axis=(1, 3))
+    rms_quarters = np.mean(np.sqrt(np.mean(rms_quarters_, axis=1)), axis=-1)
 
     # compute criterion
     crit = []
@@ -570,19 +561,19 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
     sensor = sensor[half:]
     sensor_squared = sensor_squared[half:]
     if niter % 6 == 0:
-        mean_sixths = sensor.reshape((3, sixth, nvars, nz))
-        rms_sixths = sensor_squared.reshape((3, sixth, nvars, nz))
+        mean_sixths_ = sensor.reshape((3, sixth, nvars, nz))
+        rms_sixths_ = sensor_squared.reshape((3, sixth, nvars, nz))
     else:
-        mean_sixths = np.zeros((3, sixth, nvars, nz))
-        rms_sixths = np.zeros((3, sixth, nvars, nz))
-        mean_sixths[0] = sensor[:sixth]
-        mean_sixths[1] = sensor[sixth:2 * sixth]
-        mean_sixths[2] = sensor[2 * sixth:3 * sixth]
-        rms_sixths[0] = sensor_squared[:sixth]
-        rms_sixths[1] = sensor_squared[sixth:2 * sixth]
-        rms_sixths[2] = sensor_squared[2 * sixth:3 * sixth]
-    mean_sixths = np.mean(mean_sixths, axis=(1, 3))
-    rms_sixths = np.mean(np.sqrt(np.mean(rms_sixths, axis=1)), axis=-1)
+        mean_sixths_ = np.zeros((3, sixth, nvars, nz))
+        rms_sixths_ = np.zeros((3, sixth, nvars, nz))
+        mean_sixths_[0] = sensor[:sixth]
+        mean_sixths_[1] = sensor[sixth:2 * sixth]
+        mean_sixths_[2] = sensor[2 * sixth:3 * sixth]
+        rms_sixths_[0] = sensor_squared[:sixth]
+        rms_sixths_[1] = sensor_squared[sixth:2 * sixth]
+        rms_sixths_[2] = sensor_squared[2 * sixth:3 * sixth]
+    mean_sixths = np.mean(mean_sixths_, axis=(1, 3))
+    rms_sixths = np.mean(np.sqrt(np.mean(rms_sixths_, axis=1)), axis=-1)
 
     # compute criterion
     crit_modif = []
@@ -610,11 +601,10 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
         return max(crit_modif)
 
     # compute geometric mean if requested
-    if Boudet_criterion_type == "mean":
-        crit_mean = [abs(crit_Boudet * crit_modif[i]) / (crit_Boudet * crit_modif[i])
-                     * np.sqrt(abs(crit_Boudet * crit_modif[i])) for
-                     i, crit_Boudet in enumerate(crit)]
-        return max(crit_mean)
+    crit_mean = [abs(crit_Boudet * crit_modif[i]) / (crit_Boudet * crit_modif[i])
+                 * np.sqrt(abs(crit_Boudet * crit_modif[i])) for
+                 i, crit_Boudet in enumerate(crit)]
+    return max(crit_mean)
 
 
 def compute_stats_crit(config: dict, sensor: np.ndarray) -> float:
@@ -637,17 +627,17 @@ def compute_stats_crit(config: dict, sensor: np.ndarray) -> float:
     mean = np.mean(sensor, axis=(0, 2))
     sensor_squared = (sensor - mean[np.newaxis, :, np.newaxis])**2
     if niter % 2 == 0:
-        mean_halves = sensor.reshape((2, half, nvars, nz))
-        rms_halves = sensor_squared.reshape((2, half, nvars, nz))
+        mean_halves_ = sensor.reshape((2, half, nvars, nz))
+        rms_halves_ = sensor_squared.reshape((2, half, nvars, nz))
     else:
-        mean_halves = np.zeros((2, half, nvars, nz))
-        rms_halves = np.zeros((2, half, nvars, nz))
-        mean_halves[0] = sensor[:half]
-        mean_halves[1] = sensor[half:2 * half]
-        rms_halves[0] = sensor_squared[:half]
-        rms_halves[1] = sensor_squared[half:2 * half]
-    mean_halves = np.mean(mean_halves, axis=(1, 3))
-    rms_halves = np.mean(np.sqrt(np.mean(rms_halves, axis=1)), axis=-1)
+        mean_halves_ = np.zeros((2, half, nvars, nz))
+        rms_halves_ = np.zeros((2, half, nvars, nz))
+        mean_halves_[0] = sensor[:half]
+        mean_halves_[1] = sensor[half:2 * half]
+        rms_halves_[0] = sensor_squared[:half]
+        rms_halves_[1] = sensor_squared[half:2 * half]
+    mean_halves = np.mean(mean_halves_, axis=(1, 3))
+    rms_halves = np.mean(np.sqrt(np.mean(rms_halves_, axis=1)), axis=-1)
 
     # compute criterion
     crit = []
@@ -702,7 +692,7 @@ def pre_process_stats(config: dict, computation_type: str):
     elif computation_type == "unsteady":
         niter_stats = 999999
         # add frequency for QoI convergence check: will ask MUSICAA to output stats files
-        niter_ftt = get_niter_ftt("./")
+        niter_ftt = get_niter_ftt("./", config["plot3D"]["mesh"]["chord_length"])
         freqs = read_next_line_in_file("param.ini",
                                        "Output frequencies: screen / stats / fields")
         freqs = freqs.split()
@@ -771,7 +761,7 @@ def pre_process_init_unsteady(dimension: str):
     """
     **Pre-processes** unsteady computation to initialize with 2D or 3D simulation.
     """
-    args: dict = {}
+    args = {}
     if dimension == "2D":
         # save inputs to temporary files
         cp_filelist(["param.ini", "param_blocks.ini"],
@@ -832,6 +822,7 @@ def main() -> int:
     # set computation type
     computation_type: str = read_next_line_in_file("param.ini",
                                                    "DES without subgrid")
+    computation_type = "unsteady" if computation_type == "N" else "steady"
     execute_computation: Callable = globals()[f"execute_{computation_type}"]
 
     print("** ADP SIMULATION **")
@@ -839,14 +830,16 @@ def main() -> int:
     sim_dir = "ADP"
     shutil.rmtree(sim_dir, ignore_errors=True)
     os.mkdir(sim_dir)
+    args = {}
     # add simulation files
     cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
                 [sim_dir] * 4)
     os.chdir(sim_dir)
     # specify path for mesh files
-    dir_grid: str = "../" + read_next_line_in_file("param.ini",
-                                                   "Directory for grid files")
-    custom_input("param.ini", {"Directory for grid files": dir_grid})
+    old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
+    dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
+    args.update({"Directory for grid files": dir_grid})
+    custom_input("param.ini", args)
     # execute computation
     sim_pro = []
     config_ADP = config.copy()
@@ -875,11 +868,12 @@ def main() -> int:
     cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
                 [sim_dir] * 4)
     os.chdir(sim_dir)
+    args = {}
     # specify path for mesh files
-    dir_grid = "../" + read_next_line_in_file("param.ini",
-                                              "Directory for grid files")
-    args: dict = {}
+    old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
+    dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
     args.update({"Directory for grid files": dir_grid})
+    # change flow angle
     args.update({"Flow angles": "48. 0."})
     custom_input("param.ini", args)
 
@@ -910,11 +904,12 @@ def main() -> int:
     cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
                 [sim_dir] * 4)
     os.chdir(sim_dir)
+    args = {}
     # specify path for mesh files
-    dir_grid = "../" + read_next_line_in_file("param.ini",
-                                              "Directory for grid files")
-    args: dict = {}
+    old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
+    dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
     args.update({"Directory for grid files": dir_grid})
+    # change flow angle
     args.update({"Flow angles": "38. 0."})
     custom_input("param.ini", args)
 
