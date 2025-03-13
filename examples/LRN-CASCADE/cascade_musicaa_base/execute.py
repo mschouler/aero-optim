@@ -354,15 +354,15 @@ def QoI_convergence(sim_outdir: str,
     filename = os.path.join(sim_outdir, "QoI_convergence.csv")
     if config["n_convergence_check"] == 1:
         # first time computing the QoIs (need at least 2 steps to compute residual)
-        new_QoIs_df.to_csv(filename)
+        new_QoIs_df.to_csv(filename, index=False)
         return False
     try:
         QoIs_df = pd.read_csv(filename)
-        QoIs_df.concat(new_QoIs_df)
+        QoIs_df = pd.concat([QoIs_df, new_QoIs_df], axis=0)
     except FileNotFoundError:
         QoIs_df = new_QoIs_df
-    QoIs_df.to_csv(filename)
-    QoIs = np.array(new_QoIs_df)
+    QoIs_df.to_csv(filename, index=False)
+    QoIs = np.array(QoIs_df)
 
     # clear directory of unused restart<time_stamp>_bl*.bin files
     time_info = get_time_info(sim_outdir)
@@ -376,10 +376,10 @@ def QoI_convergence(sim_outdir: str,
         mov_avg = np.mean(res[-nb_ftt_mov_avg:, :], axis=0)
     except IndexError:
         mov_avg = np.mean(res, axis=0)
-    sensors = get_sensors("./", block_info, just_get_niter=True)
+    sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
     print((f"it: {sensors['niter']}; "
-           f"lowest QoI convergence order = {round_number(min(mov_avg[-1]), 'down', 2)}"))
-    if np.sum(mov_avg[-1, :] > QoIs_convergence_order) >= QoIs.shape[-1]:
+           f"lowest QoI convergence order = {round_number(min(mov_avg),'down', 2)}"))
+    if np.sum(mov_avg > QoIs_convergence_order) >= QoIs.shape[-1]:
         return True
     else:
         return False
