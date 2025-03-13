@@ -3,6 +3,7 @@ import functools
 import math
 import os
 import shutil
+import subprocess
 import sys
 import time
 
@@ -495,6 +496,52 @@ def robust_execution(
     return exit_status
 
 
+def submit_process(name: str, exec_cmd: list[str]) -> subprocess.Popen[str]:
+    """
+    **Submits** exec_cmd and **returns** the corresponding process.
+    """
+    with open(f"{name}.out", "wb") as out:
+        with open(f"{name}.err", "wb") as err:
+            print(f"INFO -- execute {name}")
+            proc = subprocess.Popen(exec_cmd,
+                                    env=os.environ,
+                                    stdin=subprocess.DEVNULL,
+                                    stdout=out,
+                                    stderr=err,
+                                    universal_newlines=True)
+    return proc
+
+
+def monitor_returncode(l_proc: list[subprocess.Popen[str]]) -> int:
+    """
+    **Checks** the state of the processes and **returns** the number of living ones.
+    """
+    finished_sim = []
+    for id, p_id in enumerate(l_proc):
+        returncode = p_id.poll()
+        if returncode is None:
+            pass  # simulation still running
+        elif returncode == 0:
+            print(f"INFO -- simulation {p_id} finished")
+            finished_sim.append(id)
+            break
+        else:
+            print("ERROR -- one process failed, all simulations will be killed")
+            for p in l_proc:
+                p.terminate()
+            raise Exception(f"ERROR -- simulation {p_id} failed")
+    return len([p_id for id, p_id in enumerate(l_proc) if id not in finished_sim])
+
+
+def wait_for_it(l_proc: list[subprocess.Popen[str]]):
+    """
+    **Waits** until at lest one processes finishes.
+    """
+    n_proc = len(l_proc)
+    while monitor_returncode(l_proc) >= n_proc:
+        time.sleep(1)
+
+
 def main() -> int:
     """
     This program runs a CFD simulation with mesh adaptation i.e. coupling WOLF, METRIX and FEFLO.
@@ -510,82 +557,106 @@ def main() -> int:
     parser.add_argument("-cmp", type=int, help="targetted complexity")
     parser.add_argument("-nproc", type=int, help="number of procs", default=1)
     parser.add_argument("-nite", type=int, help="number of complexities", default=2)
-    parser.add_argument("-ms", "--multi-sim", action="store_true", help="simulate ADP, OP1 and OP2")
+    parser.add_argument("-ms", type=int, help="number of parallel simulations", default=-1)
+    parser.add_argument("-adp", action="store_true", help="simulate ADP")
+    parser.add_argument("-op1", action="store_true", help="simulate OP1")
+    parser.add_argument("-op2", action="store_true", help="simulate OP2")
 
     args = parser.parse_args()
-    cwd = os.getcwd()
     t0 = time.time()
     print(f"simulations performed with: {args}\n")
 
-    print("** ADP SIMULATION **")
-    print("** -------------- **")
+    input = args.input.split(".")[0]
     cv_tgt = [0.01, 0.01, 0.005, 0.003] + [0.003] * max(0, args.nite - 4)
     ite_tgt = [15, 15, 10, 5] + [5] * max(0, args.nite - 4)
-    if not args.multi_sim:
-        exit_status, _, _, _ = execute_simulation(
-            args, t0, cv_tgt, ite_tgt, default_res_tgt=1e-4, subite_restart=3
-        )
-        if exit_status == SUCCESS:
-            print(f">> simulations finished successfully in {time.time() - t0} seconds.")
-        return exit_status
-    else:
+
+    if args.ms > 0:
+        # tracking variables
+        l_proc = []
+        # process cmd line
+        exec_args = sys.argv
+        ms_idx = exec_args.index("-ms")
+        del exec_args[ms_idx + 1]
+        del exec_args[ms_idx]
+        # adp
+        exec_cmd = [sys.executable] + exec_args + ["-adp"]
+        l_proc.append(submit_process("ADP", exec_cmd))
+        # op1
+        exec_cmd = [sys.executable] + exec_args + ["-op1"]
+        if len(l_proc) < args.ms:
+            l_proc.append(submit_process("OP1", exec_cmd))
+        else:
+            wait_for_it(l_proc)
+            l_proc.append(submit_process("OP1", exec_cmd))
+        # op2
+        exec_cmd = [sys.executable] + exec_args + ["-op2"]
+        if len(l_proc) < args.ms:
+            l_proc.append(submit_process("OP2", exec_cmd))
+        else:
+            wait_for_it(l_proc)
+            l_proc.append(submit_process("OP2", exec_cmd))
+        # wait for all processes to finish
+        wait_for_it(l_proc)
+
+    if args.adp:
+        print("** ADP SIMULATION **")
+        print("** -------------- **")
         sim_dir = "ADP"
         shutil.rmtree(sim_dir, ignore_errors=True)
-        input = args.input.split(".")[0]
         os.mkdir(sim_dir)
         cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
         os.chdir(sim_dir)
         exit_status = robust_execution(args, t0, cv_tgt, ite_tgt, ite_restart=3, subite_restart=5)
-    if exit_status == FAILURE:
-        print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
-        return FAILURE
+        if exit_status == FAILURE:
+            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
+            return FAILURE
 
-    os.chdir(cwd)
-    print("** OP1 SIMULATION (+5 deg.) **")
-    print("** ------------------------ **")
-    sim_dir = "OP1"
-    shutil.rmtree(sim_dir, ignore_errors=True)
-    os.mkdir(sim_dir)
-    cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
-    os.chdir(sim_dir)
-    # update input velocity
-    cos = math.cos((43 + 5) / 180 * math.pi)
-    sin = math.sin((43 + 5) / 180 * math.pi)
-    u = 199.5 * cos
-    v = 199.5 * sin
-    # update input file
-    sim_args = {
-        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
-        "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
-    }
-    sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = robust_execution(args, t0, cv_tgt, ite_tgt, ite_restart=3, subite_restart=5)
-    if exit_status == FAILURE:
-        print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
-        return FAILURE
+    if args.op1:
+        print("** OP1 SIMULATION (+5 deg.) **")
+        print("** ------------------------ **")
+        sim_dir = "OP1"
+        shutil.rmtree(sim_dir, ignore_errors=True)
+        os.mkdir(sim_dir)
+        cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
+        os.chdir(sim_dir)
+        # update input velocity
+        cos = math.cos((43 + 5) / 180 * math.pi)
+        sin = math.sin((43 + 5) / 180 * math.pi)
+        u = 199.5 * cos
+        v = 199.5 * sin
+        # update input file
+        sim_args = {
+            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
+            "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
+        }
+        sed_in_file(f"{input}.wolf", sim_args)
+        exit_status = robust_execution(args, t0, cv_tgt, ite_tgt, ite_restart=3, subite_restart=5)
+        if exit_status == FAILURE:
+            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
+            return FAILURE
 
-    os.chdir(cwd)
-    print("** OP2 SIMULATION (-5 deg.) **")
-    print("** ------------------------ **")
-    sim_dir = "OP2"
-    os.mkdir(sim_dir)
-    cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
-    os.chdir(sim_dir)
-    # update input velocity
-    cos = math.cos((43 - 5) / 180 * math.pi)
-    sin = math.sin((43 - 5) / 180 * math.pi)
-    u = 199.5 * cos
-    v = 199.5 * sin
-    # update input file
-    sim_args = {
-        "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
-        "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
-    }
-    sed_in_file(f"{input}.wolf", sim_args)
-    exit_status = robust_execution(args, t0, cv_tgt, ite_tgt, ite_restart=3, subite_restart=5)
-    if exit_status == FAILURE:
-        print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
-        return FAILURE
+    if args.op2:
+        print("** OP2 SIMULATION (-5 deg.) **")
+        print("** ------------------------ **")
+        sim_dir = "OP2"
+        os.mkdir(sim_dir)
+        cp_filelist([f"{input}.wolf", f"{input}.mesh"], [sim_dir] * 2)
+        os.chdir(sim_dir)
+        # update input velocity
+        cos = math.cos((43 - 5) / 180 * math.pi)
+        sin = math.sin((43 - 5) / 180 * math.pi)
+        u = 199.5 * cos
+        v = 199.5 * sin
+        # update input file
+        sim_args = {
+            "PhysicalState": {"inplace": False, "param": [f"  0.1840 {u} {v} 0. 14408 1.7039e-5"]},
+            "BCInletVelocityDirection": {"inplace": False, "param": [f"{cos} {sin} 0."]}
+        }
+        sed_in_file(f"{input}.wolf", sim_args)
+        exit_status = robust_execution(args, t0, cv_tgt, ite_tgt, ite_restart=3, subite_restart=5)
+        if exit_status == FAILURE:
+            print(f"ERROR -- adaptation failed after {time.time() - t0} seconds")
+            return FAILURE
 
     print(f">> simulations finished successfully in {time.time() - t0} seconds.")
     return SUCCESS
