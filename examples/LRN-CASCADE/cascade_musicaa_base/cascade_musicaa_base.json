@@ -2,7 +2,7 @@
     "study": {
         "custom_file": "custom_cascade_MUSICAA.py",
         "study_type": "cascade",
-        "ffd_type": "ffd_2d",
+        "ffd_type": "ffd_pod_2d",
         "file": "ogv1c.dat",
         "file_": "ogv1c_g0_c0.dat",
         "outdir": "output"
@@ -27,23 +27,31 @@
         "bound": [-0.2, 0.2],
         "QoI": "LossCoef",
         "budget": 1,
+        "hf_budget_infill": 2,
+        "hf_budget_doe": 1,
         "constraint": false
     },
+    "ffd": {
+        "pod_ncontrol": 4,
+        "ffd_dataset_size": 1000
+    },
     "simulator": {
-        "ref_input": "param.ini",
+        "ref_input": "cascade_musicaa_base.json",
+        "cp_list": ["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
+        "ref_input_num": "param.ini",
         "ref_input_mesh": "param_blocks.ini",
         "ref_input_rans": "param_rans.ini",
         "ref_input_feos": "feos_air.ini",
         "preprocess_cmd" : "/home/matar/bin/musicaa",
         "exec_cmd_" : "mpiexec -n 51 /home/matar/bin/musicaa",
-        "exec_cmd" : "python3 /home/matar/Codes/MUSICAA/Optimization_OGV/aero-optim/examples/LRN-CASCADE/cascade_musicaa_base/execute.py",
+        "exec_cmd" : "python3 /home/matar/Codes/MUSICAA/Optimization_OGV/aero-optim/examples/LRN-CASCADE/cascade_musicaa_base/execute.py -ms 2",
         "path_to_solver": ".",
-        "restart": 5,
+        "restart_musicaa": 3,
         "divide_CFL_by": 1.2,
 
         "convergence_criteria": {
-            "residual_convergence_order": 4,
-            "niter_stats_steady": 10000,
+            "residual_convergence_order": 0.2,
+            "niter_stats_steady": 1000,
             "Boudet_criterion_type": "mean",
             "nb_ftt_before_criterion": 1,
             "nb_ftt_mov_avg": 4,

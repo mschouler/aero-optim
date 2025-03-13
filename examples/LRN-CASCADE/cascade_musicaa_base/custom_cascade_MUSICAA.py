@@ -2,7 +2,6 @@ import logging
 import subprocess
 import os
 import numpy as np
-import shutil
 import scipy.interpolate as si
 import re
 import pandas as pd
@@ -300,7 +299,7 @@ def extract_measurement_line(sim_outdir: str,
     return data
 
 
-def line_interp(data: dict, var: str, lims: list[float], bl_list: list[int]) -> tuple:
+def line_interp(data: dict, var: str, lims: list[float], bl_list: list[int]) -> np.ndarray:
     """
     **Interpolates** data along a line defined by lims.
     """
@@ -444,26 +443,23 @@ class CustomMesh(MeshMusicaa):
         args.update({"Name for perturbed grid files": self.outfile})
 
         # modify param.ini
-        custom_input(self.config["simulator"]["ref_input"], args)
+        custom_input("param.ini", args)
 
         # execute MUSICAA to deform mesh
         os.chdir(self.dat_dir)
-        preprocess_cmd = self.config["simulator"]["preprocess_cmd"]
+        preprocess_cmd = self.config["simulator"]["preprocess_cmd"].split()
         out_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.out")
         err_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.err")
         with open(out_message, "wb") as out:
             with open(err_message, "wb") as err:
                 logger.info(f"deform mesh for {mesh_dir}")
-                proc = subprocess.Popen(preprocess_cmd,
-                                        env=os.environ,
-                                        stdin=subprocess.DEVNULL,
-                                        stdout=out,
-                                        stderr=err,
-                                        universal_newlines=True)
+                subprocess.run(preprocess_cmd,
+                               env=os.environ,
+                               stdin=subprocess.DEVNULL,
+                               stdout=out,
+                               stderr=err,
+                               universal_newlines=True)
         os.chdir(self.cwd)
-
-        # wait to finish
-        proc.communicate()
 
 
 # class CustomSimulator(Simulator):
@@ -528,14 +524,14 @@ class CustomSimulator(WolfSimulator):
         # simulator related
         self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
         self.restart: int = config["simulator"].get("restart", 0)
-        self.CFL: float = float(read_next_line_in_file(config["simulator"]["ref_input"], "CFL"))
+        self.CFL: float = float(read_next_line_in_file("param.ini", "CFL"))
         self.lower_CFL: float = self.CFL
-        self.ndeb_RANS: int = int(read_next_line_in_file(config["simulator"]["ref_input"],
+        self.ndeb_RANS: int = int(read_next_line_in_file("param.ini",
                                                          "ndeb_RANS"))
         self.nprint: int = int(re.findall(r'\b\d+\b',
-                                          read_next_line_in_file(config["simulator"]["ref_input"],
+                                          read_next_line_in_file("param.ini",
                                                                  "screen"))[0])
-        self.computation_type: str = read_next_line_in_file(config["simulator"]["ref_input"],
+        self.computation_type: str = read_next_line_in_file("param.ini",
                                                             "DES without subgrid")
         self.computation_type = "unsteady" if self.computation_type == "N" else "steady"
         # convergence criteria
@@ -658,10 +654,10 @@ class CustomSimulator(WolfSimulator):
         check_dir(sim_outdir)
 
         # copy files and executable to directory
-        shutil.copy(self.config["simulator"]["ref_input"], sim_outdir)
-        shutil.copy(self.config["simulator"]["ref_input_mesh"], sim_outdir)
-        logger.info((f"{self.config['simulator']['ref_input']} and "
-                     f"{self.config['simulator']['ref_input_mesh']} "
+        cp_filelist(self.config["simulator"]["cp_list"],
+                    [sim_outdir] * len(self.config["simulator"]["cp_list"]))
+        logger.info((f"param.ini and "
+                     f"param_blocks.ini "
                      f"copied to {sim_outdir}"))
 
         # modify solver input file: delete half-cell at block boundaries
@@ -676,30 +672,24 @@ class CustomSimulator(WolfSimulator):
         if self.computation_type == "steady":
             args.update({"Compute residuals": "T"})
         custom_input(os.path.join(sim_outdir,
-                                  self.config["simulator"]["ref_input"].split("/")[-1]), args)
-
-        # copy any other solver expected files
-        shutil.copy(self.config["simulator"]["ref_input_rans"], sim_outdir)
-        shutil.copy(self.config["simulator"]["ref_input_feos"], sim_outdir)
+                                  "param.ini"), args)
 
         # execute MUSICAA to delete half-cell
         os.chdir(sim_outdir)
-        preprocess_cmd = self.config["simulator"]["preprocess_cmd"]
+        preprocess_cmd = self.config["simulator"]["preprocess_cmd"].split()
         with open(f"{self.solver_name}_g{gid}_c{cid}_half-cell.out", "wb") as out:
             with open(f"{self.solver_name}_g{gid}_c{cid}_half-cell.err", "wb") as err:
                 logger.info(f"delete mesh half-cell for g{gid}, c{cid} with {self.solver_name}")
-                proc = subprocess.Popen(preprocess_cmd,
-                                        env=os.environ,
-                                        stdin=subprocess.DEVNULL,
-                                        stdout=out,
-                                        stderr=err,
-                                        universal_newlines=True)
-        # wait to finish
-        proc.communicate()
+                subprocess.run(preprocess_cmd,
+                               env=os.environ,
+                               stdin=subprocess.DEVNULL,
+                               stdout=out,
+                               stderr=err,
+                               universal_newlines=True)
 
         # modify solver input file: mode from_scratch
         args.update({"from_interp": "1"})
-        custom_input(self.config["simulator"]["ref_input"].split("/")[-1], args)
+        custom_input("param.ini", args)
         logger.info(f"changed execution mode to 1 in {sim_outdir}")
         os.chdir(self.cwd)
 
@@ -879,7 +869,7 @@ class CustomSimulator(WolfSimulator):
         **Returns** the extracted results in a dictionary of DataFrames.
 
         Note:
-            there are two QoIs: loss_ADP and loss_OP = 1/2(loss_OP1 + loss_OP2)
+            there are two oIoIs: loss_ADP and loss_OP = 1/2(loss_OP1 + loss_OP2)
             to be extracted from: sim_out_dir/ADP, sim_out_dir/OP1  and sim_out_dir/OP2
         """
         df_sub_dict: dict[str, pd.DataFrame] = {}
@@ -1664,7 +1654,7 @@ class CustomSimulator(WolfSimulator):
     #         # modify param.ini file
     #         args.update({"Implicit Residual Smoothing": "2"})
     #         args.update({"Residual smoothing parameter": "0.42 0.1 0.005 0.00025 0.0000125"})
-    #         is_SF = read_next_line_in_file(self.config["simulator"]["ref_input"],
+    #         is_SF = read_next_line_in_file("param.ini",
     #                                        ("Selective Filtering: is_SF"
     #                                        "[T:SF; F:artifical viscosity]"))
     #         if is_SF:
@@ -1680,14 +1670,14 @@ class CustomSimulator(WolfSimulator):
     #         args.update({"Switch of Edoh": "T"})
     #         args.update({"Shock sensor: Ducros sensor": "T 0.5"})
     #         custom_input(os.path.join(sim_outdir,
-    #                                   self.config["simulator"]["ref_input"].split("/")[-1]
+    #                                   "param.ini".split("/")[-1]
     #                                   ), args)
     #         # modify param_blocks.ini file: 3D->2D
     #         self.change_dimensions_param_blocks(sim_outdir)
     #     else:
     #         # copy original param.ini and param_blocks.ini files to directory
-    #         cp_filelist([self.config["simulator"]["ref_input"],
-    #                      self.config["simulator"]["ref_input_mesh"]], [sim_outdir] * 2)
+    #         cp_filelist(["param.ini",
+    #                      "param_blocks.ini"], [sim_outdir] * 2)
     #         # add location of grid files
     #         full_meshfile = meshfile if meshfile else self.config["simulator"]["file"]
     #         meshfile = full_meshfile.split("/")[-1]
@@ -1760,13 +1750,13 @@ class CustomSimulator(WolfSimulator):
     #     """
     #     # f.t.t = L_ref/u_ref
     #     feos_info = self.get_feos_info(sim_outdir)
-    #     Mach_ref = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+    #     Mach_ref = float(read_next_line_in_file("param.ini",
     #                                             "Reference Mach"))
-    #     T_ref = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+    #     T_ref = float(read_next_line_in_file("param.ini",
     #                                          "Reference temperature"))
     #     c_ref = np.sqrt(feos_info["Equivalent gamma"] * feos_info["Gas constant"] * T_ref)
     #     u_ref = c_ref * Mach_ref
-    #     Lgrid = float(read_next_line_in_file(self.config["simulator"]["ref_input"],
+    #     Lgrid = float(read_next_line_in_file("param.ini",
     #                                          "Scaling value for the grid Lgrid"))
     #     L_ref = self.config["plot3D"]["mesh"]["chord_length"]
     #     if Lgrid != 0:
@@ -1978,12 +1968,12 @@ class CustomOptimizer(PymooWolfOptimizer):
         # loop over candidates through the last generated profiles
         for cid in self.feasible_cid[gid]:
             ax1.plot(profiles[cid][:, 0], profiles[cid][:, 1], color=colors[cid], label=f"c{cid}")
-            res_dict[cid]["ADP"][df_key[1]].plot(ax=ax2, color=colors[cid], label=f"c{cid}")
-            vsize = min(len(res_dict[cid]["OP1"][df_key[1]]), len(res_dict[cid]["OP2"][df_key[1]]))
+            res_dict[cid]["ADP"][df_key[0]].plot(ax=ax2, color=colors[cid], label=f"c{cid}")
+            vsize = min(len(res_dict[cid]["OP1"][df_key[0]]), len(res_dict[cid]["OP2"][df_key[0]]))
             ax3.plot(
                 range(vsize),
-                0.5 * (res_dict[cid]["OP1"][df_key[1]].values[-vsize:]
-                       + res_dict[cid]["OP2"][df_key[1]].values[-vsize:]),
+                0.5 * (res_dict[cid]["OP1"][df_key[0]].values[-vsize:]
+                       + res_dict[cid]["OP2"][df_key[0]].values[-vsize:]),
                 color=colors[cid],
                 label=f"c{cid}"
             )
@@ -2000,11 +1990,11 @@ class CustomOptimizer(PymooWolfOptimizer):
         ax1.set_xlabel('x')
         ax1.set_ylabel('y')
         # bottom left
-        ax2.set_title(f"{df_key[1]} ADP", weight="bold")
+        ax2.set_title(f"{df_key[0]} ADP", weight="bold")
         ax2.set_xlabel('it. #')
         ax2.set_ylabel('$w_\\text{ADP}$')
         # bottom center
-        ax3.set_title(f"{df_key[1]} OP", weight="bold")
+        ax3.set_title(f"{df_key[0]} OP", weight="bold")
         ax3.set_xlabel('it. #')
         ax3.set_ylabel('$w_\\text{OP}$')
         # bottom right

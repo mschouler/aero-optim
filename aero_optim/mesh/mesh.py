@@ -111,7 +111,7 @@ def get_block_info(dat_dir: str) -> dict:
                             # frequency is prescribed in param.ini
                             freq = int(read_next_line_in_file(
                                 os.path.join(dat_dir, "param.ini"),
-                                "Snapshot frequencies")[param_freq])
+                                "Snapshot frequencies").split()[param_freq])
                         block_info[f"block_{bl}"][f"{snap_type}_{snap}"] = {}
                         block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nx1"] = nx1
                         block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nx2"] = nx2

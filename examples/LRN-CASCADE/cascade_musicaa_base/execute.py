@@ -1,3 +1,4 @@
+import argparse
 import logging
 import subprocess
 import functools
@@ -9,6 +10,8 @@ import re
 import pandas as pd
 import json
 from typing import Callable
+import threading
+import time
 
 from aero_optim.mesh.mesh import get_block_info
 from custom_cascade_MUSICAA import get_time_info, get_niter_ftt
@@ -18,78 +21,86 @@ from aero_optim.utils import (cp_filelist, round_number, rm_filelist,
 FAILURE: int = 1
 SUCCESS: int = 0
 
-MUSICAA: str = "mpiexec -n 51 /home/matar/bin/musicaa"
+MUSICAA: str = "mpiexec -n 45 /home/matar/bin/musicaa"
+
+LOCK: threading.Lock = threading.Lock()
 
 print = functools.partial(print, flush=True)
 
 logger = logging.getLogger(__name__)
 
 
-def execute_steady(config: dict):
+def execute_steady(config: dict, sim_outdir: str):
     """
     **Executes** a Reynolds-Averaged Navier-Stokes simulation with MUSICAA.
     """
 
     # execute computation
     config.update({"is_stats": False})
-    proc = execute(MUSICAA)
-    monitor_sim_progress(proc, config, "steady")
+    proc = execute(MUSICAA, sim_outdir)
+    monitor_sim_progress(proc, config, sim_outdir, "steady")
 
     # gather statistics
     config.update({"is_stats": True})
-    pre_process_stats(config, "steady")
-    proc = execute(MUSICAA)
-    monitor_sim_progress(proc, config, "steady")
+    pre_process_stats(config, sim_outdir, "steady")
+    proc = execute(MUSICAA, sim_outdir)
+    monitor_sim_progress(proc, config, sim_outdir, "steady")
 
 
-def execute_unsteady(config: dict):
+def execute_unsteady(config: dict, sim_outdir: str):
     """
     **Executes** a Large Eddy Simulation with MUSICAA.
     """
 
     # initialize LES with a fully developed 2D field
     config.update({"is_stats": False})
-    pre_process_init_unsteady("2D")
-    proc = execute(MUSICAA)
-    monitor_sim_progress(proc, config, "unsteady", "init_2D")
+    pre_process_init_unsteady("2D", sim_outdir)
+    proc = execute(MUSICAA, sim_outdir)
+    monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_2D")
 
     # carry on with 3D transient
-    pre_process_init_unsteady("3D")
-    proc = execute(MUSICAA)
-    monitor_sim_progress(proc, config, "unsteady", "init_3D")
+    pre_process_init_unsteady("3D", sim_outdir)
+    proc = execute(MUSICAA, sim_outdir)
+    monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_3D")
 
     # gather statistics
     config.update({"is_stats": True})
-    pre_process_stats(config, "unsteady")
-    proc = execute(MUSICAA)
-    monitor_sim_progress(proc, config, "unsteady")
+    pre_process_stats(config, sim_outdir, "unsteady")
+    proc = execute(MUSICAA, sim_outdir)
+    monitor_sim_progress(proc, config, sim_outdir, "unsteady")
 
 
-def execute(exec_cmd: str):
+def execute(exec_cmd: str, sim_outdir: str):
     """
     **Pre-processes** and **Executes** a simulation with musicaa.
     """
     # submit computation
-    with open("musicaa.out", "wb") as out:
-        with open("musicaa.err", "wb") as err:
+    with open(os.path.join(sim_outdir, "musicaa.out"), "wb") as out:
+        with open(os.path.join(sim_outdir, "musicaa.err"), "wb") as err:
+            LOCK.acquire()
+            cwd = os.getcwd()
+            os.chdir(sim_outdir)
             proc = subprocess.Popen(exec_cmd.split(),
                                     env=os.environ,
                                     stdin=subprocess.DEVNULL,
                                     stdout=out,
                                     stderr=err,
                                     universal_newlines=True)
+            os.chdir(cwd)
+            LOCK.release()
     return proc
 
 
 def monitor_sim_progress(proc: subprocess.Popen,
                          config: dict,
+                         sim_outdir: str,
                          computation_type: str,
                          unsteady_step: str = ""):
     """
     **Monitors** a simulation.
     """
     # get simulation arguments
-    restart = config["simulator"].get("restart", 5)
+    restart = config["simulator"].get("restart_musicaa", 1)
     divide_CFL_by = config["simulator"].get("divide_CFL_by", 1.2)
     if unsteady_step == "init_2D":
         max_niter = config["simulator"].get("max_niter_init_2D", 200000)
@@ -106,9 +117,9 @@ def monitor_sim_progress(proc: subprocess.Popen,
         returncode = proc.poll()
         # computation still running
         if returncode is None:
-            converged, niter = check_convergence(config, computation_type)
+            converged, niter = check_convergence(config, sim_outdir, computation_type)
             if converged or niter >= max_niter:
-                stop_MUSICAA("./")
+                stop_MUSICAA(sim_outdir)
                 if computation_type == "steady":
                     config.update({"max_niter_steady_reached": True})
                 del config["n_convergence_check"]
@@ -117,13 +128,16 @@ def monitor_sim_progress(proc: subprocess.Popen,
         elif returncode > 0:
             if current_restart < restart:
                 # reduce CFL
-                CFL = float(read_next_line_in_file("param.ini", "CFL"))
+                param_ini = os.path.join(sim_outdir, "param.ini")
+                CFL = float(read_next_line_in_file(param_ini, "CFL"))
                 lower_CFL = CFL / divide_CFL_by
                 logger.error((f"ERROR -- init_unsteady_2D crashed with CFL={CFL} "
                               f"and will be restarted with lower CFL="
                               f"{lower_CFL}"))
-                rm_filelist(["plane*"])
-                proc = execute(MUSICAA)
+                custom_input(param_ini, {"CFL": lower_CFL})
+                # clean directory
+                rm_filelist(["plane*", "line*", "point*", "restart*"])
+                proc = execute(MUSICAA, sim_outdir)
             else:
                 raise Exception(f"ERROR -- {computation_type} simulation crashed")
 
@@ -237,7 +251,7 @@ def get_residuals(sim_outdir: str, nprint: int, ndeb_RANS: int) -> dict:
     return res
 
 
-def check_residuals(config: dict) -> tuple[bool, int]:
+def check_residuals(config: dict, sim_outdir: str) -> tuple[bool, int]:
     """
     **Returns** True if residual convergence criterion is met. If so,
     the iteration at which statistics are started is returned, otherwise
@@ -248,16 +262,17 @@ def check_residuals(config: dict) -> tuple[bool, int]:
     residual_convergence_order = convergence_criteria.get("residual_convergence_order", 4)
     if config["is_stats"]:
         return False, 0
+    param_ini = os.path.join(sim_outdir, "param.ini")
     nprint = int(re.findall(r'\b\d+\b',
-                            read_next_line_in_file("param.ini",
+                            read_next_line_in_file(param_ini,
                                                    "screen"))[0])
-    ndeb_RANS = int(read_next_line_in_file("param.ini", "ndeb_RANS"))
+    ndeb_RANS = int(read_next_line_in_file(param_ini, "ndeb_RANS"))
     if "n_convergence_check" not in config.keys():
         config.update({"n_convergence_check": 1})
 
     # if residuals.bin file exists
     try:
-        res = get_residuals("./", nprint, ndeb_RANS)
+        res = get_residuals(sim_outdir, nprint, ndeb_RANS)
         unwanted = ["nn"]
         # if file not empty
         try:
@@ -278,6 +293,8 @@ def check_residuals(config: dict) -> tuple[bool, int]:
             nvars_converged = 0
             res_max = []
             for var in set(res) - set(unwanted):
+                if not res[var]:
+                    return False, niter
                 res_max.append(max(res[var]) - min(res[var]))
                 if max(res[var]) - min(res[var]) > residual_convergence_order:
                     nvars_converged += 1
@@ -299,35 +316,35 @@ def check_residuals(config: dict) -> tuple[bool, int]:
         return False, 0
 
 
-def check_unsteady_crit(config: dict) -> tuple[bool, int]:
+def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
     """
     **Returns** (True, iteration) if unsteady ending criterion
     (either transient or stats) is met.
     """
     # get simulation args
-    convergence_criteria = config["simulator"]["convergence_criteria"]
+    convergence_criteria: dict = config["simulator"]["convergence_criteria"]
     nb_ftt_before_criterion = convergence_criteria["nb_ftt_before_criterion"]
-    block_info = get_block_info("./")
+    block_info = get_block_info(sim_outdir)
     try:
         # read the first sensor to get current iteration
-        sensors = get_sensors("./", block_info, just_get_niter=True)
+        sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
     except FileNotFoundError:
         # computation not started
         return False, 0
 
     # proceed if this criterion has not already been checked
-    niter_ftt = get_niter_ftt("./", config["plot3D"]["mesh"]["chord_length"])
+    niter_ftt = get_niter_ftt(sim_outdir, config["plot3D"]["mesh"]["chord_length"])
     try:
         if sensors["niter"] // niter_ftt >= config["n_convergence_check"]:
             if config["is_stats"]:
                 # check if QoIs have converged
                 config["n_convergence_check"] += 1
-                return QoI_convergence("./", config, block_info), sensors["niter"]
+                return QoI_convergence(sim_outdir, config, block_info), sensors["niter"]
             else:
                 # check if unsteady criteria are met
                 if sensors["niter"] // niter_ftt >= nb_ftt_before_criterion:
                     config["n_convergence_check"] += 1
-                    return unsteady_crit("./", config, block_info, niter_ftt)
+                    return unsteady_crit(sim_outdir, config, block_info, niter_ftt)
 
     except KeyError:
         if config["is_stats"]:
@@ -350,7 +367,7 @@ def QoI_convergence(sim_outdir: str,
     QoIs_convergence_order = convergence_criteria["QoIs_convergence_order"]
 
     # compute QoIs and save to file
-    new_QoIs_df = compute_QoIs(config)
+    new_QoIs_df = compute_QoIs(config, sim_outdir)
     filename = os.path.join(sim_outdir, "QoI_convergence.csv")
     if config["n_convergence_check"] == 1:
         # first time computing the QoIs (need at least 2 steps to compute residual)
@@ -458,21 +475,22 @@ def unsteady_crit(sim_outdir: str,
         return False, sensors["niter"]
 
 
-def compute_QoIs(config: dict) -> pd.DataFrame:
+def compute_QoIs(config: dict, sim_outdir: str) -> pd.DataFrame:
     """
     **Returns** the QoIs during computation in a DataFrame.
     """
     qty_list: list[list[float]] = []
     head_list: list[str] = []
+    post_process_args: list[str] = config["simulator"]["post_process"]
     # loop over the post-processing arguments to extract from the results
-    for qty in config["post_process"]["outputs"]:
+    for qty in post_process_args["outputs"]:
         # check if the method for computing qty exists
         try:
             # get arguments
             get_args: Callable = globals()[f"args_{qty}"]
-            args = get_args("./", config)
+            args = get_args(sim_outdir, config)
             get_value: Callable = globals()[qty]
-            value = get_value("./", args)
+            value = get_value(sim_outdir, args)
         except AttributeError:
             raise Exception(f"ERROR -- method for computing {qty} does not exist")
         try:
@@ -657,18 +675,19 @@ def compute_stats_crit(config: dict, sensor: np.ndarray) -> float:
 
 
 def check_convergence(config: dict,
+                      sim_outdir: str,
                       computation_type: str) -> tuple[bool, int]:
     """
     **Returns** True if MUSICAA computation convergence criterion is met. If so,
     returns current iteration number to start statistics.
     """
     if computation_type == "steady":
-        return check_residuals(config)
+        return check_residuals(config, sim_outdir)
     else:
-        return check_unsteady_crit(config)
+        return check_unsteady_crit(config, sim_outdir)
 
 
-def pre_process_stats(config: dict, computation_type: str):
+def pre_process_stats(config: dict, sim_outdir: str, computation_type: str):
     """
     **Pre-processes** computation for statistics.
     """
@@ -676,13 +695,14 @@ def pre_process_stats(config: dict, computation_type: str):
     convergence_criteria = config["simulator"]["convergence_criteria"]
 
     # get current iteration from time.ini
-    time_info = get_time_info("./")
+    time_info = get_time_info(sim_outdir)
     ndeb_stats = time_info["niter_total"]
 
     # modify param.ini file
     args = {}
     args.update({"from_field": "2"})
     args.update({"Iteration number to start statistics": f"{ndeb_stats + 1}"})
+    param_ini = os.path.join(sim_outdir, "param.ini")
     if computation_type == "steady":
         # if steady computation did not fully converge
         if config["max_niter_steady_reached"]:
@@ -692,22 +712,22 @@ def pre_process_stats(config: dict, computation_type: str):
     elif computation_type == "unsteady":
         niter_stats = 999999
         # add frequency for QoI convergence check: will ask MUSICAA to output stats files
-        niter_ftt = get_niter_ftt("./", config["plot3D"]["mesh"]["chord_length"])
-        freqs = read_next_line_in_file("param.ini",
+        niter_ftt = get_niter_ftt(sim_outdir, config["plot3D"]["mesh"]["chord_length"])
+        freqs = read_next_line_in_file(param_ini,
                                        "Output frequencies: screen / stats / fields")
         freqs = freqs.split()
         args.update({"Output frequencies: screen / stats / fields":
                      f"{freqs[0]} {freqs[1]} {niter_ftt}"})
     args.update({"Max number of temporal iterations": f"{niter_stats} 3000.0"})
-    custom_input("param.ini", args)
+    custom_input(param_ini, args)
 
 
-def change_dimensions_param_blocks():
+def change_dimensions_param_blocks(sim_outdir: str):
     """
     **Modifies** the param_blocks.ini file of a given simulation to 2D.
     """
     # file and block info
-    block_info = get_block_info("./")
+    block_info = get_block_info(sim_outdir)
     nbl = block_info["nbl"]
 
     with open("param_blocks.ini", "r") as f:
@@ -757,20 +777,24 @@ def change_dimensions_param_blocks():
         f.writelines(filedata)
 
 
-def pre_process_init_unsteady(dimension: str):
+def pre_process_init_unsteady(sim_outdir: str, dimension: str):
     """
     **Pre-processes** unsteady computation to initialize with 2D or 3D simulation.
     """
     args = {}
+    param_ini = os.path.join(sim_outdir, "param.ini")
+    param_blocks_ini = os.path.join(sim_outdir, "param_blocks.ini")
+    param_ini_3D = os.path.join(sim_outdir, "param.ini_3D")
+    param_blocks_ini_3D = os.path.join(sim_outdir, "param_blocks.ini_3D")
     if dimension == "2D":
         # save inputs to temporary files
-        cp_filelist(["param.ini", "param_blocks.ini"],
-                    ["param.ini_3D", "param_blocks.ini_3D"])
+        cp_filelist([param_ini, param_blocks_ini],
+                    [param_ini_3D, param_blocks_ini_3D])
         # modify param.ini file
         args.update({"Implicit Residual Smoothing": "2"})
         args.update({"Residual smoothing parameter": "0.42 0.1 0.005 0.00025 0.0000125"})
-        is_SF = read_next_line_in_file("param.ini", ("Selective Filtering: is_SF"
-                                                     "[T:SF; F:artifical viscosity]"))
+        is_SF = read_next_line_in_file(param_ini, ("Selective Filtering: is_SF"
+                                                   "[T:SF; F:artifical viscosity]"))
         if is_SF:
             coeff = 0.2
             coeff_shock = 0.2
@@ -783,16 +807,16 @@ def pre_process_init_unsteady(dimension: str):
                      f"T {coeff_shock}"})
         args.update({"Switch of Edoh": "T"})
         args.update({"Shock sensor: Ducros sensor": "T 0.5"})
-        custom_input("param.ini", args)
+        custom_input(param_ini, args)
         # modify param_blocks.ini file: 3D->2D
-        change_dimensions_param_blocks()
+        change_dimensions_param_blocks(sim_outdir)
     else:
         # recover original input files
-        cp_filelist(["param.ini_3D", "param_blocks.ini_3D"],
-                    ["param.ini", "param_blocks.ini"])
+        cp_filelist([param_ini_3D, param_blocks_ini_3D],
+                    [param_ini, param_blocks_ini])
         # change to restart
         args.update({"from_interp": "2"})
-        custom_input("param.ini", args)
+        custom_input(param_ini, args)
 
 
 def get_residual(res_file: str = "residual.dat", entry: int = -2) -> float:
@@ -801,12 +825,48 @@ def get_residual(res_file: str = "residual.dat", entry: int = -2) -> float:
     return float(res_list[entry])
 
 
-def get_turbocoef(res_file: str = "turbocoef.dat") -> list[float]:
-    # Iter (0) CPU (1)  DebitIn (2)  DebitOut (3)  DebitRat (4)  PreTotIn (5)  PreTotOut (6)
-    # PreTotRat (7) TemTotIn (8) TemTotOut (9) TemTotRat (10) IsentropicEff (11) LossCoef (12)
-    # HeatFlux (13) TempCoef (14)
-    res_line = open(res_file, "r").read().splitlines()[-1]
-    return list(map(float, res_line.split()))
+def submit_process(name: str, exec_cmd: list[str]) -> subprocess.Popen[str]:
+    """
+    **Submits** exec_cmd and **returns** the corresponding process.
+    """
+    with open(f"{name}.out", "wb") as out:
+        with open(f"{name}.err", "wb") as err:
+            print(f"INFO -- execute {name}")
+            proc = subprocess.Popen(exec_cmd,
+                                    env=os.environ,
+                                    stdin=subprocess.DEVNULL,
+                                    stdout=out,
+                                    stderr=err,
+                                    universal_newlines=True)
+    return proc
+
+
+def monitor_returncode(l_proc: list[subprocess.Popen[str]]) -> int:
+    """
+    **Checks** the state of the processes and **returns** the number of living ones.
+    """
+    finished_sim = []
+    for id, p_id in enumerate(l_proc):
+        returncode = p_id.poll()
+        if returncode is None:
+            pass  # simulation still running
+        elif returncode == 0:
+            print(f"INFO -- simulation {p_id} finished")
+            finished_sim.append(id)
+        else:
+            print("ERROR -- one process failed, all simulations will be killed")
+            for p in l_proc:
+                p.terminate()
+            raise Exception(f"ERROR -- simulation {p_id} failed")
+    return len([p_id for id, p_id in enumerate(l_proc) if id not in finished_sim])
+
+
+def wait_for_it(l_proc: list[subprocess.Popen[str]], nmax: int):
+    """
+    **Waits** until at lest one processes finishes.
+    """
+    while monitor_returncode(l_proc) >= nmax:
+        time.sleep(1)
 
 
 def main() -> int:
@@ -814,7 +874,14 @@ def main() -> int:
     This program runs a WOLF CFD simulation at ADP.
     In multisimulation mode, OP1 (+5°) and OP2 (-5°) simulations are also executed.
     """
-    cwd = os.getcwd()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-ms", type=int, help="number of parallel simulations", default=-1)
+    parser.add_argument("-adp", action="store_true", help="simulate ADP")
+    parser.add_argument("-op1", action="store_true", help="simulate OP1")
+    parser.add_argument("-op2", action="store_true", help="simulate OP2")
+
+    args_parse = parser.parse_args()
+    # cwd = os.getcwd()
 
     # read config file
     with open("config.json") as jfile:
@@ -825,61 +892,89 @@ def main() -> int:
     computation_type = "unsteady" if computation_type == "N" else "steady"
     execute_computation: Callable = globals()[f"execute_{computation_type}"]
 
-    print("** ADP SIMULATION **")
-    print("** -------------- **")
-    sim_dir = "ADP"
-    shutil.rmtree(sim_dir, ignore_errors=True)
-    os.mkdir(sim_dir)
-    args = {}
-    # add simulation files
-    cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
-                [sim_dir] * 4)
-    os.chdir(sim_dir)
-    # specify path for mesh files
-    old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
-    dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
-    args.update({"Directory for grid files": dir_grid})
-    custom_input("param.ini", args)
-    # execute computation
-    sim_pro = []
-    config_ADP = config.copy()
-    sim_pro.append(execute_computation(config_ADP))
+    if args_parse.ms > 0:
+        # tracking variables
+        l_proc = []
+        # process cmd line
+        exec_args = sys.argv
+        ms_idx = exec_args.index("-ms")
+        del exec_args[ms_idx + 1]
+        del exec_args[ms_idx]
+        # adp
+        exec_cmd = [sys.executable] + exec_args + ["-adp"]
+        l_proc.append(submit_process("ADP", exec_cmd))
+        # op1
+        exec_cmd = [sys.executable] + exec_args + ["-op1"]
+        if monitor_returncode(l_proc) < args_parse.ms:
+            l_proc.append(submit_process("OP1", exec_cmd))
+        else:
+            wait_for_it(l_proc, args_parse.ms)
+            l_proc.append(submit_process("OP1", exec_cmd))
+        # op2
+        exec_cmd = [sys.executable] + exec_args + ["-op2"]
+        if monitor_returncode(l_proc) < args_parse.ms:
+            l_proc.append(submit_process("OP2", exec_cmd))
+        else:
+            wait_for_it(l_proc, args_parse.ms)
+            l_proc.append(submit_process("OP2", exec_cmd))
+        # wait for all processes to finish
+        wait_for_it(l_proc, 1)
 
-    # try:
-    #     execute_LES()
-    #     turbocoef = get_turbocoef()
-    #     print(f">> residual : {get_residual()}")
-    #     print(f">> debit ratio: {turbocoef[4]}")
-    #     print(f">> total pressure ratio: {turbocoef[7]}")
-    #     print(f">> total temperature ratio: {turbocoef[10]}")
-    #     print(f">> isentropic efficiency: {turbocoef[11]}")
-    #     print(f">> loss coefficient: {turbocoef[12]}\n")
-    # except CalledProcessError:
-    #     print(f">> ADP failed after {time.time() - t0} seconds.")
-    #     return FAILURE
-    # print(f">> ADP finished successfully in {time.time() - t0} seconds.\n")
+    if args_parse.adp:
+        print("** ADP SIMULATION **")
+        print("** -------------- **")
+        sim_dir = "ADP"
+        shutil.rmtree(sim_dir, ignore_errors=True)
+        os.mkdir(sim_dir)
+        args = {}
+        # add simulation files
+        cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
+                    [sim_dir] * 4)
+        # os.chdir(sim_dir)
+        # specify path for mesh files
+        old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
+        dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
+        args.update({"Directory for grid files": dir_grid})
+        param_ini = os.path.join(sim_dir, "param.ini")
+        custom_input(param_ini, args)
+        # execute computation
+        # ongoing_sims = 0
+        config_ADP = config.copy()
+        execute_computation(config_ADP, sim_dir)
+        # ADP_thread = threading.Thread(target=execute_computation, args=[config_ADP, sim_dir])
+        # ADP_thread.start()
+        # ongoing_sims += 1
+        # os.chdir(cwd)
 
-    os.chdir(cwd)
-    print("** OP1 SIMULATION (+5 deg.) **")
-    print("** ------------------------ **")
-    sim_dir = "OP1"
-    os.mkdir(sim_dir)
-    # add simulation files
-    cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
-                [sim_dir] * 4)
-    os.chdir(sim_dir)
-    args = {}
-    # specify path for mesh files
-    old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
-    dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
-    args.update({"Directory for grid files": dir_grid})
-    # change flow angle
-    args.update({"Flow angles": "48. 0."})
-    custom_input("param.ini", args)
-
-    # EXECUTE 2nd LES
-    config_OP1 = config.copy()
-    sim_pro.append(execute_computation(config_OP1))
+    if args_parse.op1:
+        print("** OP1 SIMULATION (+5 deg.) **")
+        print("** ------------------------ **")
+        sim_dir = "OP1"
+        os.mkdir(sim_dir)
+        # add simulation files
+        # LOCK.acquire()
+        cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
+                    [sim_dir] * 4)
+        # os.chdir(sim_dir)
+        args = {}
+        # specify path for mesh files
+        old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
+        dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
+        args.update({"Directory for grid files": dir_grid})
+        # change flow angle
+        args.update({"Flow angles": "48. 0."})
+        param_ini = os.path.join(sim_dir, "param.ini")
+        custom_input(param_ini, args)
+        # LOCK.release()
+        # execute computation
+        config_OP1 = config.copy()
+        execute_computation(config_OP1, sim_dir)
+        # OP1_thread = threading.Thread(target=execute_computation, args=[config_OP1, sim_dir])
+        # if ongoing_sims >= args_parse.ms:
+        #     ADP_thread.join()
+        #     ongoing_sims -= 1
+        # OP1_thread.start()
+        # ongoing_sims += 1
 
     # try:
     #     run(musicaa_cmd, "musicaa.job")
@@ -895,27 +990,36 @@ def main() -> int:
     #     return FAILURE
     # print(f">> OP1 finished successfully in {time.time() - t0} seconds.\n")
 
-    os.chdir(cwd)
-    print("** OP2 SIMULATION (-5 deg.) **")
-    print("** ------------------------ **")
-    sim_dir = "OP2"
-    os.mkdir(sim_dir)
-    # add simulation files
-    cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
-                [sim_dir] * 4)
-    os.chdir(sim_dir)
-    args = {}
-    # specify path for mesh files
-    old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
-    dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
-    args.update({"Directory for grid files": dir_grid})
-    # change flow angle
-    args.update({"Flow angles": "38. 0."})
-    custom_input("param.ini", args)
-
-    # EXECUTE 2nd LES
-    config_OP2 = config.copy()
-    sim_pro.append(execute_computation(config_OP2))
+    # os.chdir(cwd)
+    if args_parse.op2:
+        print("** OP2 SIMULATION (-5 deg.) **")
+        print("** ------------------------ **")
+        sim_dir = "OP2"
+        os.mkdir(sim_dir)
+        # add simulation files
+        # LOCK.acquire()
+        cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
+                    [sim_dir] * 4)
+        # os.chdir(sim_dir)
+        args = {}
+        # specify path for mesh files
+        old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
+        dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
+        args.update({"Directory for grid files": dir_grid})
+        # change flow angle
+        args.update({"Flow angles": "38. 0."})
+        param_ini = os.path.join(sim_dir, "param.ini")
+        custom_input(param_ini, args)
+        # LOCK.release()
+        # execute computation
+        config_OP2 = config.copy()
+        execute_computation(config_OP2, sim_dir)
+        # OP2_thread = threading.Thread(target=execute_computation, args=[config_OP2, sim_dir])
+        # if ongoing_sims >= args_parse.ms:
+        #     OP1_thread.join()
+        #     ongoing_sims -= 1
+        # OP2_thread.start()
+        # ongoing_sims += 1
 
     # try:
     #     run(musicaa_cmd, "musicaa.job")
@@ -930,6 +1034,11 @@ def main() -> int:
     #     print(f">> OP2 failed after {time.time() - t0} seconds.")
     #     return FAILURE
     # print(f">> OP2 finished successfully in {time.time() - t0} seconds.")
+
+    # # wait for all computations to end
+    # ADP_thread.join()
+    # OP1_thread.join()
+    # OP2_thread.join()
 
     return SUCCESS
 
