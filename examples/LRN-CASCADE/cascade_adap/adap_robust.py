@@ -3,12 +3,12 @@ import functools
 import math
 import os
 import shutil
-import subprocess
 import sys
 import time
 
 from subprocess import CalledProcessError, TimeoutExpired
-from aero_optim.utils import cp_filelist, ln_filelist, mv_filelist, rm_filelist, run, sed_in_file
+from aero_optim.utils import (cp_filelist, ln_filelist, mv_filelist, rm_filelist, run, sed_in_file,
+                              submit_popen_process, wait_for_it)
 
 FAILURE: int = 1
 SUCCESS: int = 0
@@ -496,52 +496,6 @@ def robust_execution(
     return exit_status
 
 
-def submit_process(name: str, exec_cmd: list[str]) -> subprocess.Popen[str]:
-    """
-    **Submits** exec_cmd and **returns** the corresponding process.
-    """
-    with open(f"{name}.out", "wb") as out:
-        with open(f"{name}.err", "wb") as err:
-            print(f"INFO -- execute {name}")
-            proc = subprocess.Popen(exec_cmd,
-                                    env=os.environ,
-                                    stdin=subprocess.DEVNULL,
-                                    stdout=out,
-                                    stderr=err,
-                                    universal_newlines=True)
-    return proc
-
-
-def monitor_returncode(l_proc: list[subprocess.Popen[str]]) -> int:
-    """
-    **Checks** the state of the processes and **returns** the number of living ones.
-    """
-    finished_sim = []
-    for id, p_id in enumerate(l_proc):
-        returncode = p_id.poll()
-        if returncode is None:
-            pass  # simulation still running
-        elif returncode == 0:
-            print(f"INFO -- simulation {p_id} finished")
-            finished_sim.append(id)
-            break
-        else:
-            print("ERROR -- one process failed, all simulations will be killed")
-            for p in l_proc:
-                p.terminate()
-            raise Exception(f"ERROR -- simulation {p_id} failed")
-    return len([p_id for id, p_id in enumerate(l_proc) if id not in finished_sim])
-
-
-def wait_for_it(l_proc: list[subprocess.Popen[str]]):
-    """
-    **Waits** until at lest one processes finishes.
-    """
-    n_proc = len(l_proc)
-    while monitor_returncode(l_proc) >= n_proc:
-        time.sleep(1)
-
-
 def main() -> int:
     """
     This program runs a CFD simulation with mesh adaptation i.e. coupling WOLF, METRIX and FEFLO.
@@ -580,23 +534,23 @@ def main() -> int:
         del exec_args[ms_idx]
         # adp
         exec_cmd = [sys.executable] + exec_args + ["-adp"]
-        l_proc.append(submit_process("ADP", exec_cmd))
+        l_proc.append(submit_popen_process("ADP", exec_cmd))
         # op1
         exec_cmd = [sys.executable] + exec_args + ["-op1"]
         if len(l_proc) < args.ms:
-            l_proc.append(submit_process("OP1", exec_cmd))
+            l_proc.append(submit_popen_process("OP1", exec_cmd))
         else:
-            wait_for_it(l_proc)
-            l_proc.append(submit_process("OP1", exec_cmd))
+            wait_for_it(l_proc, args.ms)
+            l_proc.append(submit_popen_process("OP1", exec_cmd))
         # op2
         exec_cmd = [sys.executable] + exec_args + ["-op2"]
         if len(l_proc) < args.ms:
-            l_proc.append(submit_process("OP2", exec_cmd))
+            l_proc.append(submit_popen_process("OP2", exec_cmd))
         else:
-            wait_for_it(l_proc)
-            l_proc.append(submit_process("OP2", exec_cmd))
+            wait_for_it(l_proc, args.ms)
+            l_proc.append(submit_popen_process("OP2", exec_cmd))
         # wait for all processes to finish
-        wait_for_it(l_proc)
+        wait_for_it(l_proc, 1)
 
     if args.adp:
         print("** ADP SIMULATION **")
