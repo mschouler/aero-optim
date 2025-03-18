@@ -19,13 +19,12 @@ logger = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
-def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray,
+def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], Delta: np.ndarray,
                  outdir: str, in_lat: bool = False):
     """
     Plots various generated elements in the lattice or original referential.
     """
     # change of referential if necessary
-    delta = ffd.pad_Delta(delta)
     pts = ffd.lat_pts if in_lat else ffd.pts
     profiles = [ffd.to_lat(pro) for pro in profiles] if in_lat else profiles
     x1 = ffd.to_lat(ffd.x1) if in_lat else ffd.x1
@@ -34,51 +33,45 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], delta: np.ndarray,
     # Figure
     fsize = (6, 6) if in_lat else (12, 4)
     _, ax = plt.subplots(figsize=fsize)
-    ax.plot(pts[:, 0], pts[:, 1], label="naca profile")
+    ax.plot(pts[:, 0], pts[:, 1], c="k", label="baseline profile")
+    # colors
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     # plot profiles
     for pid, pro in enumerate(profiles):
-        ax.plot(pro[:, 0], pro[:, 1], linestyle='dashed', label=f"Pid-{pid}")
+        ax.plot(pro[:, 0], pro[:, 1], linestyle='dashed', c=colors[pid], label=f"Pid-{pid}")
     # plot lattice grid
     ax.add_patch(patches.Rectangle((x1[0], x1[1]), width, height, angle=0.0,
                  linewidth=2, edgecolor="r", facecolor="none", label="lattice"))
     # plot deformed points
-    if in_lat:
-        [ax.scatter(([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
-                    ([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1], c="k")
-            for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
-        [ax.annotate(f"$P_{{{i}{j}}} + D_{{{i}{j}}}$",
-                     (([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
-                      ([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
-            for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
-        ax.set(xlabel="X", ylabel="Y", title="FFD representation in lattice ref.")
-    else:
-        [ax.scatter(ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
-                    ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1],
-                    c="k") for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
-        [ax.annotate(f"$P_{{{i}{j}}} + D_{{{i}{j}}}$",
-                     (ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
-                      ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
-            for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
-        ax.set(xlabel="X", ylabel="Y", title="FFD representation in original ref.")
+    for did, delta in enumerate(Delta):
+        delta = ffd.pad_Delta(delta)
+        if in_lat:
+            [ax.scatter(([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
+                        ([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1], c=colors[did])
+                for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
+            [ax.annotate(f"$P_{{{i}{j}}} + D_{{{i}{j}}}$",
+                         (([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
+                         ([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
+                for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
+            # black edges
+            [ax.scatter(*np.array([i, j]), c="k") for i in range(2) for j in range(2)]
+            ax.set(xlabel="$x$ [-]", ylabel="$y$ [-]", title="FFD representation in lattice ref.")
+        else:
+            [ax.scatter(ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
+                        ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1],
+                        c=colors[did]) for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
+            [ax.annotate(f"$P_{{{i}{j}}} + D_{{{i}{j}}}$",
+                         (ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
+                         ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
+                for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
+            # black edges
+            ax.set(xlabel="$x$ [m]", ylabel="$y$ [m]", title="FFD representation in original ref.")
+            [ax.scatter(*ffd.from_lat(np.array([i, j])), c="k") for i in range(2) for j in range(2)]
     # legend and display
-    ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+    ax.legend(loc="upper right")
     plt.tight_layout()
     plt.savefig(os.path.join(outdir, "ffd.png"))
     plt.show()
-
-
-def get_sampler(sampler: str, ncontrol: int, seed: int = 123):
-    """
-    Builds scipy qmc sampler.
-    """
-    if sampler not in ["lhs", "sobol", "halton"]:
-        raise Exception(f"Unrecognized sampler {sampler}")
-    else:
-        return (
-            qmc.LatinHypercube(d=2 * ncontrol, seed=seed) if sampler == "lhs"
-            else qmc.Halton(d=2 * ncontrol, seed=seed) if sampler == "halton"
-            else qmc.Sobol(d=2 * ncontrol, seed=seed)
-        )
 
 
 def main():
@@ -90,51 +83,49 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
-        "-f", "--file", type=str, help="baseline geometry: --datfile=/path/to/file.dat")
+        "-f", "--file", type=str, required=True, help="baseline geometry: --file=/path/to/file.dat")
     parser.add_argument(
-        "-o", "--outdir", type=str, help="output directory", default="output")
+        "-c", "--config", type=str, default="", help="config: --config=/path/to/config.json")
     parser.add_argument(
-        "-nc", "--ncontrol", type=int, help="number of control points on each side of the lattice",
-        default=3)
+        "-o", "--outdir", type=str, default="output", help="output directory")
     parser.add_argument(
-        "-np", "--nprofile", type=int, help="number of profiles to generate", default=3)
+        "-nc", "--ncontrol", type=int, default=6, help="number of control points (must be pair!)")
     parser.add_argument(
-        "-r", "--referential", action="store_true", help="plot new profiles in the lattice ref.")
-    parser.add_argument(
-        "-s", "--sampler", type=str, help="sampling technique [lhs, halton, sobol]", default="lhs")
+        "-np", "--nprofile", type=int, default=3, help="number of profiles to generate")
     parser.add_argument(
         "-d", "--delta", type=str, default=None, help="Delta: 'D10 D20 .. D2nc'")
-    parser.add_argument(
-        "-p", "--pad", type=str, default="1 1", help="padding: p1, p2")
     args = parser.parse_args()
 
+    # check input arguments
     check_file(args.file)
+    assert args.ncontrol % 2 == 0, f"ncontrol ({args.ncontrol}) must be pair!"
 
-    # FFD routine
-    # (i) Instantiate an FFD object
-    #  |  -> create the lattice box
-    #  |  -> project the baseline points in the lattice referential
-    # (ii) sample a random deformation
-    # (iii) Generate a new geometry applying the deformation to the baseline points
-    #  |  -> compute the displacements from the deformation and the
-    #  |     tensor product of the Bernstein basis polynomials
-    #  |  -> project the new profile back into the original referential
-    seed = 1234
-    ncontrol = args.ncontrol
-    padding = tuple(map(int, args.pad.split()))
-    ffd = FFD_2D(args.file, ncontrol, pad=padding)
-    if not args.delta:
-        sampler = get_sampler(args.sampler, ncontrol, seed)
-        sample = sampler.random(n=args.nprofile)
+    # build ffd config with header and padding options
+    ffd_config = {} if not args.config else args.config.get("ffd", {})
+    # Note: the config can also be used to pass arguments used in this script
+    # delta (list[float]): a deformation list [D10 D20 .. D2nc] (default=None)
+    delta = ffd_config.get("delta", None) if not args.delta else args.delta
+    # nprofile (int): number of profiles to generate (default=3, ignored if a delta is given)
+    nprofile = ffd_config.get("nprofile", 3)
+    # referential (bool): to plot the profiles in the lattice referential (default=False)
+    referential = ffd_config.get("referential", False)
+
+    # FFD object and displacements
+    ffd = FFD_2D(args.file, args.ncontrol // 2, **ffd_config)
+    if not delta:
+        sampler = qmc.LatinHypercube(d=args.ncontrol, seed=123)
+        sample = sampler.random(n=nprofile)
         scaled_sample = qmc.scale(sample, -0.5, 0.5)
     else:
         scaled_sample = [np.array([float(d) for d in args.delta.split()])]
+    # FFD profiles
     profiles = []
     for Delta in scaled_sample:
         profiles.append(ffd.apply_ffd(Delta))
     for pid, profile in enumerate(profiles):
-        _ = ffd.write_ffd(profile, scaled_sample[pid], args.outdir)
-    plot_profile(ffd, profiles, Delta, args.outdir, args.referential)
+        _ = ffd.write_ffd(profile, scaled_sample[pid], args.outdir, cid=pid)
+    # FFD figure
+    plot_profile(ffd, profiles, scaled_sample, args.outdir, referential)
 
 
 if __name__ == "__main__":
