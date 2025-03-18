@@ -192,7 +192,9 @@ class Optimizer(ABC):
         if not self.FFDClass:
             if self.ffd_type == FFD_TYPE[0]:
                 self.FFDClass = FFD_2D
-                self.ffd = self.FFDClass(self.dat_file, self.n_design // 2)
+                self.ffd = self.FFDClass(
+                    self.dat_file, self.n_design // 2, **self.config.get("ffd", {})
+                )
             elif self.ffd_type == FFD_TYPE[1]:
                 self.FFDClass = FFD_POD_2D
                 self.config["ffd"]["ffd_ncontrol"] = self.n_design

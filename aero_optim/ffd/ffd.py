@@ -196,8 +196,8 @@ class FFD_POD_2D(Deform):
             ffd_ncontrol: int,
             ffd_dataset_size: int,
             ffd_bound: tuple[Any],
-            header: int = 2,
-            seed: int = 123
+            seed: int = 123,
+            **kwargs
     ):
         """
         Instantiates the FFD_POD_2D object.
@@ -209,8 +209,8 @@ class FFD_POD_2D(Deform):
         - ffd_ncontrol (int): the number of FFD control points.
         - ffd_dataset_size (int): the number of ffd profiles in the POD dataset.
         - ffd_bound (tuple[Any]): the ffd dataset deformation boundaries.
-        - header (int): the number of header lines in dat_file.
         - seed (int): seed for the POD dataset sampling.
+        - kwargs (dict): additional options to be passed to the FFD_2D inner object.
 
         **Inner**
 
@@ -222,11 +222,11 @@ class FFD_POD_2D(Deform):
 
         - ffd (FFD_2D): the ffd object used to build the POD dataset.
         """
-        super().__init__(dat_file, ffd_ncontrol, header)
+        super().__init__(dat_file, ffd_ncontrol, **kwargs)
         self.pod_ncontrol = pod_ncontrol
         self.ffd_ncontrol = ffd_ncontrol
         self.ffd_dataset_size = ffd_dataset_size
-        self.ffd = FFD_2D(dat_file, ffd_ncontrol // 2, header=header)
+        self.ffd = FFD_2D(dat_file, ffd_ncontrol // 2, **kwargs)
         self.ffd_bound = ffd_bound
         self.seed = seed
         self.build_pod_dataset()
