@@ -55,7 +55,7 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], Delta: np.ndarray,
                 for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
             # black edges
             [ax.scatter(*np.array([i, j]), c="k") for i in range(2) for j in range(2)]
-            ax.set(xlabel="$x$ [-]", ylabel="$y$ [-]", title="FFD representation in lattice ref.")
+            ax.set(xlabel="$x$ [-]", ylabel="$y$ [-]", title="FFD illustrated in the lattice ref.")
         else:
             [ax.scatter(ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
                         ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1],
@@ -65,7 +65,7 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], Delta: np.ndarray,
                          ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
                 for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
             # black edges
-            ax.set(xlabel="$x$ [m]", ylabel="$y$ [m]", title="FFD representation in original ref.")
+            ax.set(xlabel="$x$ [m]", ylabel="$y$ [m]", title="FFD illustrated in the original ref.")
             [ax.scatter(*ffd.from_lat(np.array([i, j])), c="k") for i in range(2) for j in range(2)]
     # legend and display
     ax.legend(loc="upper right")
@@ -89,7 +89,8 @@ def main():
     parser.add_argument(
         "-o", "--outdir", type=str, default="output", help="output directory")
     parser.add_argument(
-        "-nc", "--ncontrol", type=int, default=6, help="number of control points (must be pair!)")
+        "-nc", "--ncontrol", type=int, default=3,
+        help="number of control points on each side of the lattice")
     parser.add_argument(
         "-np", "--nprofile", type=int, default=3, help="number of profiles to generate")
     parser.add_argument(
@@ -98,7 +99,6 @@ def main():
 
     # check input arguments
     check_file(args.file)
-    assert args.ncontrol % 2 == 0, f"ncontrol ({args.ncontrol}) must be pair!"
 
     # build ffd config with header and padding options
     ffd_config = {} if not args.config else args.config.get("ffd", {})
@@ -106,14 +106,14 @@ def main():
     # delta (list[float]): a deformation list [D10 D20 .. D2nc] (default=None)
     delta = ffd_config.get("delta", None) if not args.delta else args.delta
     # nprofile (int): number of profiles to generate (default=3, ignored if a delta is given)
-    nprofile = ffd_config.get("nprofile", 3)
+    nprofile = ffd_config.get("nprofile", args.nprofile)
     # referential (bool): to plot the profiles in the lattice referential (default=False)
     referential = ffd_config.get("referential", False)
 
     # FFD object and displacements
-    ffd = FFD_2D(args.file, args.ncontrol // 2, **ffd_config)
+    ffd = FFD_2D(args.file, args.ncontrol, **ffd_config)
     if not delta:
-        sampler = qmc.LatinHypercube(d=args.ncontrol, seed=123)
+        sampler = qmc.LatinHypercube(d=args.ncontrol * 2, seed=1234)
         sample = sampler.random(n=nprofile)
         scaled_sample = qmc.scale(sample, -0.5, 0.5)
     else:
