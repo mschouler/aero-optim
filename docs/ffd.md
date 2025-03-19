@@ -20,10 +20,18 @@ Free-Form Deformation is implemented in `FFD_2D`, a straightforward class instan
 - `file (str)` which indicates the filename of the baseline geometry to be deformed,
 - `ncontrol (int)` which indicates the number of design points on each side of the lattice.
 
+And two optional arguments:
+
+- `pad (tuple[int, int])` which can be used to make the lattice edges moveable,
+- `header (int)` which is used to specify the number of header lines in `file`.
+
 !!! Warning
     The input file is expected to have a specific formatting i.e. a 2 line header followed by coordinates given as tabulated entries (one point per row) with single space separators (see [`data/naca12.dat`](https://github.com/mschouler/aero-optim/blob/master/examples/NACA12/data/naca12.dat) for an example).
 
 Once instantiated, the `apply_ffd(Delta)` method can be used to perform the deformation corresponding to the array `Delta`.
+
+!!! Note
+    During an FFD-based optimization, `FFD_2D` is initialized with `ncontrol = n_design // 2`. 
 
 #### Illustration
 An FFD with 2 control points (i.e. 4 in total) and the deformation vector `Delta = (0., 0., 1., 1.)` will yield the following profile:
@@ -36,20 +44,19 @@ Considering the figure notations, one notices that the deformation vector `Delta
 The `auto_ffd.py` scripts is called with the `ffd` command. It enables basic testing and visualization. It comes with a few options:
 ```py
 ffd --help
-usage: ffd [-h] [-f FILE] [-o OUTDIR] [-nc NCONTROL] [-np NPROFILE] [-r] [-s SAMPLER] [-d [DELTA ...]]
+usage: ffd [-h] -f FILE [-c CONFIG] [-o OUTDIR] [-nc NCONTROL] [-np NPROFILE] [-d DELTA]
 
 options:
   -h, --help            show this help message and exit
-  -f FILE, --file FILE  baseline geometry: --datfile=/path/to/file.dat (default: None)
+  -f FILE, --file FILE  baseline geometry: --file=/path/to/file.dat (default: None)
+  -c CONFIG, --config CONFIG
+                        config: --config=/path/to/config.json (default: )
   -o OUTDIR, --outdir OUTDIR
                         output directory (default: output)
   -nc NCONTROL, --ncontrol NCONTROL
                         number of control points on each side of the lattice (default: 3)
   -np NPROFILE, --nprofile NPROFILE
                         number of profiles to generate (default: 3)
-  -r, --referential     plot new profiles in the lattice ref. (default: False)
-  -s SAMPLER, --sampler SAMPLER
-                        sampling technique [lhs, halton, sobol] (default: lhs)
   -d DELTA, --delta DELTA
                         Delta: 'D10 D20 .. D2nc' (default: None)
 ```
@@ -58,14 +65,11 @@ For instance, the command below will perform 3 control points FFDs for 4 random 
 ```py
 # from aero-optim to naca_base
 cd examples/NACA12/naca_base
-ffd -f ../data/naca12.dat -np 4 -nc 3 -s lhs
+ffd -f ../data/naca12.dat -np 4 -nc 3
 ```
 <p float="left">
   <img src="../Figures/naca12_lhs.png" width="100%" />
 </p>
-
-!!! Note
-    The positions of the deformed control points on the generated figure correspond to those of the last profile, in this case `Pid-3`.
 
 ### 2D FFD & POD
 The coupling between POD and FFD was implemented in the `FFD_pod_2D` class. Its objective is to build a dataset of `n` FFD perturbed profiles sampled from LHS and to use it to perform POD-based data reduction from the FFD dimension `d` to a smaller dimension `d*`. Details on how to do so are given in ([POD 1](https://doi.org/10.2514/6.2008-6584)) and ([POD 2](https://doi.org/10.2514/6.2017-3057)).
