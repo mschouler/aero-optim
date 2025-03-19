@@ -10,6 +10,7 @@ import signal
 import time
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import json
 
 from aero_optim.utils import (custom_input, find_closest_index, from_dat, check_dir,
                               read_next_line_in_file, cp_filelist)
@@ -694,7 +695,12 @@ class CustomSimulator(WolfSimulator):
         os.chdir(self.cwd)
 
         # create local config file
-        cp_filelist(["cascade_musicaa_base.json"], [os.path.join(sim_outdir, "config.json")])
+        sim_config = {
+            "plot3D": self.config["plot3D"],
+            "simulator": self.config["simulator"],
+        }
+        with open(os.path.join(sim_outdir, "sim_config.json"), "w") as jfile:
+            json.dump(sim_config, jfile)
 
         return sim_outdir, self.exec_cmd
 

@@ -884,7 +884,7 @@ def main() -> int:
     # cwd = os.getcwd()
 
     # read config file
-    with open("config.json") as jfile:
+    with open("sim_config.json") as jfile:
         config = json.load(jfile)
     # set computation type
     computation_type: str = read_next_line_in_file("param.ini",
