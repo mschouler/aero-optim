@@ -481,7 +481,7 @@ def compute_QoIs(config: dict, sim_outdir: str) -> pd.DataFrame:
     """
     qty_list: list[list[float]] = []
     head_list: list[str] = []
-    post_process_args: list[str] = config["simulator"]["post_process"]
+    post_process_args: dict = config["simulator"]["post_process"]
     # loop over the post-processing arguments to extract from the results
     for qty in post_process_args["outputs"]:
         # check if the method for computing qty exists
@@ -714,8 +714,7 @@ def pre_process_stats(config: dict, sim_outdir: str, computation_type: str):
         # add frequency for QoI convergence check: will ask MUSICAA to output stats files
         niter_ftt = get_niter_ftt(sim_outdir, config["plot3D"]["mesh"]["chord_length"])
         freqs = read_next_line_in_file(param_ini,
-                                       "Output frequencies: screen / stats / fields")
-        freqs = freqs.split()
+                                       "Output frequencies: screen / stats / fields").split()
         args.update({"Output frequencies: screen / stats / fields":
                      f"{freqs[0]} {freqs[1]} {niter_ftt}"})
     args.update({"Max number of temporal iterations": f"{niter_stats} 3000.0"})
@@ -930,21 +929,15 @@ def main() -> int:
         # add simulation files
         cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
                     [sim_dir] * 4)
-        # os.chdir(sim_dir)
         # specify path for mesh files
         old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
-        dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
+        dir_grid = "'" + os.path.join("../", old_dir_grid) + "'"
         args.update({"Directory for grid files": dir_grid})
         param_ini = os.path.join(sim_dir, "param.ini")
         custom_input(param_ini, args)
         # execute computation
-        # ongoing_sims = 0
         config_ADP = config.copy()
         execute_computation(config_ADP, sim_dir)
-        # ADP_thread = threading.Thread(target=execute_computation, args=[config_ADP, sim_dir])
-        # ADP_thread.start()
-        # ongoing_sims += 1
-        # os.chdir(cwd)
 
     if args_parse.op1:
         print("** OP1 SIMULATION (+5 deg.) **")
@@ -952,43 +945,20 @@ def main() -> int:
         sim_dir = "OP1"
         os.mkdir(sim_dir)
         # add simulation files
-        # LOCK.acquire()
         cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
                     [sim_dir] * 4)
-        # os.chdir(sim_dir)
         args = {}
         # specify path for mesh files
         old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
-        dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
+        dir_grid = "'" + os.path.join("../", old_dir_grid) + "'"
         args.update({"Directory for grid files": dir_grid})
         # change flow angle
         args.update({"Flow angles": "48. 0."})
         param_ini = os.path.join(sim_dir, "param.ini")
         custom_input(param_ini, args)
-        # LOCK.release()
         # execute computation
         config_OP1 = config.copy()
         execute_computation(config_OP1, sim_dir)
-        # OP1_thread = threading.Thread(target=execute_computation, args=[config_OP1, sim_dir])
-        # if ongoing_sims >= args_parse.ms:
-        #     ADP_thread.join()
-        #     ongoing_sims -= 1
-        # OP1_thread.start()
-        # ongoing_sims += 1
-
-    # try:
-    #     run(musicaa_cmd, "musicaa.job")
-    #     turbocoef = get_turbocoef()
-    #     print(f">> residual : {get_residual()}")
-    #     print(f">> debit ratio: {turbocoef[4]}")
-    #     print(f">> total pressure ratio: {turbocoef[7]}")
-    #     print(f">> total temperature ratio: {turbocoef[10]}")
-    #     print(f">> isentropic efficiency: {turbocoef[11]}")
-    #     print(f">> loss coefficient: {turbocoef[12]}\n")
-    # except CalledProcessError:
-    #     print(f">> OP1 failed after {time.time() - t0} seconds.")
-    #     return FAILURE
-    # print(f">> OP1 finished successfully in {time.time() - t0} seconds.\n")
 
     # os.chdir(cwd)
     if args_parse.op2:
@@ -997,48 +967,20 @@ def main() -> int:
         sim_dir = "OP2"
         os.mkdir(sim_dir)
         # add simulation files
-        # LOCK.acquire()
         cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
                     [sim_dir] * 4)
-        # os.chdir(sim_dir)
         args = {}
         # specify path for mesh files
         old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
-        dir_grid: str = "'" + os.path.join("../", old_dir_grid) + "'"
+        dir_grid = "'" + os.path.join("../", old_dir_grid) + "'"
         args.update({"Directory for grid files": dir_grid})
         # change flow angle
         args.update({"Flow angles": "38. 0."})
         param_ini = os.path.join(sim_dir, "param.ini")
         custom_input(param_ini, args)
-        # LOCK.release()
         # execute computation
         config_OP2 = config.copy()
         execute_computation(config_OP2, sim_dir)
-        # OP2_thread = threading.Thread(target=execute_computation, args=[config_OP2, sim_dir])
-        # if ongoing_sims >= args_parse.ms:
-        #     OP1_thread.join()
-        #     ongoing_sims -= 1
-        # OP2_thread.start()
-        # ongoing_sims += 1
-
-    # try:
-    #     run(musicaa_cmd, "musicaa.job")
-    #     turbocoef = get_turbocoef()
-    #     print(f">> residual : {get_residual()}")
-    #     print(f">> debit ratio: {turbocoef[4]}")
-    #     print(f">> total pressure ratio: {turbocoef[7]}")
-    #     print(f">> total temperature ratio: {turbocoef[10]}")
-    #     print(f">> isentropic efficiency: {turbocoef[11]}")
-    #     print(f">> loss coefficient: {turbocoef[12]}\n")
-    # except CalledProcessError:
-    #     print(f">> OP2 failed after {time.time() - t0} seconds.")
-    #     return FAILURE
-    # print(f">> OP2 finished successfully in {time.time() - t0} seconds.")
-
-    # # wait for all computations to end
-    # ADP_thread.join()
-    # OP1_thread.join()
-    # OP2_thread.join()
 
     return SUCCESS
 
