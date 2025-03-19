@@ -11,7 +11,7 @@ import math
 
 from types import FrameType
 
-STUDY_TYPE = ["naca_base", "naca_block", "cascade"]
+STUDY_TYPE = ["naca_base", "naca_block", "cascade", "musicaa"]
 FFD_TYPE = ["ffd_2d", "ffd_pod_2d"]
 logger = logging.getLogger(__name__)
 
@@ -223,7 +223,7 @@ def replace_in_file(fname: str, sim_args: dict):
 
 def custom_input(fname: str, args: dict):
     """
-    **Writes** a customized input file.
+    Writes a customized input file.
     """
     for key, value in args.items():
         modify_next_line_in_file(fname, key, f"{value}")
@@ -245,7 +245,6 @@ def modify_next_line_in_file(fname: str, pattern: str, modif: str):
         # Write the modified content back to the file
         with open(fname, 'w') as file:
             file.writelines(filedata)
-
     except Exception as e:
         return f"Error reading file: {e}"  # Handle potential file read errors
 
@@ -257,7 +256,6 @@ def read_next_line_in_file(fname: str, pattern: str) -> str:
     try:
         with open(fname, "r") as file:
             filedata = file.readlines()
-
         # Iterate through the lines and find the line containing pattern
         for i, line in enumerate(filedata):
             if pattern in line:
@@ -265,7 +263,6 @@ def read_next_line_in_file(fname: str, pattern: str) -> str:
                 if i + 1 < len(filedata):
                     return filedata[i + 1].strip()  # Remove any extra newlines
         return "pattern not found in file"  # Default error message
-
     except Exception as e:
         return f"Error reading file: {e}"  # Handle potential file read errors
 

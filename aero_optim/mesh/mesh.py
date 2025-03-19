@@ -5,9 +5,10 @@ import os
 import numpy as np
 import pandas
 import re
+import subprocess
 
 from abc import ABC, abstractmethod
-from aero_optim.utils import from_dat, check_dir, read_next_line_in_file
+from aero_optim.utils import custom_input, from_dat, check_dir, read_next_line_in_file
 
 logger = logging.getLogger(__name__)
 
@@ -397,7 +398,7 @@ class Mesh(ABC):
         raise Exception("build_3dmesh method not implemented")
 
 
-class MeshMusicaa(ABC):
+class MeshMusicaa:
     """
     This class implements an abstract meshing class for the solver MUSICAA.
     """
@@ -555,17 +556,53 @@ class MeshMusicaa(ABC):
                    header=(f"Baseline profile {self.outfile}\n"
                            f"Extracted from mesh files in {self.dat_dir}"))
 
-    @abstractmethod
     def deform_mesh(self, outdir: str):
         """
         **Executes** the MUSICAA mesh deformation routine.
         """
-        pass
+        args: dict = {}
+        # set MUSICAA to pre-processing mode: 0
+        args.update({"from_field": "0"})
 
-    @abstractmethod
+        # set to perturb grid
+        args.update({"Half-cell": "F", "Coarse grid": "F 0", "Perturb grid": "T"})
+
+        # indicate in/output directory and name
+        musicaa_mesh_dir = os.path.relpath(outdir, self.dat_dir)
+        args.update({"Directory for grid files": "'.'"})
+        args.update({"Name for grid files": self.config['plot3D']['mesh']['mesh_name']})
+        args.update({"Directory for perturbed grid files": f"'{musicaa_mesh_dir}'"})
+        args.update({"Name for perturbed grid files": self.outfile})
+
+        # modify param.ini
+        custom_input("param.ini", args)
+
+        # execute MUSICAA to deform mesh
+        os.chdir(self.dat_dir)
+        preprocess_cmd = self.config["simulator"]["preprocess_cmd"].split()
+        out_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.out")
+        err_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.err")
+        with open(out_message, "wb") as out:
+            with open(err_message, "wb") as err:
+                logger.info(f"deform mesh for {outdir}")
+                subprocess.run(preprocess_cmd,
+                               env=os.environ,
+                               stdin=subprocess.DEVNULL,
+                               stdout=out,
+                               stderr=err,
+                               universal_newlines=True)
+        os.chdir(self.cwd)
+
     def build_mesh(self):
         """
         **Orchestrates** the required steps to deform the baseline mesh using the new
         deformed profile for MUSICAA.
         """
-        pass
+        # read profile
+        profile = from_dat(self.dat_file)
+
+        # create musicaa_<outfile>_bl*.x files
+        mesh_dir = self.write_deformed_mesh_edges(profile, self.outdir)
+
+        # deform mesh with MUSICAA
+        self.deform_mesh(mesh_dir)
