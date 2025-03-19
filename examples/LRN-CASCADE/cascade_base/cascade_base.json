@@ -23,9 +23,9 @@
     "simulator": {
         "ref_input": "cascade_base.wolf",
         "post_process": {
-            "residual.dat": ["ResTot"],
-            "turbocoef.dat": ["LossCoef"]
+            "ADP/residual.dat": ["ResTot"],
+            "ADP/turbocoef.dat": ["LossCoef"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_base/execute.py -in @.mesh"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_base/execute.py -in @.mesh -adp"
     }
 }
