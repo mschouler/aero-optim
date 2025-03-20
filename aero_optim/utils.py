@@ -226,12 +226,12 @@ def custom_input(fname: str, args: dict):
     Writes a customized input file.
     """
     for key, value in args.items():
-        modify_next_line_in_file(fname, key, f"{value}")
+        modify_next_line_in_file(fname, key, str(value))
 
 
 def modify_next_line_in_file(fname: str, pattern: str, modif: str):
     """
-    Overwrites the next line within the file with the argument.
+    Locates the line in fname containing pattern and replaces the next line with modif.
     """
     try:
         with open(fname, 'r') as file:
@@ -246,25 +246,22 @@ def modify_next_line_in_file(fname: str, pattern: str, modif: str):
         with open(fname, 'w') as file:
             file.writelines(filedata)
     except Exception as e:
-        return f"Error reading file: {e}"  # Handle potential file read errors
+        logger.error(f"error reading file: {e}")
 
 
 def read_next_line_in_file(fname: str, pattern: str) -> str:
     """
-    Reads the next line within the file.
+    Returns the next line of fname containing pattern.
     """
-    try:
-        with open(fname, "r") as file:
-            filedata = file.readlines()
-        # Iterate through the lines and find the line containing pattern
-        for i, line in enumerate(filedata):
-            if pattern in line:
-                # Ensure the next line exists
-                if i + 1 < len(filedata):
-                    return filedata[i + 1].strip()  # Remove any extra newlines
-        return "pattern not found in file"  # Default error message
-    except Exception as e:
-        return f"Error reading file: {e}"  # Handle potential file read errors
+    with open(fname, "r") as file:
+        filedata = file.readlines()
+    # Iterate through the lines and find the line containing pattern
+    for i, line in enumerate(filedata):
+        if pattern in line:
+            # Ensure the next line exists
+            if i + 1 < len(filedata):
+                return filedata[i + 1].strip()  # Remove any extra newlines
+    raise Exception(f"{pattern} not found in {fname}")
 
 
 def rm_filelist(deletion_list: list[str]):
