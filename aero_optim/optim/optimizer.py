@@ -15,6 +15,7 @@ from typing import Any
 
 from aero_optim.geom import get_area
 from aero_optim.ffd.ffd import FFD_2D, FFD_POD_2D
+from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.mesh.naca_base_mesh import NACABaseMesh
 from aero_optim.mesh.naca_block_mesh import NACABlockMesh
 from aero_optim.mesh.cascade_mesh import CascadeMesh
@@ -222,6 +223,8 @@ class Optimizer(ABC):
                 self.MeshClass = NACABlockMesh
             elif self.study_type == STUDY_TYPE[2]:
                 self.MeshClass = CascadeMesh
+            elif self.study_type == STUDY_TYPE[3]:
+                self.MeshClass = MeshMusicaa
             else:
                 raise Exception(f"ERROR -- incorrect study_type <{self.study_type}>")
 
