@@ -528,8 +528,7 @@ class CustomSimulator(WolfSimulator):
         args.update({"Name for grid files": meshfile})
         if self.computation_type == "steady":
             args.update({"Compute residuals": "T"})
-        custom_input(os.path.join(sim_outdir,
-                                  "param.ini"), args)
+        custom_input(os.path.join(sim_outdir, "param.ini"), args)
 
         # execute MUSICAA to delete half-cell
         os.chdir(sim_outdir)
