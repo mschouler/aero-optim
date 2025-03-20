@@ -14,7 +14,7 @@ import threading
 import time
 
 from aero_optim.mesh.mesh import get_block_info
-from custom_cascade_MUSICAA import get_time_info, get_niter_ftt
+from custom_cascade_musicaa import get_time_info, get_niter_ftt
 from aero_optim.utils import (cp_filelist, round_number, rm_filelist,
                               read_next_line_in_file, custom_input)
 
