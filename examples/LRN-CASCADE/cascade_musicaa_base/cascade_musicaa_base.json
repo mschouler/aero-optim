@@ -6,19 +6,15 @@
         "file": "musicaa_mesh/ogv1c.dat",
         "outdir": "output"
     },
-    "gmsh": {},
-    "plot3D": {
-        "mesh": {
-            "mesh_dir": "musicaa_mesh",
-            "mesh_name": "ogv1c",
-            "wall_bl": [3,4,7,6],
-            "periodic_bl": [6],
-            "pitch": 40.39,
-            "chord_length": 70.0,
-            "inlet_bl": [1,2],
-            "outlet_bl": [8,9]
-        }
-
+    "gmsh": {
+        "mesh_dir": "musicaa_mesh",
+        "mesh_name": "ogv1c",
+        "wall_bl": [3,4,7,6],
+        "periodic_bl": [6],
+        "pitch": 40.39,
+        "chord_length": 70.0,
+        "inlet_bl": [1,2],
+        "outlet_bl": [8,9]
     },
     "optim": {
         "n_design": 8,

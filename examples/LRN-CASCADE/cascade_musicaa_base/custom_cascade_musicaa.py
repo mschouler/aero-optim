@@ -330,25 +330,25 @@ def args_LossCoef(sim_outdir: str, config: dict) -> dict:
     args: dict = {}
 
     # inlet
-    bl_list = config["plot3D"]["mesh"]["inlet_bl"]
+    bl_list = config["gmsh"]["inlet_bl"]
     x1 = config["simulator"]["post_process"]["measurement_lines"]["inlet_x1"]
     x2 = config["simulator"]["post_process"]["measurement_lines"]["inlet_x2"]
     x, y = read_bl(sim_outdir, bl_list[0])
     closest_index = find_closest_index(x[:, 0], x1)
     y1 = y[closest_index, :].min()
-    y2 = y1 + config["plot3D"]["mesh"]["pitch"]
+    y2 = y1 + config["gmsh"]["pitch"]
     inlet_lims = [x1, y1, x2, y2]
     args["inlet_bl"] = bl_list
     args["inlet_lims"] = inlet_lims
 
     # outlet
-    bl_list = config["plot3D"]["mesh"]["outlet_bl"]
+    bl_list = config["gmsh"]["outlet_bl"]
     x1 = config["simulator"]["post_process"]["measurement_lines"]["outlet_x1"]
     x2 = config["simulator"]["post_process"]["measurement_lines"]["outlet_x2"]
     x, y = read_bl(sim_outdir, bl_list[0])
     closest_index = find_closest_index(x[:, 0], x1)
     y1 = y[closest_index, :].min()
-    y2 = y1 + config["plot3D"]["mesh"]["pitch"]
+    y2 = y1 + config["gmsh"]["pitch"]
     outlet_lims = [x1, y1, x2, y2]
     args["outlet_bl"] = bl_list
     args["outlet_lims"] = outlet_lims
@@ -487,8 +487,6 @@ class CustomSimulator(WolfSimulator):
             raise Exception(f"ERROR -- no <exec_cmd> entry in {self.config['simulator']}")
         if "ref_input" not in self.config["simulator"]:
             raise Exception(f"ERROR -- no <ref_input> entry in {self.config['simulator']}")
-        if "mesh" not in self.config["plot3D"]:
-            logger.debug(f"no <mesh> entry in {self.config['plot3D']}")
         if "post_process" not in self.config["simulator"]:
             logger.debug(f"no <post_process> entry in {self.config['simulator']}")
 
@@ -554,7 +552,7 @@ class CustomSimulator(WolfSimulator):
 
         # create local config file
         sim_config = {
-            "plot3D": self.config["plot3D"],
+            "gmsh": self.config["gmsh"],
             "simulator": self.config["simulator"],
         }
         with open(os.path.join(sim_outdir, "sim_config.json"), "w") as jfile:

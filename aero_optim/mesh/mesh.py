@@ -436,10 +436,10 @@ class MeshMusicaa:
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
         self.header: int = config["study"].get("header", 2)
         # mesh params
-        self.wall_bl: list[int] = config["plot3D"]["mesh"].get("wall_bl", [0])
+        self.wall_bl: list[int] = config["gmsh"].get("wall_bl", [0])
         self.block_info = get_block_info(self.dat_dir)
-        self.pitch: int = config["plot3D"]["mesh"].get('pitch', 1)
-        self.periodic_bl: list[int] = config["plot3D"]["mesh"].get("periodic_bl", [0])
+        self.pitch: int = config["gmsh"].get('pitch', 1)
+        self.periodic_bl: list[int] = config["gmsh"].get("periodic_bl", [0])
 
     def write_mesh(self, mesh_dir: str = "") -> str:
         """
@@ -567,8 +567,8 @@ class MeshMusicaa:
 
         # indicate in/output directory and name
         musicaa_mesh_dir = os.path.relpath(outdir, self.dat_dir)
-        args.update({"Directory for grid files": self.config['plot3D']['mesh']['mesh_dir']})
-        args.update({"Name for grid files": self.config['plot3D']['mesh']['mesh_name']})
+        args.update({"Directory for grid files": self.config['gmsh']['mesh_dir']})
+        args.update({"Name for grid files": self.config['gmsh']['mesh_name']})
         args.update({"Directory for perturbed grid files": f"'{musicaa_mesh_dir}'"})
         args.update({"Name for perturbed grid files": self.outfile})
 
