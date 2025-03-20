@@ -2,14 +2,14 @@
     "study": {
         "custom_file": "custom_cascade_musicaa.py",
         "study_type": "musicaa",
-        "ffd_type": "ffd_pod_2d",
-        "file": "ogv1c.dat",
-        "file_": "ogv1c_g0_c0.dat",
+        "ffd_type": "ffd_2d",
+        "file": "musicaa_mesh/ogv1c.dat",
         "outdir": "output"
     },
     "gmsh": {},
     "plot3D": {
         "mesh": {
+            "mesh_dir": "musicaa_mesh",
             "mesh_name": "ogv1c",
             "wall_bl": [3,4,7,6],
             "periodic_bl": [6],
@@ -37,11 +37,10 @@
     },
     "simulator": {
         "ref_input": "cascade_musicaa_base.json",
-        "cp_list": ["musicaa_data/param.ini", "musicaa_data/param_blocks.ini", "musicaa_data/param_rans.ini", "musicaa_data/feos_air.ini"],
+        "cp_list": ["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
         "preprocess_cmd" : "/home/mschouler/bin/musicaa",
         "exec_cmd_" : "mpiexec -n 51 /home/mschouler/bin/musicaa",
         "exec_cmd" : "python3 /home/mschouler/aero-optim/examples/LRN-CASCADE/cascade_musicaa_base/execute.py -ms 2",
-        "path_to_solver": ".",
         "restart_musicaa": 3,
         "divide_CFL_by": 1.2,
 

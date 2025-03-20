@@ -417,7 +417,6 @@ class MeshMusicaa:
         - outdir (str): path/to/outputdirectory
         - outfile (str): the core name of all outputed files e.g. outfile.log, outfile.mesh, etc.
         - header (int): the number of    header lines in dat_file.
-        - mesh_name (str): name of the mesh files (******_bl1.x)
         - wall_bl (list[int]): list containing the blocks adjacent to the geometry to be optimized.
                    The block numbers should be ordered following the curvilinear abscissae of
                    the blade. Unfortunately, the present version only reads walls along i
@@ -441,7 +440,6 @@ class MeshMusicaa:
         self.block_info = get_block_info(self.dat_dir)
         self.pitch: int = config["plot3D"]["mesh"].get('pitch', 1)
         self.periodic_bl: list[int] = config["plot3D"]["mesh"].get("periodic_bl", [0])
-        self.mesh_name: str = config["plot3D"]["mesh"].get("mesh_name", self.outfile)
 
     def write_mesh(self, mesh_dir: str = "") -> str:
         """
@@ -569,7 +567,7 @@ class MeshMusicaa:
 
         # indicate in/output directory and name
         musicaa_mesh_dir = os.path.relpath(outdir, self.dat_dir)
-        args.update({"Directory for grid files": "'.'"})
+        args.update({"Directory for grid files": self.config['plot3D']['mesh']['mesh_dir']})
         args.update({"Name for grid files": self.config['plot3D']['mesh']['mesh_name']})
         args.update({"Directory for perturbed grid files": f"'{musicaa_mesh_dir}'"})
         args.update({"Name for perturbed grid files": self.outfile})
