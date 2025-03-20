@@ -46,7 +46,7 @@ def plot_quality():
     dataType, tags, data, time, numComp = gmsh.view.getModelData(t, 0)
 
 
-def get_block_info(dat_dir: str) -> dict:
+def get_block_info(dat_dir: str = os.getcwd()) -> dict:
     """
     **Returns** a dictionnary containing relevant information on the blocks
     used by MUSICAA: number of blocks, block size, snapshots.
@@ -431,13 +431,14 @@ class MeshMusicaa:
         self.config = config
         # study params
         self.dat_file: str = datfile if datfile else config["study"]["file"]
-        self.dat_dir = self.config["study"].get("dir", os.getcwd())
         self.outdir: str = config["study"]["outdir"]
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
         self.header: int = config["study"].get("header", 2)
         # mesh params
+        self.mesh_dir = config["gmsh"].get("mesh_dir", os.getcwd())
         self.wall_bl: list[int] = config["gmsh"].get("wall_bl", [0])
-        self.block_info = get_block_info(self.dat_dir)
+        # param_block.ini assumed to lie in the cwd
+        self.block_info = get_block_info()
         self.pitch: int = config["gmsh"].get('pitch', 1)
         self.periodic_bl: list[int] = config["gmsh"].get("periodic_bl", [0])
 
@@ -458,7 +459,7 @@ class MeshMusicaa:
         **Returns** an array containing the block coordinates.
         """
         # read block coordinates
-        with open(f'{self.dat_dir}/{self.outfile}_bl{bl}.x', 'r') as f:
+        with open(os.path.join(self.mesh_dir, f"{self.outfile}_bl{bl}.x"), "r") as f:
             a = pandas.read_csv(f).to_numpy()
 
         # get block size
@@ -552,7 +553,7 @@ class MeshMusicaa:
         # save to file
         np.savetxt(self.dat_file, coords_wall,
                    header=(f"Baseline profile {self.outfile}\n"
-                           f"Extracted from mesh files in {self.dat_dir}"))
+                           f"Extracted from mesh files in {self.mesh_dir}"))
 
     def deform_mesh(self, outdir: str):
         """
@@ -566,20 +567,18 @@ class MeshMusicaa:
         args.update({"Half-cell": "F", "Coarse grid": "F 0", "Perturb grid": "T"})
 
         # indicate in/output directory and name
-        musicaa_mesh_dir = os.path.relpath(outdir, self.dat_dir)
-        args.update({"Directory for grid files": self.config['gmsh']['mesh_dir']})
+        args.update({"Directory for grid files": "'" + self.mesh_dir + "'"})
         args.update({"Name for grid files": self.config['gmsh']['mesh_name']})
-        args.update({"Directory for perturbed grid files": f"'{musicaa_mesh_dir}'"})
+        args.update({"Directory for perturbed grid files": "'" + outdir + "'"})
         args.update({"Name for perturbed grid files": self.outfile})
 
         # modify param.ini
         custom_input("param.ini", args)
 
         # execute MUSICAA to deform mesh
-        os.chdir(self.dat_dir)
         preprocess_cmd = self.config["simulator"]["preprocess_cmd"].split()
-        out_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.out")
-        err_message = os.path.join(musicaa_mesh_dir, f"musicaa_{self.outfile}.err")
+        out_message = os.path.join(outdir, f"musicaa_{self.outfile}.out")
+        err_message = os.path.join(outdir, f"musicaa_{self.outfile}.err")
         with open(out_message, "wb") as out:
             with open(err_message, "wb") as err:
                 logger.info(f"deform mesh for {outdir}")
@@ -589,7 +588,6 @@ class MeshMusicaa:
                                stdout=out,
                                stderr=err,
                                universal_newlines=True)
-        os.chdir(self.cwd)
 
     def build_mesh(self):
         """
