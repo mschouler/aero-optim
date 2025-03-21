@@ -80,9 +80,11 @@ class FFD_2D(Deform):
               |                         |
             P00 ----- P10 ---- P20 ---- P30
 
-    with (P00, P30, P01, P31) fixed.
+    with (P00, P30, P01, P31) fixed if pad = (1, 1).
     """
-    def __init__(self, dat_file: str, ncontrol: int, header: int = 2):
+    def __init__(
+            self, dat_file: str, ncontrol: int, pad: tuple[int, int] = (1, 1), header: int = 2
+    ):
         """
         Instantiates the FFD_2D object.
 
@@ -90,6 +92,7 @@ class FFD_2D(Deform):
 
         - dat_file (str): path to input_geometry.dat.
         - ncontrol (int): the number of control points on each side of the lattice.
+        - pad (tuple[int, int]): padding around the displacement vector.
         - header (int): the number of header lines in dat_file.
 
         **Inner**
@@ -105,7 +108,9 @@ class FFD_2D(Deform):
         - lat_pts (np.ndarray): the geometry coordinates in the lattice referential.
         """
         super().__init__(dat_file, ncontrol, header)
-        self.L: int = ncontrol + 1
+        assert pad in [(0, 0), (1, 1), (0, 1), (1, 0)], f"wrong padding: {pad}"
+        self.pad: tuple[int, int] = pad
+        self.L: int = ncontrol - 1 + sum(pad)
         self.M: int = 1
         self.build_lattice()
         self.lat_pts: np.ndarray = self.to_lat(self.pts)
@@ -156,8 +161,8 @@ class FFD_2D(Deform):
 
         - Delta (np.ndarray): the non-padded deformation vector.
         """
-        return np.concatenate((np.pad(Delta[:self.ncontrol], (1, 1)),
-                               np.pad(Delta[self.ncontrol:], (1, 1))))
+        return np.concatenate((np.pad(Delta[:self.ncontrol], self.pad),
+                               np.pad(Delta[self.ncontrol:], self.pad)))
 
     def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
         """
@@ -191,8 +196,8 @@ class FFD_POD_2D(Deform):
             ffd_ncontrol: int,
             ffd_dataset_size: int,
             ffd_bound: tuple[Any],
-            header: int = 2,
-            seed: int = 123
+            seed: int = 123,
+            **kwargs
     ):
         """
         Instantiates the FFD_POD_2D object.
@@ -204,8 +209,8 @@ class FFD_POD_2D(Deform):
         - ffd_ncontrol (int): the number of FFD control points.
         - ffd_dataset_size (int): the number of ffd profiles in the POD dataset.
         - ffd_bound (tuple[Any]): the ffd dataset deformation boundaries.
-        - header (int): the number of header lines in dat_file.
         - seed (int): seed for the POD dataset sampling.
+        - kwargs (dict): additional options to be passed to the FFD_2D inner object.
 
         **Inner**
 
@@ -217,11 +222,11 @@ class FFD_POD_2D(Deform):
 
         - ffd (FFD_2D): the ffd object used to build the POD dataset.
         """
-        super().__init__(dat_file, ffd_ncontrol, header)
+        super().__init__(dat_file, ffd_ncontrol, **kwargs)
         self.pod_ncontrol = pod_ncontrol
         self.ffd_ncontrol = ffd_ncontrol
         self.ffd_dataset_size = ffd_dataset_size
-        self.ffd = FFD_2D(dat_file, ffd_ncontrol // 2, header)
+        self.ffd = FFD_2D(dat_file, ffd_ncontrol // 2, **kwargs)
         self.ffd_bound = ffd_bound
         self.seed = seed
         self.build_pod_dataset()

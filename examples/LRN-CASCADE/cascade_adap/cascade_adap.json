@@ -42,6 +42,6 @@
             "residual.dat": ["ResTot"],
             "turbocoef.dat": ["LossCoef"]
         },
-        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_adap/adap_robust.py -in @.mesh -cmp 2000 -nproc 8 -nite 4"
+        "exec_cmd": "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_adap/adap_robust.py -in @.mesh -cmp 2000 -nproc 8 -nite 4 -ms 3"
     }
 }

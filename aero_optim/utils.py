@@ -6,8 +6,12 @@ import os.path
 import shutil
 import signal
 import subprocess
+<<<<<<< HEAD
 import numpy as np
 import math
+=======
+import time
+>>>>>>> master
 
 from types import FrameType
 
@@ -334,3 +338,51 @@ def round_number(n: int | float, direction: str = "", decimals: int = 0) -> int 
         return math.floor(n * multiplier) / multiplier
     else:
         return round(n, decimals)
+
+
+def submit_popen_process(name: str, exec_cmd: list[str]) -> tuple[str, subprocess.Popen[str]]:
+    """
+    Wrapper around Popen. It submits exec_cmd and returns the corresponding tuple (name, process).
+    """
+    with open(f"{name}.out", "wb") as out:
+        with open(f"{name}.err", "wb") as err:
+            print(f"INFO -- execute {name}")
+            proc = subprocess.Popen(exec_cmd,
+                                    env=os.environ,
+                                    stdin=subprocess.DEVNULL,
+                                    stdout=out,
+                                    stderr=err,
+                                    universal_newlines=True)
+    return (name, proc)
+
+
+def monitor_process(l_proc: list[tuple[str, subprocess.Popen[str]]]) -> int:
+    """
+    Checks the processes state, removes finished processes from l_proc
+    and returns the number of active processes.
+    Note:
+        This modifies l_proc in place.
+    """
+    finished_sim = []
+    for id, (name, p_id) in enumerate(l_proc):
+        returncode = p_id.poll()
+        if returncode is None:
+            pass  # simulation still running
+        elif returncode == 0:
+            print(f"INFO -- simulation {name} finished")
+            finished_sim.append(id)
+        else:
+            print("ERROR -- one process failed, all simulations will be killed")
+            for _, p in l_proc:
+                p.terminate()
+            raise Exception(f"ERROR -- simulation {name} failed")
+        _ = [l_proc.pop(idx) for idx in sorted(finished_sim, reverse=True)]
+    return len(l_proc)
+
+
+def wait_for_it(l_proc: list[tuple[str, subprocess.Popen[str]]], budget: int):
+    """
+    Waits as long as the number of active processes reaches the budget limit.
+    """
+    while monitor_process(l_proc) >= budget:
+        time.sleep(1)
