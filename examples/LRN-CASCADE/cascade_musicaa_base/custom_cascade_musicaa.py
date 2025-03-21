@@ -43,7 +43,6 @@ def get_feos_info(sim_outdir: str) -> dict:
                 key = match.group(1).strip()
                 value = match.group(2)
                 feos_info[key] = float(value)
-
     return feos_info
 
 
@@ -68,7 +67,6 @@ def get_sim_info(sim_outdir: str):
         sim_info[f"block_{bl}"]["nz"] = int(lines[bl].split()[7])
     sim_info["ngh"] = int(lines[bl + 8].split()[-1])
     sim_info["dt"] = float(lines[bl + 9].split()[-1])
-
     return sim_info
 
 
@@ -118,7 +116,6 @@ def get_niter_ftt(sim_outdir: str, L_ref: float) -> int:
         L_ref = L_ref * Lgrid
     ftt = L_ref / u_ref
     sim_info = get_sim_info(sim_outdir)
-
     return int(ftt / sim_info["dt"])
 
 
@@ -143,7 +140,6 @@ def read_bl(sim_outdir: str, bl: int) -> tuple[np.ndarray, np.ndarray]:
                                                                      order="F")
     x = x[ngh:-ngh, ngh:-ngh]
     y = y[ngh:-ngh, ngh:-ngh]
-
     return x, y
 
 
