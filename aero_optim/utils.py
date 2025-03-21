@@ -310,7 +310,7 @@ def ln_filelist(in_files: list[str], out_files: list[str]):
 
 def find_closest_index(range_value: np.ndarray, target_value: float) -> int:
     """
-    **Returns** the index of the closest element to targe_value within range.
+    Returns the index of the closest element to targe_value within range.
     """
     closest_index = 0
     closest_difference = abs(range_value[0] - target_value)
@@ -320,13 +320,12 @@ def find_closest_index(range_value: np.ndarray, target_value: float) -> int:
         if difference < closest_difference:
             closest_difference = difference
             closest_index = i
-
     return closest_index
 
 
 def round_number(n: int | float, direction: str = "", decimals: int = 0) -> int | float:
     """
-    **Returns** the ceiling/floor rounded value of a given number.
+    Returns the ceiling/floor rounded value of a given number.
     """
     multiplier = 10**decimals
     if direction == "up":
