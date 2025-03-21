@@ -10,18 +10,14 @@ import subprocess
 import scipy.interpolate as si
 import sys
 
-from aero_optim.optim.evolution import PymooEvolution
 from aero_optim.simulator.simulator import WolfSimulator
 from aero_optim.utils import (custom_input, find_closest_index, check_dir,
                               read_next_line_in_file, cp_filelist)
 
-from pymoo.algorithms.moo.nsga2 import NSGA2
-from pymoo.optimize import minimize
-from pymoo.termination import get_termination
-
 from typing import Callable
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from cascade_adap.custom_cascade import CustomEvolution as WolfCustomEvolution # noqa
 from cascade_adap.custom_cascade import CustomOptimizer as WolfCustomOptimizer # noqa
 
 logger = logging.getLogger(__name__)
@@ -582,27 +578,5 @@ class CustomOptimizer(WolfCustomOptimizer):
         plt.close()
 
 
-class CustomEvolution(PymooEvolution):
-    def set_ea(self):
-        logger.info("SET CUSTOM EA")
-        self.ea = NSGA2(
-            pop_size=self.optimizer.doe_size,
-            sampling=self.optimizer.generator._pymoo_generator(),
-            **self.optimizer.ea_kwargs
-        )
-
-    def evolve(self):
-        logger.info("EXECUTE CUSTOM EVOLVE")
-        res = minimize(problem=self.optimizer,
-                       algorithm=self.ea,
-                       termination=get_termination("n_gen", self.optimizer.max_generations),
-                       seed=self.optimizer.seed,
-                       verbose=True)
-
-        self.optimizer.final_observe(res.F)
-
-        # output results
-        best_QoI, best_cand = res.F, res.X
-        np.set_printoptions(linewidth=np.nan)
-        logger.info(f"optimal QoIs:\n{best_QoI}")
-        logger.info(f"optimal candidates:\n{best_cand}")
+class CustomEvolution(WolfCustomEvolution):
+    """Same custom class as the one defined in cascade_adap"""
