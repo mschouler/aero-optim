@@ -1,30 +1,28 @@
+import json
 import logging
-import subprocess
-import os
-import numpy as np
-import scipy.interpolate as si
-import re
-import pandas as pd
-from typing import Callable
-import signal
-import time
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import json
+import numpy as np
+import os
+import pandas as pd
+import re
+import subprocess
+import scipy.interpolate as si
+import sys
 
-from aero_optim.geom import (get_area, get_camber_th, get_chords, get_circle, get_circle_centers,
-                             get_cog, get_radius_violation, split_profile, plot_profile, plot_sides)
 from aero_optim.optim.evolution import PymooEvolution
-from aero_optim.optim.optimizer import WolfOptimizer
-from aero_optim.optim.pymoo_optimizer import PymooWolfOptimizer
 from aero_optim.simulator.simulator import WolfSimulator
 from aero_optim.utils import (custom_input, find_closest_index, check_dir,
                               read_next_line_in_file, cp_filelist)
 
 from pymoo.algorithms.moo.nsga2 import NSGA2
-from pymoo.core.problem import Problem
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
+
+from typing import Callable
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from cascade_adap.custom_cascade import CustomOptimizer as WolfCustomOptimizer # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +51,9 @@ def get_sim_info(sim_outdir: str):
     """
     **Returns** a dictionnary containing relevant information on the mesh
     used by MUSICAA: number of blocks, block size, number of ghost points.
+
     Note: this element is automatically produced by MUSICAA, and need not be
-    created manually.
+          created manually.
     """
     # read relevant lines
     sim_info: dict = {}
@@ -384,103 +383,11 @@ class CustomSimulator(WolfSimulator):
     """
     This class implements a simulator for the CFD code MUSICAA.
     """
-    def __init__(self, config: dict):
-        """
-        Instantiates the WolfSimulator object.
-
-        **Input**
-
-        - config (dict): the config file dictionary.
-
-        **Inner**
-
-        - sim_pro (list[tuple[dict, subprocess.Popen[str]]]): list to track simulations
-          and their associated subprocess.
-
-            It has the following form:
-            ({'gid': gid, 'cid': cid, 'meshfile': meshfile, 'restart': restart}, subprocess).
-
-        # Simulation related
-        # ------------------
-        - sim_pro (list[tuple[dict, subprocess.Popen[str]]]): list containing current running
-          processes.
-        - restart (int): how many times a simulation is allowed to be restarted in case of failure.
-        - CFL (float): CFL number read from the param.ini file in the working directory.
-        - lower_CFL (float): lower CFL number in case computation crashes, computed with
-                             lower_CFL = CFL / divide_CFL_by in config.json file.
-        - ndeb_RANS (int): iteration from which the RANS model is computed.
-        - nprint (int): every iteration at which MUSICAA prints information to screen. Used for
-                        the residuals frequency !!! hard-coded in MUSICAA !!!
-        - computation_type (str): type of computation (steady/unsteady)
-
-        # Convergence criteria
-        # --------------------
-        - residual_convergence_order (float): order of convergence required for steady computations.
-        - QoIs_convergence_order (float): order of convergence required for unsteady computation
-                                          QoIs statistics.
-        - unsteady_convergence_percent (float): percentage of variation allowed for mean and rms
-                                                 to find end of unsteady transient.
-        - unsteady_convergence_percent_mean (float): same for mean
-        - unsteady_convergence_percent_rms (float): same for rms
-        - Boudet_criterion_type (str): the type of the unsteady transient convergence criterion.
-        - nb_ftt_before_criterion (int): number of flow-through times (f.t.t) to pass before
-                                         computing the Boudet criterion
-        - nb_ftt_mov_avg (int): number of flow-through times (f.t.t) to perform Boudet convergence
-                                criterion moving average on.
-        - only_compute_mean_crit (bool): if True, only the mean Boudet criterion is computed to
-                                         asses transient convergence. This is the case when
-                                         initializing the 2D computation since rms makes no sense
-
-        # Mesh related
-        # ------------
-        - sim_info (dict): dictionary containing information about the computations.
-                           Only accessible once the simulation has at least started or finished.
-        """
-        super().__init__(config)
-        self.config: dict = config
-        # simulator related
-        self.sim_pro: list[tuple[dict, subprocess.Popen[str]]] = []
-        self.restart: int = config["simulator"].get("restart", 0)
-        self.CFL: float = float(read_next_line_in_file("param.ini", "CFL"))
-        self.lower_CFL: float = self.CFL
-        self.ndeb_RANS: int = int(read_next_line_in_file("param.ini",
-                                                         "ndeb_RANS"))
-        self.nprint: int = int(re.findall(r'\b\d+\b',
-                                          read_next_line_in_file("param.ini",
-                                                                 "screen"))[0])
-        self.computation_type: str = read_next_line_in_file("param.ini",
-                                                            "DES without subgrid")
-        self.computation_type = "unsteady" if self.computation_type == "N" else "steady"
-        # convergence criteria
-        self.residual_convergence_order: float \
-            = config["simulator"]["convergence_criteria"].get("residual_convergence_order", 4)
-        self.QoIs_convergence_order: float \
-            = config["simulator"]["convergence_criteria"].get("QoIs_convergence_order", 4)
-        self.unsteady_convergence_percent_mean: float \
-            = config["simulator"]["convergence_criteria"].get("unsteady_convergence_percent_mean",
-                                                              1)
-        self.unsteady_convergence_percent_rms: float \
-            = config["simulator"]["convergence_criteria"].get("unsteady_convergence_percent_rms",
-                                                              10)
-        self.Boudet_criterion_type: bool \
-            = config["simulator"]["convergence_criteria"].get("Boudet_criterion_type", "original")
-        self.nb_ftt_before_criterion: int \
-            = config["simulator"]["convergence_criteria"].get("nb_ftt_before_criterion", 10)
-        self.nb_ftt_mov_avg: int \
-            = config["simulator"]["convergence_criteria"].get("nb_ftt_mov_avg", 4)
-        self.max_niter_init_2D: int \
-            = config["simulator"]["convergence_criteria"].get("max_niter_init_2D", 999999)
-        self.max_niter_init_3D: int \
-            = config["simulator"]["convergence_criteria"].get("max_niter_init_3D", 999999)
-        self.max_niter_stats: int \
-            = config["simulator"]["convergence_criteria"].get("max_niter_stats", 999999)
-        self.only_compute_mean_crit = False
-        # mesh related
-        self.block_info: dict = {}
-
     def process_config(self):
         """
-        **Makes sure** the config file contains the required information and extracts it.
+        **Makes sure** the config file contains the required information and extracts it:
+
+        - computation_type (str): type of computation (steady/unsteady)
         """
         logger.debug("processing config..")
         if "exec_cmd" not in self.config["simulator"]:
@@ -489,6 +396,8 @@ class CustomSimulator(WolfSimulator):
             raise Exception(f"ERROR -- no <ref_input> entry in {self.config['simulator']}")
         if "post_process" not in self.config["simulator"]:
             logger.debug(f"no <post_process> entry in {self.config['simulator']}")
+        self.computation_type = read_next_line_in_file("param.ini", "DES without subgrid")
+        self.computation_type = "unsteady" if self.computation_type == "N" else "steady"
 
     def set_solver_name(self):
         """
@@ -559,36 +468,6 @@ class CustomSimulator(WolfSimulator):
 
         return sim_outdir, self.exec_cmd
 
-    def execute(
-            self,
-            sim_outdir: str,
-            exec_cmd: list[str],
-            gid: int,
-            cid: int,
-            meshfile: str,
-            restart: int
-    ):
-        """
-        **Submits** the simulation subprocess and **updates** sim_pro.
-        """
-        # move to the output directory, execute musicaa and move back to the main directory
-        os.chdir(sim_outdir)
-        with open(f"{self.solver_name}_g{gid}_c{cid}.out", "wb") as out:
-            with open(f"{self.solver_name}_g{gid}_c{cid}.err", "wb") as err:
-                logger.info((f"execute {self.computation_type} simulation "
-                             f"g{gid}, c{cid} with {self.solver_name}"))
-                proc = subprocess.Popen(exec_cmd,
-                                        env=os.environ,
-                                        stdin=subprocess.DEVNULL,
-                                        stdout=out,
-                                        stderr=err,
-                                        universal_newlines=True)
-        os.chdir(self.cwd)
-        # append simulation to the list of active processes
-        self.sim_pro.append(
-            ({"gid": gid, "cid": cid, "meshfile": meshfile, "restart": restart}, proc)
-        )
-
     def _post_process(self, dict_id: dict, sim_outdir: str) -> str:
         """
         **Post-processes** the results of a terminated simulation.
@@ -637,182 +516,8 @@ class CustomSimulator(WolfSimulator):
             df_sub_dict[fname] = self._post_process(dict_id, os.path.join(sim_out_dir, fname))
         return df_sub_dict
 
-    def get_sim_outdir(self, gid: int = 0, cid: int = 0) -> str:
-        """
-        **Returns** the path to the folder containing the simulation results.
-        """
-        return os.path.join(
-            self.outdir, f"{self.solver_name.upper()}",
-            f"{self.solver_name}_g{gid}_c{cid}"
-        )
 
-
-class CustomOptimizer(PymooWolfOptimizer):
-    def __init__(self, config: dict):
-        """
-         **Inner**
-
-        - feasible_cid (dict[int, list[int]]): dictionary containing feasible cid of each gid.
-        """
-        WolfOptimizer.__init__(self, config)
-        Problem.__init__(
-            self, n_var=self.n_design, n_obj=2, n_ieq_constr=4, xl=self.bound[0], xu=self.bound[1]
-        )
-        self.feasible_cid: dict[int, list[int]] = {}
-
-    def set_inner(self):
-        """
-        **Sets** some baseline quantities required to compute the relative constraints:
-
-        - bsl_w_ADP (float)
-        - bsl_w_OP (float)
-        - bsl_camber_th (tuple[np.ndarray, float, float, np.ndarray])
-        - bsl_area (float)
-        - bsl_c (float)
-        - bsl_c_ax (float)
-        - bsl_cog (np.ndarray)
-        - bsl_cog_x (float)
-        - constraint (bool): whether to apply constraints (True) or not (False).
-        """
-        self.bsl_w_ADP = self.config["optim"].get("baseline_w_ADP", 0.03161)
-        self.bsl_w_OP = self.config["optim"].get("baseline_w_OP", 0.03756)
-        bsl_pts = self.ffd.pts
-        self.bsl_c, self.bsl_c_ax = get_chords(bsl_pts)
-        logger.info(f"baseline chord = {self.bsl_c} m, baseline axial chord = {self.bsl_c_ax}")
-        bsl_upper, bsl_lower = split_profile(bsl_pts)
-        self.bsl_camber_th = get_camber_th(bsl_upper, bsl_lower, interpolate=True)
-        self.bsl_th_over_c = self.bsl_camber_th[1] / self.bsl_c
-        self.bsl_Xth_over_cax = self.bsl_camber_th[2] / self.bsl_c_ax
-        logger.info(f"baseline th_max = {self.bsl_camber_th[1]} m, "
-                    f"Xth_max {self.bsl_camber_th[2]} m, "
-                    f"th_max / c = {self.bsl_th_over_c}, "
-                    f"Xth_max / c_ax = {self.bsl_Xth_over_cax}")
-        self.bsl_area = get_area(bsl_pts)
-        self.bsl_area_over_c2 = self.bsl_area / self.bsl_c**2
-        logger.info(f"baseline area = {self.bsl_area} m2, "
-                    f"baseline area / (c * c) = {self.bsl_area_over_c2}")
-        self.bsl_cog = get_cog(bsl_pts)
-        self.bsl_Xcg_over_cax = self.bsl_cog[0] / self.bsl_c_ax
-        logger.info(f"baseline X_cg over c_ax = {self.bsl_Xcg_over_cax}")
-        self.constraint: bool = self.config["optim"].get("constraint", True)
-
-    def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
-        """
-        **Computes** the objective function and constraints for each candidate in the generation.
-
-        Note:
-            for this use-case, constraints can be computed before simulations.
-            Unfeasible candidates are not simulated.
-        """
-        gid = self.gen_ctr
-        self.feasible_cid[gid] = []
-
-        # compute candidates constraints and execute feasible candidates only
-        out["G"] = self.execute_constrained_candidates(X, gid)
-
-        # update candidates fitness
-        for cid in range(len(X)):
-            if cid in self.feasible_cid[gid]:
-                loss_ADP = self.simulator.df_dict[gid][cid]["ADP"][self.QoI].iloc[-1]
-                loss_OP1 = self.simulator.df_dict[gid][cid]["OP1"][self.QoI].iloc[-1]
-                loss_OP2 = self.simulator.df_dict[gid][cid]["OP2"][self.QoI].iloc[-1]
-                logger.info(f"g{gid}, c{cid}: "
-                            f"w_ADP = {loss_ADP}, w_OP = {0.5 * (loss_OP1 + loss_OP2)}")
-                self.J.append([loss_ADP, 0.5 * (loss_OP1 + loss_OP2)])
-            else:
-                self.J.append([float("nan"), float("nan")])
-
-        out["F"] = np.row_stack(self.J[-self.doe_size:])
-        self._observe(out["F"])
-        self.gen_ctr += 1
-
-    def execute_constrained_candidates(self, candidates: np.ndarray, gid: int) -> np.ndarray:
-        """
-        **Executes** feasible candidates only and **waits** for them to finish.
-        """
-        logger.info(f"evaluating candidates of generation {self.gen_ctr}..")
-        self.ffd_profiles.append([])
-        self.inputs.append([])
-        constraint = []
-        for cid, cand in enumerate(candidates):
-            self.inputs[gid].append(np.array(cand))
-            ffd_file, ffd_profile = self.deform(cand, gid, cid)
-            self.ffd_profiles[gid].append(ffd_profile)
-            logger.info(f"candidate g{gid}, c{cid} constraint computation..")
-            constraint.append(self.apply_candidate_constraints(ffd_profile, gid, cid))
-            # only mesh and execute feasible candidates
-            if len([v for v in constraint[cid] if v > 0.]) == 0:
-                self.feasible_cid[gid].append(cid)
-                # meshing with proper sigint management
-                # see https://gitlab.onelab.info/gmsh/gmsh/-/issues/842
-                ORIGINAL_SIGINT_HANDLER = signal.signal(signal.SIGINT, signal.SIG_DFL)
-                mesh_file = self.mesh(ffd_file)
-                signal.signal(signal.SIGINT, ORIGINAL_SIGINT_HANDLER)
-                while self.simulator.monitor_sim_progress() * self.nproc_per_sim >= self.budget:
-                    time.sleep(1)
-                self.simulator.execute_sim(meshfile=mesh_file, gid=gid, cid=cid)
-            else:
-                logger.info(f"unfeasible candidate g{gid}, c{cid} not simulated")
-
-        # wait for last candidates to finish
-        while self.simulator.monitor_sim_progress() > 0:
-            time.sleep(0.1)
-        return np.row_stack(constraint)
-
-    def apply_candidate_constraints(self, profile: np.ndarray, gid: int, cid: int) -> list[float]:
-        """
-        **Computes** various relative and absolute constraints of a given candidate
-        and **returns** their values as a list of floats.
-
-        Note:
-            when some constraint is violated, a graph is also generated.
-        """
-        if not self.constraint:
-            return [-1.] * 4
-        # relative constraints
-        # thmax / c:        +/- 30%
-        # Xthmax / c_ax:    +/- 20%
-        upper, lower = split_profile(profile)
-        c, c_ax = get_chords(profile)
-        camber_line, thmax, Xthmax, th_vec = get_camber_th(upper, lower, interpolate=True)
-        th_over_c = thmax / c
-        Xth_over_cax = Xthmax / c_ax
-        logger.debug(f"th_max = {thmax} m, Xth_max {Xthmax} m")
-        logger.debug(f"th_max / c = {th_over_c}, Xth_max / c_ax = {Xth_over_cax}")
-        th_cond = abs(th_over_c - self.bsl_th_over_c) / self.bsl_th_over_c - 0.3
-        logger.debug(f"th_max / c: {'violated' if th_cond > 0 else 'not violated'} ({th_cond})")
-        Xth_cond = abs(Xth_over_cax - self.bsl_Xth_over_cax) / self.bsl_Xth_over_cax - 0.2
-        logger.debug(f"Xth_max / c_ax: {'violated' if Xth_cond > 0 else 'not violated'} "
-                     f"({Xth_cond})")
-        # area / (c * c):   +/- 20%
-        area = get_area(profile)
-        area_over_c2 = area / c**2
-        area_cond = abs(area_over_c2 - self.bsl_area_over_c2) / self.bsl_area_over_c2 - 0.2
-        logger.debug(f"area / (c * c): {'violated' if area_cond > 0 else 'not violated'} "
-                     f"({area_cond})")
-        # X_cg / c_ax:      +/- 20%
-        cog = get_cog(profile)
-        Xcg_over_cax = cog[0] / c_ax
-        cog_cond = abs(Xcg_over_cax - self.bsl_Xcg_over_cax) / self.bsl_Xcg_over_cax - 0.2
-        logger.debug(f"X_cg / c_ax: {'violated' if cog_cond > 0 else 'not violated'} ({cog_cond})")
-        # absolute constraints
-        O_le, O_te = get_circle_centers(upper[:, :2], lower[:, :2])
-        le_circle = get_circle(O_le, 0.005 * c)
-        te_circle = get_circle(O_te, 0.005 * c)
-        le_radius_cond = get_radius_violation(profile, O_le, 0.005 * c)
-        logger.debug(f"le radius: {'violated' if le_radius_cond > 0 else 'not violated'} "
-                     f"({le_radius_cond})")
-        te_radius_cond = get_radius_violation(profile, O_te, 0.005 * c)
-        logger.debug(f"te radius: {'violated' if te_radius_cond > 0 else 'not violated'} "
-                     f"({te_radius_cond})")
-        if cog_cond > 0:
-            fig_name = os.path.join(self.figdir, f"profile_g{gid}_c{cid}.png")
-            plot_profile(profile, cog, fig_name)
-        if th_cond > 0 or Xth_cond > 0 or area_cond > 0:
-            fig_name = os.path.join(self.figdir, f"sides_g{gid}_c{cid}.png")
-            plot_sides(upper, lower, camber_line, le_circle, te_circle, th_vec, fig_name)
-        return [th_cond, Xth_cond, area_cond, cog_cond]
-
+class CustomOptimizer(WolfCustomOptimizer):
     def _observe(self, pop_fitness: np.ndarray):
         """
         **Plots** some results each time a generation has been evaluated:</br>
@@ -878,44 +583,6 @@ class CustomOptimizer(PymooWolfOptimizer):
         fig_name = f"pymoo_g{gid}.png"
         logger.info(f"saving {fig_name} to {self.figdir}")
         plt.savefig(os.path.join(self.figdir, fig_name), bbox_inches='tight')
-        plt.close()
-
-    def final_observe(self, best_candidates: np.ndarray):
-        """
-        **Plots** convergence progress by plotting the fitness values
-        obtained with the successive generations.
-        """
-        logger.info(f"plotting populations statistics after {self.gen_ctr} generations..")
-
-        # plot construction
-        _, ax = plt.subplots(figsize=(8, 8))
-        gen_fitness = np.row_stack(self.J)
-
-        # plotting data
-        cmap = mpl.colormaps[self.cmap].resampled(self.max_generations)
-        colors = cmap(np.linspace(0, 1, self.max_generations))
-        for gid in range(self.max_generations):
-            ax.scatter(gen_fitness[gid * self.doe_size: (gid + 1) * self.doe_size][:, 0],
-                       gen_fitness[gid * self.doe_size: (gid + 1) * self.doe_size][:, 1],
-                       color=colors[gid], label=f"g{gid}")
-        ax.scatter(self.bsl_w_ADP, self.bsl_w_OP, marker="*", color="red", label="baseline")
-        sorted_idx = np.argsort(best_candidates, axis=0)[:, 0]
-        ax.plot(best_candidates[sorted_idx, 0], best_candidates[sorted_idx, 1],
-                color="black", linestyle="dashed", label="pareto estimate")
-        ax.plot()
-        ax.set_axisbelow(True)
-        plt.grid(True, color="grey", linestyle="dashed")
-
-        # legend and title
-        ax.set_title(f"Optimization evolution ({self.gen_ctr} g. x {self.doe_size} c.)")
-        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        ax.set_xlabel('$w_\\text{ADP}$')
-        ax.set_ylabel('$w_\\text{OP}$')
-
-        # save figure as png
-        fig_name = f"pymoo_optim_g{self.gen_ctr}_c{self.doe_size}.png"
-        logger.info(f"saving {fig_name} to {self.outdir}")
-        plt.savefig(os.path.join(self.outdir, fig_name), bbox_inches='tight')
         plt.close()
 
 
