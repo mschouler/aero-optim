@@ -2,16 +2,13 @@ import importlib.util
 import glob
 import json
 import logging
+import math
+import numpy as np
 import os.path
 import shutil
 import signal
 import subprocess
-<<<<<<< HEAD
-import numpy as np
-import math
-=======
 import time
->>>>>>> master
 
 from types import FrameType
 
