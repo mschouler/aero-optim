@@ -25,8 +25,6 @@ venv.bak/
 # results
 examples/*/output*
 examples/*/*/output*
-examples/*/*/*.dat
-examples/*/*/*_mod_bl*
 RES*
 tmp
 
