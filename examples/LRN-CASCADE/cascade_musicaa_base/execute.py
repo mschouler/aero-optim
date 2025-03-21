@@ -10,7 +10,6 @@ import re
 import pandas as pd
 import json
 from typing import Callable
-import threading
 import time
 
 from aero_optim.mesh.mesh import get_block_info
@@ -21,9 +20,7 @@ from aero_optim.utils import (cp_filelist, round_number, rm_filelist,
 FAILURE: int = 1
 SUCCESS: int = 0
 
-MUSICAA: str = "mpiexec -n 45 /home/matar/bin/musicaa"
-
-LOCK: threading.Lock = threading.Lock()
+MUSICAA: str = "mpiexec -n 45 /home/mschouler/bin/musicaa"
 
 print = functools.partial(print, flush=True)
 
@@ -34,7 +31,6 @@ def execute_steady(config: dict, sim_outdir: str):
     """
     **Executes** a Reynolds-Averaged Navier-Stokes simulation with MUSICAA.
     """
-
     # execute computation
     config.update({"is_stats": False})
     proc = execute(MUSICAA, sim_outdir)
@@ -51,7 +47,6 @@ def execute_unsteady(config: dict, sim_outdir: str):
     """
     **Executes** a Large Eddy Simulation with MUSICAA.
     """
-
     # initialize LES with a fully developed 2D field
     config.update({"is_stats": False})
     pre_process_init_unsteady("2D", sim_outdir)
@@ -77,7 +72,6 @@ def execute(exec_cmd: str, sim_outdir: str):
     # submit computation
     with open(os.path.join(sim_outdir, "musicaa.out"), "wb") as out:
         with open(os.path.join(sim_outdir, "musicaa.err"), "wb") as err:
-            LOCK.acquire()
             cwd = os.getcwd()
             os.chdir(sim_outdir)
             proc = subprocess.Popen(exec_cmd.split(),
@@ -87,7 +81,6 @@ def execute(exec_cmd: str, sim_outdir: str):
                                     stderr=err,
                                     universal_newlines=True)
             os.chdir(cwd)
-            LOCK.release()
     return proc
 
 
