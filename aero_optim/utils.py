@@ -2,6 +2,8 @@ import importlib.util
 import glob
 import json
 import logging
+import math
+import numpy as np
 import os.path
 import shutil
 import signal
@@ -10,7 +12,7 @@ import time
 
 from types import FrameType
 
-STUDY_TYPE = ["naca_base", "naca_block", "cascade"]
+STUDY_TYPE = ["naca_base", "naca_block", "cascade", "musicaa"]
 FFD_TYPE = ["ffd_2d", "ffd_pod_2d"]
 logger = logging.getLogger(__name__)
 
@@ -220,6 +222,49 @@ def replace_in_file(fname: str, sim_args: dict):
         file.write(filedata)
 
 
+def custom_input(fname: str, args: dict):
+    """
+    Writes a customized input file.
+    """
+    for key, value in args.items():
+        modify_next_line_in_file(fname, key, str(value))
+
+
+def modify_next_line_in_file(fname: str, pattern: str, modif: str):
+    """
+    Locates the line in fname containing pattern and replaces the next line with modif.
+    """
+    try:
+        with open(fname, 'r') as file:
+            filedata = file.readlines()
+        # Iterate through the lines and find the line containing pattern
+        for i, line in enumerate(filedata):
+            if pattern in line:
+                # Ensure the next line exists
+                if i + 1 < len(filedata):
+                    filedata[i + 1] = modif + '\n'
+        # Write the modified content back to the file
+        with open(fname, 'w') as file:
+            file.writelines(filedata)
+    except Exception as e:
+        logger.error(f"error reading file: {e}")
+
+
+def read_next_line_in_file(fname: str, pattern: str) -> str:
+    """
+    Returns the next line of fname containing pattern.
+    """
+    with open(fname, "r") as file:
+        filedata = file.readlines()
+    # Iterate through the lines and find the line containing pattern
+    for i, line in enumerate(filedata):
+        if pattern in line:
+            # Ensure the next line exists
+            if i + 1 < len(filedata):
+                return filedata[i + 1].strip()  # Remove any extra newlines
+    raise Exception(f"{pattern} not found in {fname}")
+
+
 def rm_filelist(deletion_list: list[str]):
     """
     Wrapper around os.remove that deletes all files specified in deletion_list.
@@ -261,6 +306,34 @@ def ln_filelist(in_files: list[str], out_files: list[str]):
             print(f"WARNING -- {e}, symlink will be forced")
             os.symlink(in_f, "tmplink")
             os.rename("tmplink", out_f)
+
+
+def find_closest_index(range_value: np.ndarray, target_value: float) -> int:
+    """
+    Returns the index of the closest element to targe_value within range.
+    """
+    closest_index = 0
+    closest_difference = abs(range_value[0] - target_value)
+
+    for i in range(1, len(range_value)):
+        difference = abs(range_value[i] - target_value)
+        if difference < closest_difference:
+            closest_difference = difference
+            closest_index = i
+    return closest_index
+
+
+def round_number(n: int | float, direction: str = "", decimals: int = 0) -> int | float:
+    """
+    Returns the ceiling/floor rounded value of a given number.
+    """
+    multiplier = 10**decimals
+    if direction == "up":
+        return math.ceil(n * multiplier) / multiplier
+    elif direction == "down":
+        return math.floor(n * multiplier) / multiplier
+    else:
+        return round(n, decimals)
 
 
 def submit_popen_process(
