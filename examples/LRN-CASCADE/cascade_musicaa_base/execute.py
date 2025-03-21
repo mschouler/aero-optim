@@ -792,12 +792,6 @@ def pre_process_init_unsteady(sim_outdir: str, dimension: str):
         custom_input(param_ini, args)
 
 
-def get_residual(res_file: str = "residual.dat", entry: int = -2) -> float:
-    res_line = open(res_file, "r").read().splitlines()[-1]
-    res_list = list(map(float, res_line.split()))
-    return float(res_list[entry])
-
-
 def main() -> int:
     """
     This program runs a WOLF CFD simulation at ADP.
@@ -816,8 +810,7 @@ def main() -> int:
     with open("sim_config.json") as jfile:
         config = json.load(jfile)
     # set computation type
-    computation_type: str = read_next_line_in_file("param.ini",
-                                                   "DES without subgrid")
+    computation_type: str = read_next_line_in_file("param.ini", "DES without subgrid")
     computation_type = "unsteady" if computation_type == "N" else "steady"
     execute_computation: Callable = globals()[f"execute_{computation_type}"]
 
