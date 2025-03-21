@@ -83,7 +83,8 @@ class FFD_2D(Deform):
     with (P00, P30, P01, P31) fixed if pad = (1, 1).
     """
     def __init__(
-            self, dat_file: str, ncontrol: int, pad: tuple[int, int] = (1, 1), header: int = 2
+            self, dat_file: str, ncontrol: int,
+            pad: tuple[int, int] = (1, 1), header: int = 2, **kwargs
     ):
         """
         Instantiates the FFD_2D object.

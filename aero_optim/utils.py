@@ -337,19 +337,29 @@ def round_number(n: int | float, direction: str = "", decimals: int = 0) -> int 
         return round(n, decimals)
 
 
-def submit_popen_process(name: str, exec_cmd: list[str]) -> tuple[str, subprocess.Popen[str]]:
+def submit_popen_process(
+        name: str, exec_cmd: list[str], dir: str = ""
+) -> tuple[str, subprocess.Popen[str]]:
     """
     Wrapper around Popen. It submits exec_cmd and returns the corresponding tuple (name, process).
     """
     with open(f"{name}.out", "wb") as out:
         with open(f"{name}.err", "wb") as err:
             print(f"INFO -- execute {name}")
+            # move to dir if specified
+            if dir:
+                cwd = os.getcwd()
+                os.chdir(dir)
+            # submit subprocess
             proc = subprocess.Popen(exec_cmd,
                                     env=os.environ,
                                     stdin=subprocess.DEVNULL,
                                     stdout=out,
                                     stderr=err,
                                     universal_newlines=True)
+            # move back to the initial working dir
+            if dir:
+                os.chdir(cwd)
     return (name, proc)
 
 
