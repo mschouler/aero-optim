@@ -10,12 +10,12 @@ import re
 import pandas as pd
 import json
 from typing import Callable
-import time
 
 from aero_optim.mesh.mesh import get_block_info
 from custom_cascade_musicaa import get_time_info, get_niter_ftt
 from aero_optim.utils import (cp_filelist, round_number, rm_filelist,
-                              read_next_line_in_file, custom_input)
+                              read_next_line_in_file, custom_input,
+                              submit_popen_process, wait_for_it)
 
 FAILURE: int = 1
 SUCCESS: int = 0
@@ -33,13 +33,13 @@ def execute_steady(config: dict, sim_outdir: str):
     """
     # execute computation
     config.update({"is_stats": False})
-    proc = execute(MUSICAA, sim_outdir)
+    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "steady")
 
     # gather statistics
     config.update({"is_stats": True})
     pre_process_stats(config, sim_outdir, "steady")
-    proc = execute(MUSICAA, sim_outdir)
+    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "steady")
 
 
@@ -50,38 +50,19 @@ def execute_unsteady(config: dict, sim_outdir: str):
     # initialize LES with a fully developed 2D field
     config.update({"is_stats": False})
     pre_process_init_unsteady("2D", sim_outdir)
-    proc = execute(MUSICAA, sim_outdir)
+    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_2D")
 
     # carry on with 3D transient
     pre_process_init_unsteady("3D", sim_outdir)
-    proc = execute(MUSICAA, sim_outdir)
+    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_3D")
 
     # gather statistics
     config.update({"is_stats": True})
     pre_process_stats(config, sim_outdir, "unsteady")
-    proc = execute(MUSICAA, sim_outdir)
+    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady")
-
-
-def execute(exec_cmd: str, sim_outdir: str):
-    """
-    **Pre-processes** and **Executes** a simulation with musicaa.
-    """
-    # submit computation
-    with open(os.path.join(sim_outdir, "musicaa.out"), "wb") as out:
-        with open(os.path.join(sim_outdir, "musicaa.err"), "wb") as err:
-            cwd = os.getcwd()
-            os.chdir(sim_outdir)
-            proc = subprocess.Popen(exec_cmd.split(),
-                                    env=os.environ,
-                                    stdin=subprocess.DEVNULL,
-                                    stdout=out,
-                                    stderr=err,
-                                    universal_newlines=True)
-            os.chdir(cwd)
-    return proc
 
 
 def monitor_sim_progress(proc: subprocess.Popen,
@@ -130,7 +111,7 @@ def monitor_sim_progress(proc: subprocess.Popen,
                 custom_input(param_ini, {"CFL": lower_CFL})
                 # clean directory
                 rm_filelist(["plane*", "line*", "point*", "restart*"])
-                proc = execute(MUSICAA, sim_outdir)
+                _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
             else:
                 raise Exception(f"ERROR -- {computation_type} simulation crashed")
 
@@ -817,50 +798,6 @@ def get_residual(res_file: str = "residual.dat", entry: int = -2) -> float:
     return float(res_list[entry])
 
 
-def submit_process(name: str, exec_cmd: list[str]) -> subprocess.Popen[str]:
-    """
-    **Submits** exec_cmd and **returns** the corresponding process.
-    """
-    with open(f"{name}.out", "wb") as out:
-        with open(f"{name}.err", "wb") as err:
-            print(f"INFO -- execute {name}")
-            proc = subprocess.Popen(exec_cmd,
-                                    env=os.environ,
-                                    stdin=subprocess.DEVNULL,
-                                    stdout=out,
-                                    stderr=err,
-                                    universal_newlines=True)
-    return proc
-
-
-def monitor_returncode(l_proc: list[subprocess.Popen[str]]) -> int:
-    """
-    **Checks** the state of the processes and **returns** the number of living ones.
-    """
-    finished_sim = []
-    for id, p_id in enumerate(l_proc):
-        returncode = p_id.poll()
-        if returncode is None:
-            pass  # simulation still running
-        elif returncode == 0:
-            print(f"INFO -- simulation {p_id} finished")
-            finished_sim.append(id)
-        else:
-            print("ERROR -- one process failed, all simulations will be killed")
-            for p in l_proc:
-                p.terminate()
-            raise Exception(f"ERROR -- simulation {p_id} failed")
-    return len([p_id for id, p_id in enumerate(l_proc) if id not in finished_sim])
-
-
-def wait_for_it(l_proc: list[subprocess.Popen[str]], nmax: int):
-    """
-    **Waits** until at lest one processes finishes.
-    """
-    while monitor_returncode(l_proc) >= nmax:
-        time.sleep(1)
-
-
 def main() -> int:
     """
     This program runs a WOLF CFD simulation at ADP.
@@ -894,21 +831,21 @@ def main() -> int:
         del exec_args[ms_idx]
         # adp
         exec_cmd = [sys.executable] + exec_args + ["-adp"]
-        l_proc.append(submit_process("ADP", exec_cmd))
+        l_proc.append(submit_popen_process("ADP", exec_cmd))
         # op1
         exec_cmd = [sys.executable] + exec_args + ["-op1"]
-        if monitor_returncode(l_proc) < args_parse.ms:
-            l_proc.append(submit_process("OP1", exec_cmd))
+        if len(l_proc) < args_parse.ms:
+            l_proc.append(submit_popen_process("OP1", exec_cmd))
         else:
             wait_for_it(l_proc, args_parse.ms)
-            l_proc.append(submit_process("OP1", exec_cmd))
+            l_proc.append(submit_popen_process("OP1", exec_cmd))
         # op2
         exec_cmd = [sys.executable] + exec_args + ["-op2"]
-        if monitor_returncode(l_proc) < args_parse.ms:
-            l_proc.append(submit_process("OP2", exec_cmd))
+        if len(l_proc) < args_parse.ms:
+            l_proc.append(submit_popen_process("OP2", exec_cmd))
         else:
             wait_for_it(l_proc, args_parse.ms)
-            l_proc.append(submit_process("OP2", exec_cmd))
+            l_proc.append(submit_popen_process("OP2", exec_cmd))
         # wait for all processes to finish
         wait_for_it(l_proc, 1)
 
@@ -953,7 +890,6 @@ def main() -> int:
         config_OP1 = config.copy()
         execute_computation(config_OP1, sim_dir)
 
-    # os.chdir(cwd)
     if args_parse.op2:
         print("** OP2 SIMULATION (-5 deg.) **")
         print("** ------------------------ **")
