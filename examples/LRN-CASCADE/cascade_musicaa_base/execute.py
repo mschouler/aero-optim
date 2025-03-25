@@ -112,6 +112,7 @@ def monitor_sim_progress(proc: subprocess.Popen,
                 # clean directory
                 rm_filelist(["plane*", "line*", "point*", "restart*"])
                 _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
+                current_restart += 1
             else:
                 raise Exception(f"ERROR -- {computation_type} simulation crashed")
 
@@ -307,7 +308,7 @@ def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
         return False, 0
 
     # proceed if this criterion has not already been checked
-    niter_ftt = get_niter_ftt(sim_outdir, config["plot3D"]["mesh"]["chord_length"])
+    niter_ftt = get_niter_ftt(sim_outdir, config["gmsh"]["chord_length"])
     try:
         if sensors["niter"] // niter_ftt >= config["n_convergence_check"]:
             if config["is_stats"]:
@@ -325,6 +326,7 @@ def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
             config.update({"n_convergence_check": 0})
         else:
             config.update({"n_convergence_check": nb_ftt_before_criterion})
+        sensors["niter"] = 0
 
     return False, sensors["niter"]
 
@@ -686,7 +688,7 @@ def pre_process_stats(config: dict, sim_outdir: str, computation_type: str):
     elif computation_type == "unsteady":
         niter_stats = 999999
         # add frequency for QoI convergence check: will ask MUSICAA to output stats files
-        niter_ftt = get_niter_ftt(sim_outdir, config["plot3D"]["mesh"]["chord_length"])
+        niter_ftt = get_niter_ftt(sim_outdir, config["gmsh"]["chord_length"])
         freqs = read_next_line_in_file(param_ini,
                                        "Output frequencies: screen / stats / fields").split()
         args.update({"Output frequencies: screen / stats / fields":
@@ -750,7 +752,7 @@ def change_dimensions_param_blocks(sim_outdir: str):
         f.writelines(filedata)
 
 
-def pre_process_init_unsteady(sim_outdir: str, dimension: str):
+def pre_process_init_unsteady(dimension: str, sim_outdir: str):
     """
     **Pre-processes** unsteady computation to initialize with 2D or 3D simulation.
     """
@@ -766,7 +768,7 @@ def pre_process_init_unsteady(sim_outdir: str, dimension: str):
         # modify param.ini file
         args.update({"Implicit Residual Smoothing": "2"})
         args.update({"Residual smoothing parameter": "0.42 0.1 0.005 0.00025 0.0000125"})
-        is_SF = read_next_line_in_file(param_ini, ("Selective Filtering: is_SF"
+        is_SF = read_next_line_in_file(param_ini, ("Selective Filtering: is_SF "
                                                    "[T:SF; F:artifical viscosity]"))
         if is_SF:
             coeff = 0.2
