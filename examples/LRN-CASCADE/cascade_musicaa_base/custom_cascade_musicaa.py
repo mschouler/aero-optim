@@ -9,6 +9,7 @@ import re
 import subprocess
 import scipy.interpolate as si
 import sys
+import time
 
 from aero_optim.simulator.simulator import WolfSimulator
 from aero_optim.utils import (custom_input, find_closest_index, check_dir,
@@ -52,6 +53,9 @@ def get_sim_info(sim_outdir: str):
     """
     # read relevant lines
     sim_info: dict = {}
+    # info.ini creation may take time
+    if not os.path.isfile(os.path.join(sim_outdir, 'info.ini')):
+        time.sleep(2.)
     with open(os.path.join(sim_outdir, "info.ini"), "r") as f:
         lines = f.readlines()
     sim_info["nbloc"] = int(lines[0].split()[4])
@@ -403,9 +407,13 @@ class CustomSimulator(WolfSimulator):
         and **returns** the execution command and directory.
         """
         # get the simulation meshfile
-        full_meshfile = meshfile if meshfile else self.config["simulator"]["file"]
-        path_to_meshfile: str = "/".join(full_meshfile.split("/")[:-1])
-        meshfile = full_meshfile.split("/")[-1]
+        if meshfile:
+            full_meshfile = meshfile
+            path_to_meshfile = "/".join(full_meshfile.split("/")[:-1])
+            meshfile = full_meshfile.split("/")[-1]
+        else:
+            path_to_meshfile = self.config["gmsh"]["mesh_dir"]
+            meshfile = self.config["gmsh"]["mesh_name"]
 
         # name of simulation directory
         sim_outdir = self.get_sim_outdir(gid=gid, cid=cid)
