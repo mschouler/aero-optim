@@ -55,18 +55,25 @@ def get_sim_info(sim_outdir: str):
     sim_info: dict = {}
     # info.ini creation may take time
     if not os.path.isfile(os.path.join(sim_outdir, 'info.ini')):
-        time.sleep(2.)
+        print("WARNING -- info.ini not found")
+        time.sleep(1.)
+        return get_sim_info(sim_outdir)
     with open(os.path.join(sim_outdir, "info.ini"), "r") as f:
         lines = f.readlines()
-    sim_info["nbloc"] = int(lines[0].split()[4])
-    for bl in range(sim_info["nbloc"]):
-        bl += 1
-        sim_info[f"block_{bl}"] = {}
-        sim_info[f"block_{bl}"]["nx"] = int(lines[bl].split()[5])
-        sim_info[f"block_{bl}"]["ny"] = int(lines[bl].split()[6])
-        sim_info[f"block_{bl}"]["nz"] = int(lines[bl].split()[7])
-    sim_info["ngh"] = int(lines[bl + 8].split()[-1])
-    sim_info["dt"] = float(lines[bl + 9].split()[-1])
+    try:
+        sim_info["nbloc"] = int(lines[0].split()[4])
+        for bl in range(sim_info["nbloc"]):
+            bl += 1
+            sim_info[f"block_{bl}"] = {}
+            sim_info[f"block_{bl}"]["nx"] = int(lines[bl].split()[5])
+            sim_info[f"block_{bl}"]["ny"] = int(lines[bl].split()[6])
+            sim_info[f"block_{bl}"]["nz"] = int(lines[bl].split()[7])
+        sim_info["ngh"] = int(lines[bl + 8].split()[-1])
+        sim_info["dt"] = float(lines[bl + 9].split()[-1])
+    except IndexError:
+        print("WARNING -- info.ini incomplete")
+        time.sleep(1.)
+        return get_sim_info(sim_outdir)
     return sim_info
 
 
