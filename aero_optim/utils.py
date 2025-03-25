@@ -342,13 +342,13 @@ def submit_popen_process(
     """
     Wrapper around Popen. It submits exec_cmd and returns the corresponding tuple (name, process).
     """
+    # move to dir if specified
+    if dir:
+        cwd = os.getcwd()
+        os.chdir(dir)
     with open(f"{name}.out", "wb") as out:
         with open(f"{name}.err", "wb") as err:
             print(f"INFO -- execute {name}")
-            # move to dir if specified
-            if dir:
-                cwd = os.getcwd()
-                os.chdir(dir)
             # submit subprocess
             proc = subprocess.Popen(exec_cmd,
                                     env=os.environ,
@@ -356,9 +356,9 @@ def submit_popen_process(
                                     stdout=out,
                                     stderr=err,
                                     universal_newlines=True)
-            # move back to the initial working dir
-            if dir:
-                os.chdir(cwd)
+    # move back to the initial working dir
+    if dir:
+        os.chdir(cwd)
     return (name, proc)
 
 
