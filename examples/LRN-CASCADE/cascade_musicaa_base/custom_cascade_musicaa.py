@@ -56,8 +56,7 @@ def get_sim_info(sim_outdir: str):
     # info.ini creation may take time
     if not os.path.isfile(os.path.join(sim_outdir, 'info.ini')):
         print("WARNING -- info.ini not found")
-        time.sleep(1.)
-        return get_sim_info(sim_outdir)
+        time.sleep(2.)
     with open(os.path.join(sim_outdir, "info.ini"), "r") as f:
         lines = f.readlines()
     try:
