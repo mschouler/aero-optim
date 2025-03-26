@@ -11,21 +11,40 @@ import pandas as pd
 import json
 from typing import Callable
 import time
+import glob
 
 from aero_optim.mesh.mesh import get_block_info
-from custom_cascade_musicaa import get_time_info, get_niter_ftt
+from custom_cascade_musicaa import get_time_info, get_niter_ftt, compute_QoIs
 from aero_optim.utils import (cp_filelist, round_number, rm_filelist,
                               read_next_line_in_file, custom_input,
                               submit_popen_process, wait_for_it)
 
 FAILURE: int = 1
 SUCCESS: int = 0
-
 MUSICAA: str = "mpiexec -n 45 /home/mschouler/bin/musicaa"
 
 print = functools.partial(print, flush=True)
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
+
+def save_simu(sim_outdir: str, step_name: str):
+    """
+    **Saves** the simulation results to step_name in sim_outdir.
+    """
+    file_list = (
+        glob.glob(os.path.join(sim_outdir, "restart*"))
+        + glob.glob(os.path.join(sim_outdir, "plane_00*"))
+        + glob.glob(os.path.join(sim_outdir, "stats*"))
+        + glob.glob(os.path.join(sim_outdir, "*.dat"))
+        + glob.glob(os.path.join(sim_outdir, "*.ini"))
+        + glob.glob(os.path.join(sim_outdir, "line_*"))
+        + glob.glob(os.path.join(sim_outdir, "point_*"))
+        + glob.glob(os.path.join(sim_outdir, "grid_bl*"))
+    )
+    os.makedirs(os.path.join(sim_outdir, step_name), exist_ok=True)
+    cp_filelist(file_list, len(file_list) * [step_name])
 
 
 def execute_steady(config: dict, sim_outdir: str):
@@ -56,12 +75,15 @@ def execute_unsteady(config: dict, sim_outdir: str):
     print("INFO -- submit popen unsteady 2D")
     _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_2D")
+    # save results
+    save_simu(sim_outdir, "init_2D")
 
     # carry on with 3D transient
     pre_process_init_unsteady("3D", sim_outdir)
     print("INFO -- submit popen unsteady 3D")
     _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_3D")
+    save_simu(sim_outdir, "init_3D")
 
     # gather statistics
     config.update({"is_stats": True})
@@ -114,9 +136,8 @@ def monitor_sim_progress(proc: subprocess.Popen,
                 param_ini = os.path.join(sim_outdir, "param.ini")
                 CFL = float(read_next_line_in_file(param_ini, "CFL"))
                 lower_CFL = CFL / divide_CFL_by
-                logger.error((f"ERROR -- init_unsteady_2D crashed with CFL={CFL} "
-                              f"and will be restarted with lower CFL="
-                              f"{lower_CFL}"))
+                print(f"ERROR -- init_unsteady_2D crashed with CFL={CFL} "
+                      f"and will be restarted with lower CFL={lower_CFL}")
                 custom_input(param_ini, {"CFL": lower_CFL})
                 # clean directory
                 rm_filelist(["plane*", "line*", "point*", "restart*"])
@@ -329,16 +350,15 @@ def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
 
     # proceed if this criterion has not already been checked
     niter_ftt = get_niter_ftt(sim_outdir, config["gmsh"]["chord_length"])
-    niter_0 = get_time_info(sim_outdir)["niter_total"]
     try:
-        if (sensors["niter"] - niter_0) // niter_ftt >= config["n_convergence_check"]:
+        if (sensors["niter"] - config["niter_0"]) // niter_ftt >= config["n_convergence_check"]:
             if config["is_stats"]:
                 # check if QoIs have converged
                 config["n_convergence_check"] += 1
                 return QoI_convergence(sim_outdir, config, block_info), sensors["niter"]
             else:
                 # check if unsteady criteria are met
-                if (sensors["niter"] - niter_0) // niter_ftt >= nb_ftt_before_criterion:
+                if (sensors["niter"] - config["niter_0"]) // niter_ftt >= nb_ftt_before_criterion:
                     config["n_convergence_check"] += 1
                     return unsteady_crit(sim_outdir, config, block_info, niter_ftt)
 
@@ -348,6 +368,7 @@ def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
         else:
             config.update({"n_convergence_check": nb_ftt_before_criterion})
         sensors["niter"] = 0
+        config["niter_0"] = get_time_info(sim_outdir)["niter_total"]
 
     return False, sensors["niter"]
 
@@ -391,8 +412,8 @@ def QoI_convergence(sim_outdir: str,
     except IndexError:
         mov_avg = np.mean(res, axis=0)
     sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
-    print((f"it: {sensors['niter']}; "
-           f"lowest QoI convergence order = {round_number(min(mov_avg),'down', 2)}"))
+    print(f"it: {sensors['niter']}; "
+          f"lowest QoI convergence order = {round_number(min(mov_avg),'down', 2)}")
     if np.sum(mov_avg > QoIs_convergence_order) >= QoIs.shape[-1]:
         return True
     else:
@@ -471,36 +492,6 @@ def unsteady_crit(sim_outdir: str,
         return True, sensors["niter"]
     else:
         return False, sensors["niter"]
-
-
-def compute_QoIs(config: dict, sim_outdir: str) -> pd.DataFrame:
-    """
-    **Returns** the QoIs during computation in a DataFrame.
-    """
-    qty_list: list[list[float]] = []
-    head_list: list[str] = []
-    post_process_args: dict = config["simulator"]["post_process"]
-    # loop over the post-processing arguments to extract from the results
-    for qty in post_process_args["outputs"]:
-        # check if the method for computing qty exists
-        try:
-            # get arguments
-            get_args: Callable = globals()[f"args_{qty}"]
-            args = get_args(sim_outdir, config)
-            get_value: Callable = globals()[qty]
-            value = get_value(sim_outdir, args)
-        except AttributeError:
-            raise Exception(f"ERROR -- method for computing {qty} does not exist")
-        try:
-            # compute simulation results
-            qty_list.append(value)
-            head_list.append(qty)
-        except Exception as e:
-            logger.warning(f"could not compute {qty}")
-            logger.warning(f"exception {e} was raised")
-    # pd.Series allows columns of different lengths
-    df = pd.DataFrame({head_list[i]: pd.Series(qty_list[i]) for i in range(len(qty_list))})
-    return df
 
 
 def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:

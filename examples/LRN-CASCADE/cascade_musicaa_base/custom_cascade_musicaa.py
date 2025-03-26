@@ -55,7 +55,7 @@ def get_sim_info(sim_outdir: str):
     sim_info: dict = {}
     # info.ini creation may take time
     if not os.path.isfile(os.path.join(sim_outdir, 'info.ini')):
-        print("WARNING -- info.ini not found")
+        logger.warning("info.ini not found")
         time.sleep(2.)
     with open(os.path.join(sim_outdir, "info.ini"), "r") as f:
         lines = f.readlines()
@@ -70,7 +70,7 @@ def get_sim_info(sim_outdir: str):
         sim_info["ngh"] = int(lines[bl + 8].split()[-1])
         sim_info["dt"] = float(lines[bl + 9].split()[-1])
     except IndexError:
-        print("WARNING -- info.ini incomplete")
+        logger.warning("info.ini incomplete")
         time.sleep(1.)
         return get_sim_info(sim_outdir)
     return sim_info
@@ -251,6 +251,10 @@ def read_stats_bl(sim_outdir: str, bl_list: list[int], var_list: list[str]) -> d
             # read and store
             if stats == 1:
                 data[f"block_{bl}"] = {}
+            if not os.path.isfile(filename):
+                logger.warning(f"{filename} not found")
+                time.sleep(1.)
+                return read_stats_bl(sim_outdir, bl_list, var_list)
             f = open(filename, "rb")
             dtype = np.dtype("f8")
             for var in vars:
@@ -322,6 +326,36 @@ def line_interp(data: dict, var: str, lims: list[float], bl_list: list[int]) -> 
                              (x_interp, y_interp), method="linear")
 
     return var_interp
+
+
+def compute_QoIs(config: dict, sim_outdir: str) -> pd.DataFrame:
+    """
+    **Returns** the QoIs during computation in a DataFrame.
+    """
+    qty_list: list[list[float]] = []
+    head_list: list[str] = []
+    post_process_args: dict = config["simulator"]["post_process"]
+    # loop over the post-processing arguments to extract from the results
+    for qty in post_process_args["outputs"]:
+        # check if the method for computing qty exists
+        try:
+            # get arguments
+            get_args: Callable = globals()[f"args_{qty}"]
+            args = get_args(sim_outdir, config)
+            get_value: Callable = globals()[qty]
+            value = get_value(sim_outdir, args)
+        except AttributeError:
+            raise Exception(f"ERROR -- method for computing {qty} does not exist")
+        try:
+            # compute simulation results
+            qty_list.append(value)
+            head_list.append(qty)
+        except Exception as e:
+            logger.warning(f"could not compute {qty}")
+            logger.warning(f"exception {e} was raised")
+    # pd.Series allows columns of different lengths
+    df = pd.DataFrame({head_list[i]: pd.Series(qty_list[i]) for i in range(len(qty_list))})
+    return df
 
 
 def args_LossCoef(sim_outdir: str, config: dict) -> dict:
@@ -479,28 +513,7 @@ class CustomSimulator(WolfSimulator):
         **Post-processes** the results of a terminated simulation.
         **Returns** the extracted results in a DataFrame.
         """
-        qty_list: list[list[float]] = []
-        head_list: list[str] = []
-        # loop over the post-processing arguments to extract from the results
-        for qty in self.post_process_args["outputs"]:
-            # check if the method for computing qty exists
-            try:
-                # get arguments
-                get_args: Callable = globals()[f"args_{qty}"]
-                args = get_args(sim_outdir, self.config)
-                get_value: Callable = globals()[qty]
-                value = get_value(sim_outdir, args)
-            except AttributeError:
-                raise Exception(f"ERROR -- method for computing {qty} does not exist")
-            try:
-                # compute simulation results
-                qty_list.append(value)
-                head_list.append(qty)
-            except Exception as e:
-                logger.warning(f"could not compute {qty} in {sim_outdir}")
-                logger.warning(f"exception {e} was raised")
-        # pd.Series allows columns of different lengths
-        df = pd.DataFrame({head_list[i]: pd.Series(qty_list[i]) for i in range(len(qty_list))})
+        df = compute_QoIs(self.config, sim_outdir)
         logger.info(
             f"g{dict_id['gid']}, c{dict_id['cid']} converged in {len(df)} it."
         )
