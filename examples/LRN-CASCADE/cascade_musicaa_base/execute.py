@@ -10,6 +10,7 @@ import re
 import pandas as pd
 import json
 from typing import Callable
+import time
 
 from aero_optim.mesh.mesh import get_block_info
 from custom_cascade_musicaa import get_time_info, get_niter_ftt
@@ -33,12 +34,14 @@ def execute_steady(config: dict, sim_outdir: str):
     """
     # execute computation
     config.update({"is_stats": False})
+    print("INFO -- submit popen steady")
     _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "steady")
 
     # gather statistics
     config.update({"is_stats": True})
     pre_process_stats(config, sim_outdir, "steady")
+    print("INFO -- submit popen steady + stats")
     _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "steady")
 
@@ -50,17 +53,20 @@ def execute_unsteady(config: dict, sim_outdir: str):
     # initialize LES with a fully developed 2D field
     config.update({"is_stats": False})
     pre_process_init_unsteady("2D", sim_outdir)
+    print("INFO -- submit popen unsteady 2D")
     _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_2D")
 
     # carry on with 3D transient
     pre_process_init_unsteady("3D", sim_outdir)
+    print("INFO -- submit popen unsteady 3D")
     _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_3D")
 
     # gather statistics
     config.update({"is_stats": True})
     pre_process_stats(config, sim_outdir, "unsteady")
+    print("INFO -- submit popen unsteady 3D + stats")
     _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady")
 
@@ -93,7 +99,10 @@ def monitor_sim_progress(proc: subprocess.Popen,
         if returncode is None:
             converged, niter = check_convergence(config, sim_outdir, computation_type)
             if converged or niter >= max_niter:
-                stop_MUSICAA(sim_outdir)
+                print(f"INFO -- simulation converged: {converged}, "
+                      f"niter: {niter}, max_niter: {max_niter}")
+                print("INFO -- musicaa will be stopped")
+                stop_MUSICAA(sim_outdir, proc)
                 if computation_type == "steady":
                     config.update({"max_niter_steady_reached": True})
                 del config["n_convergence_check"]
@@ -121,13 +130,24 @@ def monitor_sim_progress(proc: subprocess.Popen,
             break
 
 
-def stop_MUSICAA(sim_outdir: str):
+def stop_MUSICAA(sim_outdir: str, proc: subprocess.Popen):
     """
     **Stops** MUSICAA during execution.
     """
     # send signal to MUSICAA if convergence reached
     with open(f"{sim_outdir}/stop", "w") as stop:
         stop.write("stop")
+    # wait for the simulation to finish
+    while True:
+        returncode = proc.poll()
+        if returncode is None:
+            time.sleep(1.)
+        elif returncode == 0:
+            print("INFO -- simulation stopped successfully")
+            break
+        else:
+            print("INFO -- simulation stopped with an error")
+            break
 
 
 def get_sensors(sim_outdir: str,
@@ -309,15 +329,16 @@ def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
 
     # proceed if this criterion has not already been checked
     niter_ftt = get_niter_ftt(sim_outdir, config["gmsh"]["chord_length"])
+    niter_0 = get_time_info(sim_outdir)["niter_total"]
     try:
-        if sensors["niter"] // niter_ftt >= config["n_convergence_check"]:
+        if (sensors["niter"] - niter_0) // niter_ftt >= config["n_convergence_check"]:
             if config["is_stats"]:
                 # check if QoIs have converged
                 config["n_convergence_check"] += 1
                 return QoI_convergence(sim_outdir, config, block_info), sensors["niter"]
             else:
                 # check if unsteady criteria are met
-                if sensors["niter"] // niter_ftt >= nb_ftt_before_criterion:
+                if (sensors["niter"] - niter_0) // niter_ftt >= nb_ftt_before_criterion:
                     config["n_convergence_check"] += 1
                     return unsteady_crit(sim_outdir, config, block_info, niter_ftt)
 
@@ -394,7 +415,7 @@ def unsteady_crit(sim_outdir: str,
     nb_ftt_mov_avg = convergence_criteria.get("nb_ftt_mov_avg", 4)
     only_compute_mean_crit = convergence_criteria.get("only_compute_mean_crit", True)
     unsteady_convergence_percent_mean = \
-        convergence_criteria.get("unsteady_convergence_percent_rms", 1)
+        convergence_criteria.get("unsteady_convergence_percent_mean", 1)
     unsteady_convergence_percent_rms = \
         convergence_criteria.get("unsteady_convergence_percent_rms", 1)
 
@@ -422,18 +443,18 @@ def unsteady_crit(sim_outdir: str,
                     sensor = sensor_copy[:-sample_size]
                     if sensors["niter"] < sample_size + niter_ftt:
                         break
-                    crit = compute_crit(sensor)
+                    crit = compute_crit(config, sensor)
                     mov_avg_crit.append(crit)
 
                 # if threshold w.r.t mean only or rms too
                 if only_compute_mean_crit:
-                    unsteady_convergence_percent = unsteady_convergence_percent_mean
+                    unsteady_cv_pt = unsteady_convergence_percent_mean
                 else:
-                    unsteady_convergence_percent = unsteady_convergence_percent_rms
+                    unsteady_cv_pt = unsteady_convergence_percent_rms
 
                 # check if converged
-                mov_avg = sum(mov_avg_crit) / len(mov_avg_crit)
-                if mov_avg < unsteady_convergence_percent:
+                mov_avg = sum(mov_avg_crit) / len(mov_avg_crit) if mov_avg_crit else unsteady_cv_pt
+                if mov_avg < unsteady_cv_pt:
                     is_converged = True
                 else:
                     is_converged = False
@@ -446,6 +467,7 @@ def unsteady_crit(sim_outdir: str,
         print((f"it: {sensors['niter']}; "
                f"max transient variation = {round_number(max(global_crit), 'closest', 2)}%"))
     if sum(converged) == sensors["total_nb_points"] + sensors["total_nb_lines"]:
+        print(f"INFO -- convergence reached after {sensors['niter']} steps")
         return True, sensors["niter"]
     else:
         return False, sensors["niter"]
@@ -806,7 +828,8 @@ def main() -> int:
     parser.add_argument("-op2", action="store_true", help="simulate OP2")
 
     args_parse = parser.parse_args()
-    # cwd = os.getcwd()
+    t0 = time.time()
+    print(f"simulations performed with: {args_parse}\n")
 
     # read config file
     with open("sim_config.json") as jfile:
@@ -906,6 +929,7 @@ def main() -> int:
         config_OP2 = config.copy()
         execute_computation(config_OP2, sim_dir)
 
+    print(f"INFO -- simulations finished successfully in {time.time() - t0} seconds.")
     return SUCCESS
 
 
