@@ -348,7 +348,6 @@ def submit_popen_process(
         os.chdir(dir)
     with open(f"{name}.out", "wb") as out:
         with open(f"{name}.err", "wb") as err:
-            print(f"INFO -- execute {name}")
             # submit subprocess
             proc = subprocess.Popen(exec_cmd,
                                     env=os.environ,
