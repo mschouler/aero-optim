@@ -44,7 +44,7 @@ def save_simu(sim_outdir: str, step_name: str):
         + glob.glob(os.path.join(sim_outdir, "grid_bl*"))
     )
     os.makedirs(os.path.join(sim_outdir, step_name), exist_ok=True)
-    cp_filelist(file_list, len(file_list) * [step_name])
+    cp_filelist(file_list, len(file_list) * [os.path.join(sim_outdir, step_name)])
 
 
 def execute_steady(config: dict, sim_outdir: str):
