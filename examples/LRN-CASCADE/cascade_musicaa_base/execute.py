@@ -866,8 +866,7 @@ def main() -> int:
         os.mkdir(sim_dir)
         args = {}
         # add simulation files
-        cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
-                    [sim_dir] * 4)
+        cp_filelist(config["simulator"]["cp_list"], [sim_dir] * len(config["simulator"]["cp_list"]))
         # specify path for mesh files
         old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
         dir_grid = "'" + os.path.join("../", old_dir_grid) + "'"
@@ -884,8 +883,7 @@ def main() -> int:
         sim_dir = "OP1"
         os.mkdir(sim_dir)
         # add simulation files
-        cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
-                    [sim_dir] * 4)
+        cp_filelist(config["simulator"]["cp_list"], [sim_dir] * len(config["simulator"]["cp_list"]))
         args = {}
         # specify path for mesh files
         old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
@@ -905,8 +903,7 @@ def main() -> int:
         sim_dir = "OP2"
         os.mkdir(sim_dir)
         # add simulation files
-        cp_filelist(["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
-                    [sim_dir] * 4)
+        cp_filelist(config["simulator"]["cp_list"], [sim_dir] * len(config["simulator"]["cp_list"]))
         args = {}
         # specify path for mesh files
         old_dir_grid = read_next_line_in_file("param.ini", "Directory for grid files")[1:-1]
