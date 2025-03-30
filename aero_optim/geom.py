@@ -132,6 +132,18 @@ def get_curv_abs(pts: np.ndarray) -> np.ndarray:
     return np.array(s)
 
 
+def get_curvature(pts: np.ndarray) -> np.ndarray:
+    """
+    ***Returns** the shape curvature defined as:
+    k = (x' y" - y' x") / (x' x' + y' y')**(3/2)
+    """
+    dx = np.gradient(pts[:, 0])
+    dy = np.gradient(pts[:, 1])
+    ddx = np.gradient(dx)
+    ddy = np.gradient(dy)
+    return np.abs(dx * ddy - dy * ddx) / (dx**2 + dy**2)**(3 / 2)
+
+
 def get_edges_idx(pts: np.ndarray) -> tuple[int, int]:
     """
     **Returns** the indices of the leading/trailing edges
