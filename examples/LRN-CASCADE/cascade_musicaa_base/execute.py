@@ -12,16 +12,17 @@ import json
 from typing import Callable
 import time
 import glob
+import traceback
 
 from aero_optim.mesh.mesh import get_block_info
 from custom_cascade_musicaa import get_time_info, get_niter_ftt, compute_QoIs
-from aero_optim.utils import (cp_filelist, round_number, rm_filelist,
-                              read_next_line_in_file, custom_input,
-                              submit_popen_process, wait_for_it)
+from aero_optim.utils import (cp_filelist, rm_filelist, read_next_line_in_file,
+                              custom_input, submit_popen_process, wait_for_it)
 
+EPSILON: float = 1e-6
 FAILURE: int = 1
 SUCCESS: int = 0
-MUSICAA: str = "mpiexec -n 45 /home/mschouler/bin/musicaa"
+MUSICAA: str = "mpiexec -n @nproc /home/mschouler/bin/musicaa"
 
 print = functools.partial(print, flush=True)
 
@@ -47,21 +48,36 @@ def save_simu(sim_outdir: str, step_name: str):
     cp_filelist(file_list, len(file_list) * [os.path.join(sim_outdir, step_name)])
 
 
+def get_nproc(sim_outdir: str) -> int:
+    """
+    **Computes** the number of proc required by the simulation from param_blocks.ini.
+    """
+    f = open(os.path.join(sim_outdir, "param_blocks.ini"), "r").read().splitlines()
+    nproc = 0
+    for ll, line in enumerate(f):
+        if "Nb procs" in line:
+            nproc += np.prod(np.array([int(re.findall(r'\d+', f[ll + j])[1]) for j in range(1, 4)]))
+    return nproc
+
+
 def execute_steady(config: dict, sim_outdir: str):
     """
     **Executes** a Reynolds-Averaged Navier-Stokes simulation with MUSICAA.
     """
     # execute computation
     config.update({"is_stats": False})
-    print("INFO -- submit popen steady")
-    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
+    exec_cmd = MUSICAA.replace("@nproc", str(get_nproc(sim_outdir)))
+    print(f"INFO -- submit popen steady: {exec_cmd}")
+    _, proc = submit_popen_process("musicaa", exec_cmd.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "steady")
 
     # gather statistics
     config.update({"is_stats": True})
     pre_process_stats(config, sim_outdir, "steady")
-    print("INFO -- submit popen steady + stats")
-    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
+    nproc = get_nproc(sim_outdir)
+    exec_cmd = MUSICAA.replace("@nproc", str(nproc))
+    print(f"INFO -- submit popen steady: {exec_cmd}")
+    _, proc = submit_popen_process("musicaa", exec_cmd.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "steady")
 
 
@@ -72,24 +88,27 @@ def execute_unsteady(config: dict, sim_outdir: str):
     # initialize LES with a fully developed 2D field
     config.update({"is_stats": False})
     pre_process_init_unsteady("2D", sim_outdir)
-    print("INFO -- submit popen unsteady 2D")
-    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
+    exec_cmd = MUSICAA.replace("@nproc", str(get_nproc(sim_outdir)))
+    print(f"INFO -- submit popen unsteady 2D: {exec_cmd}")
+    _, proc = submit_popen_process("musicaa", exec_cmd.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_2D")
     # save results
     save_simu(sim_outdir, "init_2D")
 
     # carry on with 3D transient
     pre_process_init_unsteady("3D", sim_outdir)
-    print("INFO -- submit popen unsteady 3D")
-    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
+    exec_cmd = MUSICAA.replace("@nproc", str(get_nproc(sim_outdir)))
+    print(f"INFO -- submit popen unsteady 3D: {exec_cmd}")
+    _, proc = submit_popen_process("musicaa", exec_cmd.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady", unsteady_step="init_3D")
     save_simu(sim_outdir, "init_3D")
 
     # gather statistics
     config.update({"is_stats": True})
     pre_process_stats(config, sim_outdir, "unsteady")
-    print("INFO -- submit popen unsteady 3D + stats")
-    _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
+    exec_cmd = MUSICAA.replace("@nproc", str(get_nproc(sim_outdir)))
+    print(f"INFO -- submit popen unsteady 3D + stats: {exec_cmd}")
+    _, proc = submit_popen_process("musicaa", exec_cmd.split(), sim_outdir)
     monitor_sim_progress(proc, config, sim_outdir, "unsteady")
 
 
@@ -105,14 +124,14 @@ def monitor_sim_progress(proc: subprocess.Popen,
     restart = config["simulator"].get("restart_musicaa", 1)
     divide_CFL_by = config["simulator"].get("divide_CFL_by", 1.2)
     if unsteady_step == "init_2D":
-        max_niter = config["simulator"].get("max_niter_init_2D", 200000)
+        max_niter = config["simulator"]["convergence_criteria"].get("max_niter_init_2D", 200000)
     elif unsteady_step == "init_3D":
-        max_niter = config["simulator"].get("max_niter_init_3D", 200000)
+        max_niter = config["simulator"]["convergence_criteria"].get("max_niter_init_3D", 200000)
     if config["is_stats"]:
-        max_niter = config["simulator"].get("max_niter_stats", 200000)
-    else:
+        max_niter = config["simulator"]["convergence_criteria"].get("max_niter_stats", 200000)
+    elif computation_type == "steady":
         config.update({"max_niter_steady_reached": False})
-        max_niter = config["simulator"].get("max_niter_steady", 100000)
+        max_niter = config["simulator"]["convergence_criteria"].get("max_niter_steady", 100000)
 
     current_restart = 0
     while True:
@@ -141,7 +160,8 @@ def monitor_sim_progress(proc: subprocess.Popen,
                 custom_input(param_ini, {"CFL": lower_CFL})
                 # clean directory
                 rm_filelist(["plane*", "line*", "point*", "restart*"])
-                _, proc = submit_popen_process("musicaa", MUSICAA.split(), sim_outdir)
+                exec_cmd = MUSICAA.replace("@nproc", str(get_nproc(sim_outdir)))
+                _, proc = submit_popen_process("musicaa", exec_cmd.split(), sim_outdir)
                 current_restart += 1
             else:
                 raise Exception(f"ERROR -- {computation_type} simulation crashed")
@@ -223,7 +243,7 @@ def read_sensor(sim_outdir: str,
     if just_get_niter:
         return sensors
     data = data[:niter_sensor * nvars * nz].reshape((niter_sensor, nvars, nz))
-    sensors[f"block_{bl}"] = {}
+    sensors[f"block_{bl}"] = {} if f"block_{bl}" not in sensors.keys() else sensors[f"block_{bl}"]
     sensors[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"] = data.copy()
     return sensors
 
@@ -317,7 +337,7 @@ def check_residuals(config: dict, sim_outdir: str) -> tuple[bool, int]:
 
             if niter > ndeb_RANS:
                 print((f"it: {niter}; "
-                       f"lowest convergence order = {round_number(min(res_max), 'down', 2)}"))
+                       f"lowest convergence order = {min(res_max):.2f}"))
                 if nvars_converged == nvars:
                     return True, niter
                 else:
@@ -351,24 +371,25 @@ def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
     # proceed if this criterion has not already been checked
     niter_ftt = get_niter_ftt(sim_outdir, config["gmsh"]["chord_length"])
     try:
-        if (sensors["niter"] - config["niter_0"]) // niter_ftt >= config["n_convergence_check"]:
+        if sensors["niter"] // niter_ftt >= config["n_convergence_check"]:
             if config["is_stats"]:
                 # check if QoIs have converged
                 config["n_convergence_check"] += 1
                 return QoI_convergence(sim_outdir, config, block_info), sensors["niter"]
             else:
                 # check if unsteady criteria are met
-                if (sensors["niter"] - config["niter_0"]) // niter_ftt >= nb_ftt_before_criterion:
+                if sensors["niter"] // niter_ftt >= nb_ftt_before_criterion:
                     config["n_convergence_check"] += 1
                     return unsteady_crit(sim_outdir, config, block_info, niter_ftt)
 
     except KeyError:
+        traceback.print_exc()
         if config["is_stats"]:
             config.update({"n_convergence_check": 0})
         else:
             config.update({"n_convergence_check": nb_ftt_before_criterion})
         sensors["niter"] = 0
-        config["niter_0"] = get_time_info(sim_outdir)["niter_total"]
+        print(f"INFO -- niter_ftt: {niter_ftt}")
 
     return False, sensors["niter"]
 
@@ -413,7 +434,7 @@ def QoI_convergence(sim_outdir: str,
         mov_avg = np.mean(res, axis=0)
     sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
     print(f"it: {sensors['niter']}; "
-          f"lowest QoI convergence order = {round_number(min(mov_avg),'down', 2)}")
+          f"lowest QoI convergence order = {min(mov_avg):.2f}")
     if np.sum(mov_avg > QoIs_convergence_order) >= QoIs.shape[-1]:
         return True
     else:
@@ -483,10 +504,10 @@ def unsteady_crit(sim_outdir: str,
                 global_crit.append(mov_avg)
     if config["is_stats"]:
         print((f"it: {sensors['niter']}; "
-               f"max statistics variation = {round_number(max(global_crit), 'closest', 2)}%"))
+               f"max statistics variation = {max(global_crit):.2f}%"))
     else:
         print((f"it: {sensors['niter']}; "
-               f"max transient variation = {round_number(max(global_crit), 'closest', 2)}%"))
+               f"max transient variation = {max(global_crit):.2f}%"))
     if sum(converged) == sensors["total_nb_points"] + sensors["total_nb_lines"]:
         print(f"INFO -- convergence reached after {sensors['niter']} steps")
         return True, sensors["niter"]
@@ -532,8 +553,8 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
         rms_quarters_[1] = sensor_squared[quarter:2 * quarter]
         rms_quarters_[2] = sensor_squared[2 * quarter:3 * quarter]
         rms_quarters_[3] = sensor_squared[3 * quarter:4 * quarter]
-    mean_quarters = np.mean(mean_quarters_, axis=(1, 3))
-    rms_quarters = np.mean(np.sqrt(np.mean(rms_quarters_, axis=1)), axis=-1)
+    mean_quarters = np.mean(mean_quarters_, axis=(1, 3)) + EPSILON
+    rms_quarters = np.mean(np.sqrt(np.mean(rms_quarters_, axis=1)), axis=-1) + EPSILON
 
     # compute criterion
     crit = []
@@ -579,8 +600,8 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
         rms_sixths_[0] = sensor_squared[:sixth]
         rms_sixths_[1] = sensor_squared[sixth:2 * sixth]
         rms_sixths_[2] = sensor_squared[2 * sixth:3 * sixth]
-    mean_sixths = np.mean(mean_sixths_, axis=(1, 3))
-    rms_sixths = np.mean(np.sqrt(np.mean(rms_sixths_, axis=1)), axis=-1)
+    mean_sixths = np.mean(mean_sixths_, axis=(1, 3)) + EPSILON
+    rms_sixths = np.mean(np.sqrt(np.mean(rms_sixths_, axis=1)), axis=-1) + EPSILON
 
     # compute criterion
     crit_modif = []
@@ -608,7 +629,7 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
         return max(crit_modif)
 
     # compute geometric mean if requested
-    crit_mean = [abs(crit_Boudet * crit_modif[i]) / (crit_Boudet * crit_modif[i])
+    crit_mean = [abs(crit_Boudet * crit_modif[i]) / (crit_Boudet * crit_modif[i] + EPSILON)
                  * np.sqrt(abs(crit_Boudet * crit_modif[i])) for
                  i, crit_Boudet in enumerate(crit)]
     return max(crit_mean)
@@ -649,8 +670,8 @@ def compute_stats_crit(config: dict, sensor: np.ndarray) -> float:
     # compute criterion
     crit = []
     for var in range(nvars):
-        mean_var = 0.5 * (mean_halves[0, var] + mean_halves[1, var])
-        rms_var = 0.5 * (rms_halves[0, var] + rms_halves[1, var])
+        mean_var = 0.5 * (mean_halves[0, var] + mean_halves[1, var]) + EPSILON
+        rms_var = 0.5 * (rms_halves[0, var] + rms_halves[1, var]) + EPSILON
         mean_crit = abs((mean_halves[0, var] - mean_halves[1, var])
                         / mean_var)
         rms_crit = abs((rms_halves[0, var] - rms_halves[1, var])
@@ -768,16 +789,18 @@ def change_dimensions_param_blocks(sim_outdir: str):
 def pre_process_init_unsteady(dimension: str, sim_outdir: str):
     """
     **Pre-processes** unsteady computation to initialize with 2D or 3D simulation.
+
+    Note: it is assumed that param.ini corresponds to the LES (i.e. 3D) input
+          and param_blocks.ini corresponds to the 2D input.
     """
     args = {}
     param_ini = os.path.join(sim_outdir, "param.ini")
     param_blocks_ini = os.path.join(sim_outdir, "param_blocks.ini")
-    param_ini_3D = os.path.join(sim_outdir, "param.ini_3D")
-    param_blocks_ini_3D = os.path.join(sim_outdir, "param_blocks.ini_3D")
     if dimension == "2D":
-        # save inputs to temporary files
-        cp_filelist([param_ini, param_blocks_ini],
-                    [param_ini_3D, param_blocks_ini_3D])
+        # save original inputs
+        param_ini_copy = os.path.join(sim_outdir, "param.ini_3D")
+        param_blocks_ini_copy = os.path.join(sim_outdir, "param_blocks.ini_2D")
+        cp_filelist([param_ini, param_blocks_ini], [param_ini_copy, param_blocks_ini_copy])
         # modify param.ini file
         args.update({"Implicit Residual Smoothing": "2"})
         args.update({"Residual smoothing parameter": "0.42 0.1 0.005 0.00025 0.0000125"})
@@ -796,12 +819,11 @@ def pre_process_init_unsteady(dimension: str, sim_outdir: str):
         args.update({"Switch of Edoh": "T"})
         args.update({"Shock sensor: Ducros sensor": "T 0.5"})
         custom_input(param_ini, args)
-        # modify param_blocks.ini file: 3D->2D
-        change_dimensions_param_blocks(sim_outdir)
     else:
-        # recover original input files
-        cp_filelist([param_ini_3D, param_blocks_ini_3D],
-                    [param_ini, param_blocks_ini])
+        # copy 3D inputs
+        param_ini_copy = os.path.join(sim_outdir, "param.ini_3D")
+        param_blocks_ini_copy = os.path.join(sim_outdir, "param_blocks.ini_3D")
+        cp_filelist([param_ini_copy, param_blocks_ini_copy], [param_ini, param_blocks_ini])
         # change to restart
         args.update({"from_interp": "2"})
         custom_input(param_ini, args)
