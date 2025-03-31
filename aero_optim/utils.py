@@ -2,7 +2,6 @@ import importlib.util
 import glob
 import json
 import logging
-import math
 import numpy as np
 import os.path
 import shutil
@@ -254,14 +253,10 @@ def read_next_line_in_file(fname: str, pattern: str) -> str:
     """
     Returns the next line of fname containing pattern.
     """
-    with open(fname, "r") as file:
-        filedata = file.readlines()
-    # Iterate through the lines and find the line containing pattern
-    for i, line in enumerate(filedata):
-        if pattern in line:
-            # Ensure the next line exists
-            if i + 1 < len(filedata):
-                return filedata[i + 1].strip()  # Remove any extra newlines
+    filedata = open(fname, 'r').readlines()
+    index = [idx for idx, s in enumerate(filedata) if pattern in s][0] + 1
+    if index:
+        return filedata[index].strip()
     raise Exception(f"{pattern} not found in {fname}")
 
 
@@ -321,19 +316,6 @@ def find_closest_index(range_value: np.ndarray, target_value: float) -> int:
             closest_difference = difference
             closest_index = i
     return closest_index
-
-
-def round_number(n: int | float, direction: str = "", decimals: int = 0) -> int | float:
-    """
-    Returns the ceiling/floor rounded value of a given number.
-    """
-    multiplier = 10**decimals
-    if direction == "up":
-        return math.ceil(n * multiplier) / multiplier
-    elif direction == "down":
-        return math.floor(n * multiplier) / multiplier
-    else:
-        return round(n, decimals)
 
 
 def submit_popen_process(
