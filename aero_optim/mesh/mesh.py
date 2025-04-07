@@ -86,55 +86,57 @@ def get_block_info(dat_dir: str = os.getcwd()) -> dict:
                 if nb_snaps > 0:
                     for snap in range(nb_snaps):
                         snap += 1
-                        info_snap = [int(dim) for dim in re.findall(r"\d+",
-                                                                    filedata[i + 20 + snap])]
+                        info_snap = [
+                            int(dim) for dim in re.findall(r"\d+", filedata[i + 20 + snap])]
                         nx1, nx2 = info_snap[0], info_snap[1]
                         ny1, ny2 = info_snap[2], info_snap[3]
                         nz1, nz2 = info_snap[4], info_snap[5]
                         freq = info_snap[6]
                         nvars = info_snap[7]
-                        snap_type = "plane"
-                        snap = plane_nb + 1
-                        param_freq = 2
+                        # line
                         if (
-                            (nx1 == nx2 and ny1 == ny2)
-                            or (nx1 == nx2 and nz1 == nz2)
-                            or (ny1 == ny2 and nz1 == nz2)
+                            (nx1 == nx2 and ny1 == ny2 and nz1 != nz2)
+                            or (nx1 == nx2 and nz1 == nz2 and ny1 != ny2)
+                            or (ny1 == ny2 and nz1 == nz2 and nx1 != nx2)
                         ):
                             snap_type = "line"
-                            snap = line_nb + 1
                             param_freq = 1
-                            if (nx1 == nx2 and ny1 == ny2 and nz1 == nz2):
-                                snap_type = "point"
-                                snap = point_nb + 1
-                                param_freq = 0
+                            line_nb += 1
+                            total_nb_lines += 1
+                            snap_id = line_nb
+                        # point
+                        elif (nx1 == nx2 and ny1 == ny2 and nz1 == nz2):
+                            snap_type = "point"
+                            param_freq = 0
+                            point_nb += 1
+                            total_nb_points += 1
+                            snap_id = point_nb
+                        # plane
+                        else:
+                            snap_type = "plane"
+                            snap = plane_nb + 1
+                            param_freq = 2
+                            plane_nb += 1
+                            total_nb_planes += 1
+                            snap_id = plane_nb
                         if freq == 0:
                             # frequency is prescribed in param.ini
                             freq = int(read_next_line_in_file(
                                 os.path.join(dat_dir, "param.ini"),
                                 "Snapshot frequencies").split()[param_freq])
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"] = {}
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nx1"] = nx1
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nx2"] = nx2
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["ny1"] = ny1
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["ny2"] = ny2
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nz1"] = nz1
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nz2"] = nz2
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["freq"] = freq
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["nvars"] = nvars
-                        var_list = filedata[i + 21 + snap].split()[-nvars:]
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["var_list"] = var_list
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"] = {}
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["nx1"] = nx1
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["nx2"] = nx2
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["ny1"] = ny1
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["ny2"] = ny2
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["nz1"] = nz1
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["nz2"] = nz2
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["freq"] = freq
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["nvars"] = nvars
+                        var_list = filedata[i + 20 + snap].split()[-nvars:]
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["var_list"] = var_list
                         position = point_nb + line_nb + plane_nb
-                        block_info[f"block_{bl}"][f"{snap_type}_{snap}"]["position"] = position
-                        if snap_type == "point":
-                            point_nb += 1
-                            total_nb_points += 1
-                        if snap_type == "line":
-                            line_nb += 1
-                            total_nb_lines += 1
-                        if snap_type == "plane":
-                            plane_nb += 1
-                            total_nb_planes += 1
+                        block_info[f"block_{bl}"][f"{snap_type}_{snap_id}"]["position"] = position
                     block_info[f"block_{bl}"]["nb_points"] = point_nb
                     block_info[f"block_{bl}"]["nb_lines"] = line_nb
                     block_info[f"block_{bl}"]["nb_planes"] = plane_nb
