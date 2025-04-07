@@ -251,10 +251,10 @@ def read_stats_bl(sim_outdir: str, bl_list: list[int], var_list: list[str]) -> d
             # read and store
             if stats == 1:
                 data[f"block_{bl}"] = {}
-            if not os.path.isfile(filename):
-                logger.warning(f"{filename} not found")
+            logger.info(f"wait for {filename} to be produced..")
+            while not os.path.isfile(filename):
                 time.sleep(1.)
-                return read_stats_bl(sim_outdir, bl_list, var_list)
+            logger.info(f"{filename} found")
             f = open(filename, "rb")
             dtype = np.dtype("f8")
             for var in vars:
