@@ -371,27 +371,31 @@ def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
     # proceed if this criterion has not already been checked
     niter_ftt = get_niter_ftt(sim_outdir, config["gmsh"]["chord_length"])
     try:
-        if sensors["niter"] // niter_ftt >= config["n_convergence_check"]:
+        if (sensors["niter"] - config["niter_0"]) // niter_ftt >= config["n_convergence_check"]:
             if config["is_stats"]:
                 # check if QoIs have converged
                 config["n_convergence_check"] += 1
-                return QoI_convergence(sim_outdir, config, block_info), sensors["niter"]
+                return (
+                    QoI_convergence(sim_outdir, config, block_info),
+                    sensors["niter"] - config["niter_0"]
+                )
             else:
                 # check if unsteady criteria are met
-                if sensors["niter"] // niter_ftt >= nb_ftt_before_criterion:
+                if (sensors["niter"] - config["niter_0"]) // niter_ftt >= nb_ftt_before_criterion:
                     config["n_convergence_check"] += 1
-                    return unsteady_crit(sim_outdir, config, block_info, niter_ftt)
+                    return unsteady_crit(sim_outdir, config, block_info)
 
     except KeyError:
         traceback.print_exc()
         if config["is_stats"]:
-            config.update({"n_convergence_check": 0})
+            config.update({"n_convergence_check": 1})
         else:
             config.update({"n_convergence_check": nb_ftt_before_criterion})
-        sensors["niter"] = 0
+        config["niter_0"] = sensors["niter"] - 1
         print(f"INFO -- niter_ftt: {niter_ftt}")
+        print(f"INFO -- niter_0: {config['niter_0']}")
 
-    return False, sensors["niter"]
+    return False, sensors["niter"] - config["niter_0"]
 
 
 def QoI_convergence(sim_outdir: str,
@@ -408,15 +412,13 @@ def QoI_convergence(sim_outdir: str,
     # compute QoIs and save to file
     new_QoIs_df = compute_QoIs(config, sim_outdir)
     filename = os.path.join(sim_outdir, "QoI_convergence.csv")
-    if config["n_convergence_check"] == 1:
+    if not os.path.isfile(filename):
         # first time computing the QoIs (need at least 2 steps to compute residual)
         new_QoIs_df.to_csv(filename, index=False)
+        sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
+        print(f"it: {sensors['niter']}, QoI: {new_QoIs_df.tail(n=1).to_string(index=False)}")
         return False
-    try:
-        QoIs_df = pd.read_csv(filename)
-        QoIs_df = pd.concat([QoIs_df, new_QoIs_df], axis=0)
-    except FileNotFoundError:
-        QoIs_df = new_QoIs_df
+    QoIs_df = pd.concat([pd.read_csv(filename), new_QoIs_df], axis=0)
     QoIs_df.to_csv(filename, index=False)
     QoIs = np.array(QoIs_df)
 
@@ -433,7 +435,7 @@ def QoI_convergence(sim_outdir: str,
     except IndexError:
         mov_avg = np.mean(res, axis=0)
     sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
-    print(f"it: {sensors['niter']}; "
+    print(f"it: {sensors['niter']}, QoI: {new_QoIs_df.tail(n=1).to_string(index=False)}, "
           f"lowest QoI convergence order = {min(mov_avg):.2f}")
     if np.sum(mov_avg > QoIs_convergence_order) >= QoIs.shape[-1]:
         return True
@@ -443,8 +445,7 @@ def QoI_convergence(sim_outdir: str,
 
 def unsteady_crit(sim_outdir: str,
                   config: dict,
-                  block_info: dict,
-                  niter_ftt: int,) -> tuple[bool, int]:
+                  block_info: dict) -> tuple[bool, int]:
     """
     **Returns** (True, iteration) if ending criterion is met.
     - for the numerical transient, see:
@@ -454,7 +455,6 @@ def unsteady_crit(sim_outdir: str,
     """
     # get simulation args
     convergence_criteria = config["simulator"]["convergence_criteria"]
-    nb_ftt_mov_avg = convergence_criteria.get("nb_ftt_mov_avg", 4)
     only_compute_mean_crit = convergence_criteria.get("only_compute_mean_crit", True)
     unsteady_convergence_percent_mean = \
         convergence_criteria.get("unsteady_convergence_percent_mean", 1)
@@ -478,15 +478,8 @@ def unsteady_crit(sim_outdir: str,
             for sensor_nb in range(block_info[f"block_{bl}"][nb_sensors]):
                 sensor_nb += 1
                 sensor_copy = sensors[f"block_{bl}"][f"{sensor_type}_{sensor_nb}"].copy()
-                # moving average to avoid temporary convergence
-                mov_avg_crit: list[float] = []
-                for sample_nb in range(nb_ftt_mov_avg):
-                    sample_size = sample_nb * niter_ftt + 1
-                    sensor = sensor_copy[:-sample_size]
-                    if sensors["niter"] < sample_size + niter_ftt:
-                        break
-                    crit = compute_crit(config, sensor)
-                    mov_avg_crit.append(crit)
+                # compute sensor crit
+                crit = compute_crit(config, sensor_copy)
 
                 # if threshold w.r.t mean only or rms too
                 if only_compute_mean_crit:
@@ -495,13 +488,12 @@ def unsteady_crit(sim_outdir: str,
                     unsteady_cv_pt = unsteady_convergence_percent_rms
 
                 # check if converged
-                mov_avg = sum(mov_avg_crit) / len(mov_avg_crit) if mov_avg_crit else unsteady_cv_pt
-                if mov_avg < unsteady_cv_pt:
+                if crit < unsteady_cv_pt:
                     is_converged = True
                 else:
                     is_converged = False
                 converged.append(is_converged)
-                global_crit.append(mov_avg)
+                global_crit.append(crit)
     if config["is_stats"]:
         print((f"it: {sensors['niter']}; "
                f"max statistics variation = {max(global_crit):.2f}%"))
@@ -510,9 +502,9 @@ def unsteady_crit(sim_outdir: str,
                f"max transient variation = {max(global_crit):.2f}%"))
     if sum(converged) == sensors["total_nb_points"] + sensors["total_nb_lines"]:
         print(f"INFO -- convergence reached after {sensors['niter']} steps")
-        return True, sensors["niter"]
+        return True, sensors["niter"] - config["niter_0"]
     else:
-        return False, sensors["niter"]
+        return False, sensors["niter"] - config["niter_0"]
 
 
 def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
@@ -564,15 +556,13 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
                      abs((mean_quarters[1, var] - mean_quarters[3, var])
                      / mean_quarters[3, var]),
                      abs((mean_quarters[2, var] - mean_quarters[3, var])
-                     / mean_quarters[3, var])
-                     ]
+                     / mean_quarters[3, var])]
         rms_crit = [abs((rms_quarters[1, var] - rms_quarters[2, var])
                     / rms_quarters[3, var]),
                     abs((rms_quarters[1, var] - rms_quarters[3, var])
                     / rms_quarters[3, var]),
                     abs((rms_quarters[2, var] - rms_quarters[3, var])
-                    / rms_quarters[3, var])
-                    ]
+                    / rms_quarters[3, var])]
         if only_compute_mean_crit:
             crit.append(max(mean_crit) * 100)
         else:
@@ -611,15 +601,13 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
                      abs((mean_sixths[0, var] - mean_sixths[2, var])
                      / mean_sixths[2, var]),
                      abs((mean_sixths[1, var] - mean_sixths[2, var])
-                     / mean_sixths[2, var])
-                     ]
+                     / mean_sixths[2, var])]
         rms_crit = [abs((rms_sixths[0, var] - rms_sixths[1, var])
                     / rms_sixths[2, var]),
                     abs((rms_sixths[0, var] - rms_sixths[2, var])
                     / rms_sixths[2, var]),
                     abs((rms_sixths[1, var] - rms_sixths[2, var])
-                    / rms_sixths[2, var])
-                    ]
+                    / rms_sixths[2, var])]
         if only_compute_mean_crit:
             crit_modif.append(max(mean_crit) * 100)
         else:
@@ -640,6 +628,9 @@ def compute_stats_crit(config: dict, sensor: np.ndarray) -> float:
     **Returns** (True, iteration to start statistics) if statistics convergence
     criterion is met. It is based on mean and rms evolutions obtained
     from the same sensors used to detect the end of the transient.
+
+    /!\ this function is never called
+        because "is_stat" = True calls QoI_convergence (see check_unsteady_crit).
     """
     # get simulation arguments
     convergence_criteria = config["simulator"]["convergence_criteria"]
@@ -718,7 +709,7 @@ def pre_process_stats(config: dict, sim_outdir: str, computation_type: str):
         if config["max_niter_steady_reached"]:
             niter_stats = convergence_criteria.get("niter_stats_steady", 10000)
         else:
-            niter_stats = 2
+            niter_stats = 1
     elif computation_type == "unsteady":
         niter_stats = 999999
         # add frequency for QoI convergence check: will ask MUSICAA to output stats files
