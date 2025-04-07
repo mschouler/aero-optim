@@ -71,13 +71,13 @@
 ! Block #1
 !=============================================================
 ! Nb points | Nb procs |   direction
-     75          3     |  I-direction
+     75          1     |  I-direction
      25          1     |  J-direction
      50          1     |  K-direction
 !-------------------------------------------------------------
 ! Boundary conditions & connectivity
  Imin | Imax | Jmin | Jmax | Kmin  | Kmax |
-  -3      3      2      2      1       1
+  -4      3      2      2      1       1
    -      -      p      -      p       p
 !-------------------------------------------------------------
 ! Sponge zone: is_sponge; is1;is2;js1;js2;ks1;ks2 d_is,d_js,d_ks
@@ -96,13 +96,13 @@ T 1 20 1 25 1 50 5 1 1
 ! Block #2
 !=============================================================
 ! Nb points | Nb procs |   direction
-     75          3     |  I-direction
+     75          1     |  I-direction
      50          2     |  J-direction
      50          1     |  K-direction
 !-------------------------------------------------------------
 ! Boundary conditions & connectivity
  Imin | Imax | Jmin | Jmax | Kmin  | Kmax |
-  -3      5      1      1      2       2
+  -4      5      1      1      2       2
    -      -      -      p      p       p
 !-------------------------------------------------------------
 ! Sponge zone: is_sponge; is1;is2;js1;js2;ks1;ks2 d_is,d_js,d_ks
