@@ -435,7 +435,8 @@ def QoI_convergence(sim_outdir: str,
     except IndexError:
         mov_avg = np.mean(res, axis=0)
     sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
-    print(f"it: {sensors['niter']}, QoI: {new_QoIs_df.tail(n=1).to_string(index=False)}, "
+    print(f"it: {sensors['niter'] - config['niter_0']}, "
+          f"QoI: {new_QoIs_df.tail(n=1).to_string(index=False)}, "
           f"lowest QoI convergence order = {min(mov_avg):.2f}")
     if np.sum(mov_avg > QoIs_convergence_order) >= QoIs.shape[-1]:
         return True
@@ -521,6 +522,7 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
     convergence_criteria = config["simulator"]["convergence_criteria"]
     only_compute_mean_crit = convergence_criteria.get("only_compute_mean_crit", True)
     Boudet_criterion_type = convergence_criteria.get("Boudet_criterion_type", "mean")
+    monitored_variables = convergence_criteria.get("monitored_variables", 0)
 
     # shape of array: (niter, nvars, nz)
     niter = sensor.shape[0]
@@ -550,6 +552,7 @@ def compute_Boudet_crit(config: dict, sensor: np.ndarray) -> float:
 
     # compute criterion
     crit = []
+    nvars = monitored_variables if monitored_variables else nvars
     for var in range(nvars):
         mean_crit = [abs((mean_quarters[1, var] - mean_quarters[2, var])
                      / mean_quarters[3, var]),
