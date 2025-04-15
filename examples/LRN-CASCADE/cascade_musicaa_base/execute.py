@@ -391,7 +391,7 @@ def check_unsteady_crit(config: dict, sim_outdir: str) -> tuple[bool, int]:
             config.update({"n_convergence_check": 1})
         else:
             config.update({"n_convergence_check": nb_ftt_before_criterion})
-        config["niter_0"] = sensors["niter"] - 1
+        config["niter_0"] = sensors["niter"] - 1 if sensors["niter"] > 0 else 0
         print(f"INFO -- niter_ftt: {niter_ftt}")
         print(f"INFO -- niter_0: {config['niter_0']}")
 
@@ -406,21 +406,20 @@ def QoI_convergence(sim_outdir: str,
     """
     # get simulation args
     convergence_criteria = config["simulator"]["convergence_criteria"]
-    nb_ftt_mov_avg = convergence_criteria["nb_ftt_mov_avg"]
     QoIs_convergence_order = convergence_criteria["QoIs_convergence_order"]
 
     # compute QoIs and save to file
+    sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
     new_QoIs_df = compute_QoIs(config, sim_outdir)
     filename = os.path.join(sim_outdir, "QoI_convergence.csv")
     if not os.path.isfile(filename):
-        # first time computing the QoIs (need at least 2 steps to compute residual)
+        # first time computing the QoIs
         new_QoIs_df.to_csv(filename, index=False)
-        sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
-        print(f"it: {sensors['niter']}, QoI: {new_QoIs_df.tail(n=1).to_string(index=False)}")
+        print(f"it: {sensors['niter']}, QoI: {new_QoIs_df.to_numpy()}")
         return False
     QoIs_df = pd.concat([pd.read_csv(filename), new_QoIs_df], axis=0)
     QoIs_df.to_csv(filename, index=False)
-    QoIs = np.array(QoIs_df)
+    QoIs = QoIs_df.to_numpy()
 
     # clear directory of unused restart<time_stamp>_bl*.bin files
     time_info = get_time_info(sim_outdir)
@@ -428,20 +427,15 @@ def QoI_convergence(sim_outdir: str,
     rm_filelist([os.path.join(sim_outdir, restart) for restart in restarts])
 
     # compute QoI residuals
-    res = 2 * (QoIs[1:, :] - QoIs[:-1, :]) / (QoIs[1:, :] + QoIs[:-1, :])
-    res = -np.log10(np.abs(res))
-    try:
-        mov_avg = np.mean(res[-nb_ftt_mov_avg:, :], axis=0)
-    except IndexError:
-        mov_avg = np.mean(res, axis=0)
-    sensors = get_sensors(sim_outdir, block_info, just_get_niter=True)
-    print(f"it: {sensors['niter'] - config['niter_0']}, "
-          f"QoI: {new_QoIs_df.tail(n=1).to_string(index=False)}, "
-          f"lowest QoI convergence order = {min(mov_avg):.2f}")
-    if np.sum(mov_avg > QoIs_convergence_order) >= QoIs.shape[-1]:
-        return True
-    else:
+    print(f"it: {sensors['niter'] - config['niter_0']}, QoI: {QoIs}")
+    if len(QoIs) < 3:
         return False
+    else:
+        delta_1 = abs((QoIs[-1] - QoIs[-2]) / QoIs[-1])
+        delta_2 = abs((QoIs[-1] - QoIs[-3]) / QoIs[-1])
+        order = -np.log10(max(delta_1, delta_2))
+        print(f"QoI convergence order = {order:.2f}")
+        return order < QoIs_convergence_order
 
 
 def unsteady_crit(sim_outdir: str,
