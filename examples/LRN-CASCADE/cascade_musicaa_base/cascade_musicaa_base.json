@@ -33,9 +33,8 @@
     },
     "simulator": {
         "ref_input": "cascade_musicaa_base.json",
-        "cp_list": ["param.ini", "param_blocks.ini", "param_rans.ini", "feos_air.ini"],
+        "cp_list": ["param.ini", "param_blocks.ini", "param_blocks.ini_3D", "param_rans.ini", "feos_air.ini"],
         "preprocess_cmd" : "/home/mschouler/bin/musicaa",
-        "exec_cmd_" : "mpiexec -n 51 /home/mschouler/bin/musicaa",
         "exec_cmd" : "python3 /home/mschouler/aero-optim/examples/LRN-CASCADE/cascade_musicaa_base/execute.py -ms 2",
         "restart_musicaa": 3,
         "divide_CFL_by": 1.2,
@@ -43,17 +42,17 @@
         "convergence_criteria": {
             "residual_convergence_order": 0.2,
             "niter_stats_steady": 1000,
-            "Boudet_criterion_type": "mean",
+            "Boudet_criterion_type": "original",
+            "monitored_variables": 3,
             "nb_ftt_before_criterion": 1,
-            "nb_ftt_mov_avg": 4,
             "only_compute_mean_crit": true,
-            "unsteady_convergence_percent_mean": 999,
-            "unsteady_convergence_percent_rms": 999,
-            "QoIs_convergence_order": 6,
+            "unsteady_convergence_percent_mean": 5,
+            "unsteady_convergence_percent_rms": 10,
+            "QoIs_convergence_order": 2.5,
             "max_niter_steady": 100000,
-            "max_niter_init_2D": 200000,
-            "max_niter_init_3D": 100000,
-            "max_niter_stats": 200000
+            "max_niter_init_2D": 50000,
+            "max_niter_init_3D": 50000,
+            "max_niter_stats": 50000
         },
 
         "post_process": {
