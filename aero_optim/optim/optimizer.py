@@ -218,7 +218,7 @@ class Optimizer(ABC):
             self.ffd = RotationWrapper(self.ffd)
             rot_bound = ffd_config.get("rot_bound", [-1, 1])
             # convert bound from tuple of floats to tuple of lists
-            if isinstance(self.bound[0], float):
+            if not isinstance(self.bound[0], list):
                 self.bound = ([self.bound[0]] * self.n_design, [self.bound[-1]] * self.n_design)
             self.bound = (self.bound[0] + [rot_bound[0]], self.bound[-1] + [rot_bound[-1]])
             self.n_design += 1
