@@ -14,7 +14,7 @@ from random import Random
 from typing import Any
 
 from aero_optim.geom import get_area
-from aero_optim.ffd.ffd import FFD_2D, FFD_POD_2D
+from aero_optim.ffd.ffd import FFD_2D, FFD_POD_2D, FFD_2D_rot, FFD_POD_2D_rot
 from aero_optim.mesh.naca_base_mesh import NACABaseMesh
 from aero_optim.mesh.naca_block_mesh import NACABlockMesh
 from aero_optim.mesh.cascade_mesh import CascadeMesh
@@ -189,25 +189,48 @@ class Optimizer(ABC):
         self.FFDClass = (
             get_custom_class(self.custom_file, "CustomFFD") if self.custom_file else None
         )
+        ffd_config = self.config.get("ffd", {})
         if not self.FFDClass:
+            # standard FFD 2D
             if self.ffd_type == FFD_TYPE[0]:
                 self.FFDClass = FFD_2D
                 self.ffd = self.FFDClass(
-                    self.dat_file, self.n_design // 2, **self.config.get("ffd", {})
+                    self.dat_file, self.n_design // 2, **ffd_config
                 )
+            # POD coupled FFD 2D
             elif self.ffd_type == FFD_TYPE[1]:
                 self.FFDClass = FFD_POD_2D
-                self.config["ffd"]["ffd_ncontrol"] = self.n_design
-                self.config["ffd"]["ffd_bound"] = self.bound
+                ffd_config["ffd_ncontrol"] = self.n_design
+                ffd_config["ffd_bound"] = self.bound
                 logger.info(f"ffd bound: {self.bound}")
-                self.ffd = self.FFDClass(self.dat_file, **self.config["ffd"])
-                self.n_design = self.config["ffd"]["pod_ncontrol"]
-                self.bound = self.config["ffd"].get("pod_bound", self.ffd.get_bound())
+                self.ffd = self.FFDClass(self.dat_file, **ffd_config)
+                self.n_design = ffd_config["pod_ncontrol"]
+                self.bound = ffd_config.get("pod_bound", self.ffd.get_bound())
+                logger.info(f"pod bound: {self.bound}")
+            # standard FFD 2D with an extra rotation step
+            elif self.ffd_type == FFD_TYPE[2]:
+                self.FFDClass = FFD_2D_rot
+                self.ffd = self.FFDClass(
+                    self.dat_file, (self.n_design - 1) // 2, **ffd_config
+                )
+                rot_bound = ffd_config.get("rot_bound", [-1, 1])
+                self.bound = (self.bound[0] + [rot_bound[0]], self.bound[-1] + [rot_bound[-1]])
+            # POD coupled FFD 2D with an extra rotation step
+            elif self.ffd_type == FFD_TYPE[3]:
+                self.FFDClass = FFD_POD_2D_rot
+                ffd_config["ffd_ncontrol"] = self.n_design
+                ffd_config["ffd_bound"] = self.bound
+                logger.info(f"ffd bound: {self.bound}")
+                self.ffd = self.FFDClass(self.dat_file, **ffd_config)
+                self.n_design = ffd_config["pod_ncontrol"] + 1
+                self.bound = ffd_config.get("pod_bound", self.ffd.get_bound())
+                rot_bound = ffd_config.get("rot_bound", [-1, 1])
+                self.bound = (self.bound[0] + [rot_bound[0]], self.bound[-1] + [rot_bound[-1]])
                 logger.info(f"pod bound: {self.bound}")
             else:
                 raise Exception(f"ERROR -- incorrect ffd_type <{self.ffd_type}>")
         else:
-            self.ffd = self.FFDClass(self.dat_file, self.n_design, **self.config["ffd"])
+            self.ffd = self.FFDClass(self.dat_file, self.n_design, **ffd_config)
 
     def set_gmsh_mesh_class(self):
         """
