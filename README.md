@@ -12,7 +12,7 @@
 
 The overall structure of the framework is illustrated on the Figure below:
 <p float="left">
-  <img src="./Figures/framework-overview.png" width="100%" />
+  <img src="docs/Figures/framework-overview.png" width="100%" />
 </p>
 
 In an optimization, classes are created from left to right based on the execution command and the configuration file. All components can be inherited and customized to meet any need and the righmost classes can be loaded and tested separately.
