@@ -11,7 +11,7 @@ import time
 from types import FrameType
 
 STUDY_TYPE = ["naca_base", "naca_block", "cascade"]
-FFD_TYPE = ["ffd_2d", "ffd_pod_2d"]
+FFD_TYPE = ["ffd_2d", "ffd_pod_2d", "ffd_2d_rot", "ffd_pod_2d_rot"]
 logger = logging.getLogger(__name__)
 
 
