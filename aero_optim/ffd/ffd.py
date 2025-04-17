@@ -265,35 +265,17 @@ class FFD_POD_2D(Deform):
         return l_bound, u_bound
 
 
-class FFD_2D_rot(FFD_2D):
-    """
-    This class implements a variant of the FFD_2D class which adds an extra-rotation step.
-    """
-    def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
-        """
-        **Returns** a new profile resulting from a perturbation Delta[:-1]
-        in the original referential and a rotation Delta[-1] along the z axis.
+class RotationWrapper(Deform):
+    def __init__(self, deform_obj: Deform):
+        self._deform_obj = deform_obj
 
-        - Delta (np.ndarray): the deformation vector.</br>
-          Delta = [dP10, dP20, ..., dP{nc}0, dP11, dP21, ..., dP{nc}1, theta]
-          with nc = ncontrol and theta the rotation angle (in degrees).
-        """
-        theta_rad = Delta[-1] / 180. * np.pi
-        rot_matrix = np.array([[np.cos(theta_rad), -np.sin(theta_rad)],
-                               [np.sin(theta_rad), np.cos(theta_rad)]])
-        profile = super().apply_ffd(Delta[:-1])
-        cog = get_cog(profile)
-        return (profile - cog) @ rot_matrix.T + cog
-
-
-class FFD_POD_2D_rot(FFD_POD_2D):
-    """
-    This class implements a variant of the FFD_POD_2D class which adds an extra-rotation step.
-    """
     def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
         theta_rad = Delta[-1] / 180. * np.pi
         rot_matrix = np.array([[np.cos(theta_rad), -np.sin(theta_rad)],
                                [np.sin(theta_rad), np.cos(theta_rad)]])
-        profile = super().apply_ffd(Delta[:-1])
+        profile = self._deform_obj.apply_ffd(Delta[:-1])
         cog = get_cog(profile)
         return (profile - cog) @ rot_matrix.T + cog
+
+    def __getattr__(self, name):
+        return getattr(self._deform_obj, name)
