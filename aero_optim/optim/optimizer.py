@@ -216,9 +216,13 @@ class Optimizer(ABC):
         if rotation:
             logger.info(f"rotation: {rotation}")
             self.ffd = RotationWrapper(self.ffd)
-            self.n_design += 1
             rot_bound = ffd_config.get("rot_bound", [-1, 1])
+            # convert bound from tuple of floats to tuple of lists
+            if isinstance(self.bound[0], float):
+                self.bound = ([self.bound[0]] * self.n_design, [self.bound[-1]] * self.n_design)
             self.bound = (self.bound[0] + [rot_bound[0]], self.bound[-1] + [rot_bound[-1]])
+            self.n_design += 1
+            logger.info(f"effective n_design: {self.n_design}")
 
     def set_gmsh_mesh_class(self):
         """
