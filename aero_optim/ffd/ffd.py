@@ -17,7 +17,7 @@ class Deform(ABC):
     """
     This class implements an abstract Deform class.
     """
-    def __init__(self, dat_file: str, ncontrol: int, header: int = 2):
+    def __init__(self, dat_file: str, ncontrol: int, header: int = 2, **kwargs):
         """
         Instantiates the abstract Deform object.
 
