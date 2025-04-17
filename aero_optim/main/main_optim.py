@@ -12,7 +12,7 @@ def main():
     This program orchestrates a GA optimization loop with pymoo or inspyred
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-c", "--config", type=str, help="/path/to/config.json")
+    parser.add_argument("-c", "--config", type=str, required=True, help="/path/to/config.json")
     parser.add_argument("-o", "--outdir", type=str, help="optim output directory", default="")
     parser.add_argument("-f", "--custom-file", type=str, help="/path/to/custom_file.py", default="")
     parser.add_argument("-d", "--debug", action="store_true", help="use DEBUG mode")

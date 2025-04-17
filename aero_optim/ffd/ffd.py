@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from scipy.stats import qmc
 from typing import Any
 
+from aero_optim.geom import get_cog
 from aero_optim.utils import from_dat, check_dir
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ class Deform(ABC):
     """
     This class implements an abstract Deform class.
     """
-    def __init__(self, dat_file: str, ncontrol: int, header: int = 2):
+    def __init__(self, dat_file: str, ncontrol: int, header: int = 2, **kwargs):
         """
         Instantiates the abstract Deform object.
 
@@ -262,3 +263,19 @@ class FFD_POD_2D(Deform):
         l_bound = [min(v) for v in self.V_tilde_inv]
         u_bound = [max(v) for v in self.V_tilde_inv]
         return l_bound, u_bound
+
+
+class RotationWrapper(Deform):
+    def __init__(self, deform_obj: Deform):
+        self._deform_obj = deform_obj
+
+    def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
+        theta_rad = Delta[-1] / 180. * np.pi
+        rot_matrix = np.array([[np.cos(theta_rad), -np.sin(theta_rad)],
+                               [np.sin(theta_rad), np.cos(theta_rad)]])
+        profile = self._deform_obj.apply_ffd(Delta[:-1])
+        cog = get_cog(profile)
+        return (profile - cog) @ rot_matrix.T + cog
+
+    def __getattr__(self, name):
+        return getattr(self._deform_obj, name)

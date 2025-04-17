@@ -5,10 +5,17 @@
 
 **AERO-Optim** is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with [`gmsh`](https://gmsh.info/doc/texinfo/gmsh.html) and any CFD solver execution in the frame of an optimization algorithm based on [`inspyred`](https://inspyred.readthedocs.io/en/latest/) or [`pymoo`](https://pymoo.org/index.html). It is composed of the following core components:
 
-* [`ffd.py`](aero_optim/ffd/ffd.py): which defines a class to perform 2D FFD of a given geometry,
+* [`ffd.py`](aero_optim/ffd/ffd.py): which defines classes to perform FFD-based deformation of any 2D geometry,
 * [`*mesh.py`](aero_optim/mesh/): which define multiples classes to generate automatic meshes,
 * [`simulator.py`](aero_optim/simulator/simulator.py): which defines a class to orchestrate CFD simulations including pre- and post-processing steps as well as progress monitoring,
 * [`*optimizer.py`](aero_optim/optim/) and [`evolution.py`](aero_optim/optim/): which define multiple classes to coordinate the optimization procedures with `inspyred` or `pymoo`.
+
+The overall structure of the framework is illustrated on the Figure below:
+<p float="left">
+  <img src="./Figures/framework-overview.png" width="100%" />
+</p>
+
+In an optimization, classes are created from left to right based on the execution command and the configuration file. All components can be inherited and customized to meet any need and the righmost classes can be loaded and tested separately.
 
 The full documentation is available [**HERE**](https://mschouler.github.io/aero-optim/).
 
