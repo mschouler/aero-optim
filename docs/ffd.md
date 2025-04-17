@@ -71,8 +71,37 @@ ffd -f ../data/naca12.dat -np 4 -nc 3
   <img src="../Figures/naca12_lhs.png" width="100%" />
 </p>
 
+### 2D FFD with rotation
+A variant of the FFD including an extra-rotation step around the center of gravity was implemented in the `FFD_2D_rot` class. It directly inherits from `FFD_2D` and overrides `apply_fd` in a way such that for any deformation array `Delta`, the `2*ncontrol` first components are used to perform a standard FFD deformation and the last value is used to rotate the deformed geometry. In the context of an optimization this means that `n_design = 2*ncontrol + 1`.
+
+!!! Note
+    A direct consequence of this approach is that the deformation array `Delta` has size `2*ncontrol + 1`. In the optimizer, this is automatically handled by subtracting 1 to `n_design` when instantiating the `FFD_2D_rot` class i.e. `ncontrol = (self.n_design - 1) // 2`.
+
+To use this functionality, the `ffd_type` of the `"study"` entry must be set to `"ffd_2d_rot"`. The number of FFD control points is given by `(n_design - 1) // 2` and the boundaries are still given by the `"bound"` values of the `"optim"` entry. In the `"ffd"` entry, the rotation range must be specified via `"rot_bound"` as a list of two values.
+
+#### Quick Example
+Let us condiser a user who would want to perform an optimization based on 2D FFD of 10 control points in total (5 on each side) and an extra rotation step inside a +/-2 degrees range. The configuration file should be set as follows:
+```json
+{
+  "study": {
+    "ffd_type: "ffd_2d_rot",
+    ...
+  },
+  "optim": {
+    "n_design": 11,
+    "bound": [-0.2, 0.2],
+    ...
+  }
+  "ffd": {
+    "rot_bound": [-2, 2]
+  }
+}
+```
+
+As specified, the number of design variables would be `n_design = 11` and the effective number of FFD variables would be `n_design - 1 = 10`.
+
 ### 2D FFD & POD
-The coupling between POD and FFD was implemented in the `FFD_pod_2D` class. Its objective is to build a dataset of `n` FFD perturbed profiles sampled from LHS and to use it to perform POD-based data reduction from the FFD dimension `d` to a smaller dimension `d*`. Details on how to do so are given in ([POD 1](https://doi.org/10.2514/6.2008-6584)) and ([POD 2](https://doi.org/10.2514/6.2017-3057)).
+The coupling between POD and FFD was implemented in the `FFD_POD_2D` class. Its objective is to build a dataset of `n` FFD perturbed profiles sampled from LHS and to use it to perform POD-based data reduction from the FFD dimension `d` to a smaller dimension `d*`. Details on how to do so are given in ([POD 1](https://doi.org/10.2514/6.2008-6584)) and ([POD 2](https://doi.org/10.2514/6.2017-3057)).
 
 The `FFD_pod_2D` class is instantiated with 5 positional arguments:
 
@@ -84,5 +113,61 @@ The `FFD_pod_2D` class is instantiated with 5 positional arguments:
 
 To use this functionality, the `ffd_type` of the `"study"` entry must be set to `"ffd_pod_2d"`. The number of FFD control points and boundaries are still given by the `"n_design"` and `"bound"` values of the `"optim"` entry. In the `"ffd"` entry, the POD reduced dimension is set via `"pod_ncontrol"` and the size of the FFD dataset with `"ffd_dataset_size"`.
 
+!!! Note
+    In the `Optimizer` class, the `n_design` attribute is automatically switched to `"pod_ncontrol"` once the `FFD_POD_2D`class is set.
+
 #### Quick Experiments
 An application of this feature is illustrated in the [POD notebook](https://github.com/mschouler/aero-optim/blob/master/scripts/FFD/POD.ipynb).
+
+#### Quick Example
+Let us condiser a user who would want to perform an optimization based on 2D FFD of 10 control points in total (5 on each side) coupled with a POD of reduced dimension 5. The configuration file should be set as follows:
+```json
+{
+  "study": {
+    "ffd_type: "ffd_pod_2d",
+    ...
+  },
+  "optim": {
+    "n_design": 10,
+    "bound": [-0.2, 0.2],
+    ...
+  }
+  "ffd": {
+    "pod_control": 5,
+    "ffd_dataset_size": 1000
+  }
+}
+```
+
+In turns, the effective number of design variables would be `n_design = 5`.
+
+### 2D FFD & POD with rotation
+A variant of the POD & FFD coupling including an extra-rotation step around the center of gravity was implemented in the `FFD_POD_2D_rot` class. It directly inherits from `FFD_POD_2D` and overrides `apply_fd` in a way such that for any deformation array `Delta`, the `pod_ncontrol` first components are used to perform a POD coupled FFD deformation and the last value is used to rotate the deformed geometry. In the context of an optimization this means that `n_design = pod_ncontrol + 1`.
+
+!!! Note
+    A direct consequence of this approach is that the deformation array `Delta` has size `pod_ncontrol + 1`. In the optimizer, this is automatically handled by setting `ndesign = pod_ncontrol + 1` once the `FFD_POD_2D_rot`class is set.
+
+To use this functionality, the `ffd_type` of the `"study"` entry must be set to `"ffd_pod_2d_rot"`. The number of FFD control points is given by `n_design`, the POD reduced dimension is set via `"pod_ncontrol"` and the size of the FFD dataset with `"ffd_dataset_size"`. The boundaries are still given by the `"bound"` values of the `"optim"` entry. In the `"ffd"` entry, the rotation range must be specified via `"rot_bound"` as a list of two values.
+
+#### Quick Example
+Let us condiser a user who would want to perform an optimization based on 2D FFD of 10 control points in total (5 on each side) coupled with a POD of reduced dimension 5 and an extra rotation step inside a +/-2 degrees range. The configuration file should be set as follows:
+```json
+{
+  "study": {
+    "ffd_type: "ffd_pod_2d_rot",
+    ...
+  },
+  "optim": {
+    "n_design": 10,
+    "bound": [-0.2, 0.2],
+    ...
+  }
+  "ffd": {
+    "pod_control": 5,
+    "rot_bound": [-2, 2],
+    ...
+  }
+}
+```
+
+In turns, the effective number of design variables would be `n_design = 6`.
