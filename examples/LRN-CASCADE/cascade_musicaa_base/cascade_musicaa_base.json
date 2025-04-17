@@ -1,0 +1,68 @@
+{
+    "study": {
+        "custom_file": "custom_cascade_musicaa.py",
+        "study_type": "musicaa",
+        "ffd_type": "ffd_2d",
+        "file": "musicaa_mesh/ogv1c.dat",
+        "outdir": "output"
+    },
+    "gmsh": {
+        "mesh_dir": "musicaa_mesh",
+        "mesh_name": "ogv1c",
+        "wall_bl": [3,4,7,6],
+        "periodic_bl": [6],
+        "pitch": 40.39,
+        "chord_length": 70.0,
+        "inlet_bl": [1,2],
+        "outlet_bl": [8,9]
+    },
+    "optim": {
+        "n_design": 8,
+        "doe_size": 5,
+        "max_generations": 1,
+        "bound": [-0.2, 0.2],
+        "QoI": "LossCoef",
+        "budget": 1,
+        "hf_budget_infill": 2,
+        "hf_budget_doe": 1,
+        "constraint": false
+    },
+    "ffd": {
+        "pod_ncontrol": 4,
+        "ffd_dataset_size": 1000
+    },
+    "simulator": {
+        "ref_input": "cascade_musicaa_base.json",
+        "cp_list": ["param.ini", "param_blocks.ini", "param_blocks.ini_3D", "param_rans.ini", "feos_air.ini"],
+        "preprocess_cmd" : "/home/mschouler/bin/musicaa",
+        "exec_cmd" : "python3 /home/mschouler/aero-optim/examples/LRN-CASCADE/cascade_musicaa_base/execute.py -ms 2",
+        "restart_musicaa": 3,
+        "divide_CFL_by": 1.2,
+
+        "convergence_criteria": {
+            "residual_convergence_order": 0.2,
+            "niter_stats_steady": 1000,
+            "Boudet_criterion_type": "original",
+            "monitored_variables": 3,
+            "nb_ftt_before_criterion": 1,
+            "only_compute_mean_crit": true,
+            "unsteady_convergence_percent_mean": 5,
+            "unsteady_convergence_percent_rms": 10,
+            "QoIs_convergence_order": 2.5,
+            "max_niter_steady": 100000,
+            "max_niter_init_2D": 50000,
+            "max_niter_init_3D": 50000,
+            "max_niter_stats": 50000
+        },
+
+        "post_process": {
+            "measurement_lines": {
+                "inlet_x1": -20.108296,
+                "inlet_x2": -20.108296,
+                "outlet_x1":  87.25188,
+                "outlet_x2":  87.25188
+            },
+            "outputs": ["LossCoef"]
+        }
+    }
+}

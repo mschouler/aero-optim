@@ -2,6 +2,7 @@ import importlib.util
 import glob
 import json
 import logging
+import numpy as np
 import os.path
 import shutil
 import signal
@@ -10,7 +11,7 @@ import time
 
 from types import FrameType
 
-STUDY_TYPE = ["naca_base", "naca_block", "cascade"]
+STUDY_TYPE = ["naca_base", "naca_block", "cascade", "musicaa"]
 FFD_TYPE = ["ffd_2d", "ffd_pod_2d"]
 logger = logging.getLogger(__name__)
 
@@ -220,6 +221,45 @@ def replace_in_file(fname: str, sim_args: dict):
         file.write(filedata)
 
 
+def custom_input(fname: str, args: dict):
+    """
+    Writes a customized input file.
+    """
+    for key, value in args.items():
+        modify_next_line_in_file(fname, key, str(value))
+
+
+def modify_next_line_in_file(fname: str, pattern: str, modif: str):
+    """
+    Locates the line in fname containing pattern and replaces the next line with modif.
+    """
+    try:
+        with open(fname, 'r') as file:
+            filedata = file.readlines()
+        # Iterate through the lines and find the line containing pattern
+        for i, line in enumerate(filedata):
+            if pattern in line:
+                # Ensure the next line exists
+                if i + 1 < len(filedata):
+                    filedata[i + 1] = modif + '\n'
+        # Write the modified content back to the file
+        with open(fname, 'w') as file:
+            file.writelines(filedata)
+    except Exception as e:
+        logger.error(f"error reading file: {e}")
+
+
+def read_next_line_in_file(fname: str, pattern: str) -> str:
+    """
+    Returns the next line of fname containing pattern.
+    """
+    filedata = open(fname, 'r').readlines()
+    index = [idx for idx, s in enumerate(filedata) if pattern in s][0] + 1
+    if index:
+        return filedata[index].strip()
+    raise Exception(f"{pattern} not found in {fname}")
+
+
 def rm_filelist(deletion_list: list[str]):
     """
     Wrapper around os.remove that deletes all files specified in deletion_list.
@@ -263,19 +303,33 @@ def ln_filelist(in_files: list[str], out_files: list[str]):
             os.rename("tmplink", out_f)
 
 
+def find_closest_index(range_value: np.ndarray, target_value: float) -> int:
+    """
+    Returns the index of the closest element to targe_value within range.
+    """
+    closest_index = 0
+    closest_difference = abs(range_value[0] - target_value)
+
+    for i in range(1, len(range_value)):
+        difference = abs(range_value[i] - target_value)
+        if difference < closest_difference:
+            closest_difference = difference
+            closest_index = i
+    return closest_index
+
+
 def submit_popen_process(
         name: str, exec_cmd: list[str], dir: str = ""
 ) -> tuple[str, subprocess.Popen[str]]:
     """
     Wrapper around Popen. It submits exec_cmd and returns the corresponding tuple (name, process).
     """
+    # move to dir if specified
+    if dir:
+        cwd = os.getcwd()
+        os.chdir(dir)
     with open(f"{name}.out", "wb") as out:
         with open(f"{name}.err", "wb") as err:
-            print(f"INFO -- execute {name}")
-            # move to dir if specified
-            if dir:
-                cwd = os.getcwd()
-                os.chdir(dir)
             # submit subprocess
             proc = subprocess.Popen(exec_cmd,
                                     env=os.environ,
@@ -283,9 +337,9 @@ def submit_popen_process(
                                     stdout=out,
                                     stderr=err,
                                     universal_newlines=True)
-            # move back to the initial working dir
-            if dir:
-                os.chdir(cwd)
+    # move back to the initial working dir
+    if dir:
+        os.chdir(cwd)
     return (name, proc)
 
 
