@@ -445,12 +445,12 @@ class WolfOptimizer(Optimizer, ABC):
         - penalty (list): a [key, value] constraint not to be worsen by the optimization.
         - constraint (bool): constraints are applied (True) or not (False)
         """
-        self.baseline_CD: float = self.config["optim"].get("baseline_CD", 0.15)
-        self.baseline_CL: float = self.config["optim"].get("baseline_CL", 0.36)
-        self.baseline_area: float = abs(get_area(self.ffd.pts))
-        self.area_margin: float = self.config["optim"].get("area_margin", 40.) / 100.
-        self.penalty: list = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
-        self.constraint: bool = self.config["optim"].get("constraint", True)
+        self.baseline_CD = self.config["optim"].get("baseline_CD", 0.15)
+        self.baseline_CL = self.config["optim"].get("baseline_CL", 0.36)
+        self.baseline_area = abs(get_area(self.ffd.pts))
+        self.area_margin = self.config["optim"].get("area_margin", 40.) / 100.
+        self.penalty = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
+        self.constraint = self.config["optim"].get("constraint", True)
 
     def plot_generation(
             self,
