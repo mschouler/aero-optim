@@ -104,7 +104,7 @@ Let us condiser a user who would want to perform an optimization based on 2D FFD
     ...
   }
   "ffd": {
-    "pod_control": 5,
+    "pod_ncontrol": 5,
     "ffd_dataset_size": 1000
   }
 }
