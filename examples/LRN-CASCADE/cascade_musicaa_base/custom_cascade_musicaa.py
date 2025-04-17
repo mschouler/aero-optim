@@ -155,25 +155,25 @@ def mixed_out(data: dict) -> dict:
     see A. Prasad (2004): https://doi.org/10.1115/1.1928289
     """
     # conservation of mass
-    m_bar = np.mean(data["rhou_interp"])
-    v_bar = np.mean(data["rho*uv_interp"]) / m_bar
-    w_bar = np.mean(data["rho*uw_interp"]) / m_bar
+    m_bar = np.nanmean(data["rhou_interp"])
+    v_bar = np.nanmean(data["rho*uv_interp"]) / m_bar
+    w_bar = np.nanmean(data["rho*uw_interp"]) / m_bar
     vv_bar = v_bar**2
     ww_bar = w_bar**2
 
     # conservation of momentum
-    x_mom = np.mean(data["rho*uu_interp"] + data["p_interp"])
-    y_mom = np.mean(data["rho*uv_interp"])
-    z_mom = np.mean(data["rho*uw_interp"])
+    x_mom = np.nanmean(data["rho*uu_interp"] + data["p_interp"])
+    y_mom = np.nanmean(data["rho*uv_interp"])
+    z_mom = np.nanmean(data["rho*uw_interp"])
 
     # conservation of energy
     gam = data["gam"]
     R = data["R"]
     e = data["R"] * data["gam"] / (data["gam"] - 1) *\
-        np.mean(data["rhou_interp"] * data["T_interp"]) +\
-        0.5 * np.mean(data["rhou_interp"] * (data["uu_interp"]
-                                             + data["vv_interp"]
-                                             + data["ww_interp"]))
+        np.nanmean(data["rhou_interp"] * data["T_interp"]) +\
+        0.5 * np.nanmean(data["rhou_interp"] * (data["uu_interp"]
+                                                + data["vv_interp"]
+                                                + data["ww_interp"]))
 
     # quadratic equation
     Q = 1 / m_bar**2 * (1 - 2 * gam / (gam - 1))
