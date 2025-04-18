@@ -433,7 +433,7 @@ def QoI_convergence(sim_outdir: str,
     else:
         delta_1 = abs((QoIs[-1] - QoIs[-2]) / QoIs[-1])
         delta_2 = abs((QoIs[-1] - QoIs[-3]) / QoIs[-1])
-        order = -np.log10(max(delta_1, delta_2))
+        order = -np.log10(max(delta_1, delta_2))[0]
         print(f"QoI convergence order = {order:.2f}")
         return order < QoIs_convergence_order
 
