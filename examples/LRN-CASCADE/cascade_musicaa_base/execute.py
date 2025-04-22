@@ -872,8 +872,7 @@ def main() -> int:
         print("** ADP SIMULATION **")
         print("** -------------- **")
         sim_dir = "ADP"
-        shutil.rmtree(sim_dir, ignore_errors=True)
-        os.mkdir(sim_dir)
+        os.makedirs(sim_dir, exist_ok=True)
         args = {}
         # add simulation files
         cp_filelist(config["simulator"]["cp_list"], [sim_dir] * len(config["simulator"]["cp_list"]))
@@ -891,7 +890,7 @@ def main() -> int:
         print("** OP1 SIMULATION (+5 deg.) **")
         print("** ------------------------ **")
         sim_dir = "OP1"
-        os.mkdir(sim_dir)
+        os.makedirs(sim_dir, exist_ok=True)
         # add simulation files
         cp_filelist(config["simulator"]["cp_list"], [sim_dir] * len(config["simulator"]["cp_list"]))
         args = {}
@@ -911,7 +910,7 @@ def main() -> int:
         print("** OP2 SIMULATION (-5 deg.) **")
         print("** ------------------------ **")
         sim_dir = "OP2"
-        os.mkdir(sim_dir)
+        os.makedirs(sim_dir, exist_ok=True)
         # add simulation files
         cp_filelist(config["simulator"]["cp_list"], [sim_dir] * len(config["simulator"]["cp_list"]))
         args = {}
