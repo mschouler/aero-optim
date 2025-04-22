@@ -166,7 +166,7 @@ def split_profile(pts: np.ndarray,) -> tuple[np.ndarray, np.ndarray]:
 
 
 # Constraint verification functions
-# return boolean value based on whether the constraint is violated (True) or not (False)
+# return float value based on whether the constraint is violated (> 0) or not (< 0)
 def get_radius_violation(pts: np.ndarray, origin: np.ndarray, d: float) -> float:
     """
     **Returns** the value of the difference between the given value d
