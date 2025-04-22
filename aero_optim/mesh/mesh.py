@@ -59,8 +59,8 @@ class Mesh(ABC):
 
         - outdir (str): path/to/outputdirectory
         - outfile (str): the core name of all outputed files e.g. outfile.log, outfile.mesh, etc.
-        - scale (float): geometry scaling factor.
         - header (int): the number of header lines in dat_file.
+        - geom_scale (float): geometry scaling factor.
         - mesh_format (str): the mesh format (mesh or cgns).
         - bl (bool): whether to mesh the boundary layer (True) or not (False).
         - bl_thickness (float): the BL meshing cumulated thickness.
@@ -86,9 +86,9 @@ class Mesh(ABC):
         self.dat_file: str = datfile if datfile else config["study"]["file"]
         self.outdir: str = config["study"]["outdir"]
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
-        self.scale: int = config["study"].get("scale", 1)
         self.header: int = config["study"].get("header", 2)
         # mesh params (format & boundary layer)
+        self.geom_scale: int = config["gmsh"]["mesh"].get("scale", 1)
         self.mesh_format: str = config["gmsh"]["mesh"].get("mesh_format", "mesh").lower()
         self.bl: bool = config["gmsh"]["mesh"].get("bl", False)
         self.bl_thickness: float = config["gmsh"]["mesh"].get("bl_thickness", 1e-3)
@@ -105,7 +105,7 @@ class Mesh(ABC):
         self.nview: int = config["gmsh"]["view"].get("nview", 1)
         self.quality: bool = config["gmsh"]["view"].get("quality", False)
         # geometry coordinates loading
-        self.pts: list[list[float]] = from_dat(self.dat_file, self.header, self.scale)
+        self.pts: list[list[float]] = from_dat(self.dat_file, self.header, self.geom_scale)
         # flow-field and non-corner tags (for recombination and corners definition)
         self.surf_tag: list[int] = []
         self.non_corner_tags: list[int] = []
