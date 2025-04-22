@@ -86,8 +86,8 @@ class Mesh(ABC):
         self.dat_file: str = datfile if datfile else config["study"]["file"]
         self.outdir: str = config["study"]["outdir"]
         self.outfile = self.config["study"].get("outfile", self.dat_file.split("/")[-1][:-4])
-        self.header: int = config["study"].get("header", 2)
-        # mesh params (format & boundary layer)
+        # mesh params (geom, format & boundary layer)
+        self.header: int = config["gmsh"]["mesh"].get("header", 2)
         self.geom_scale: int = config["gmsh"]["mesh"].get("scale", 1)
         self.mesh_format: str = config["gmsh"]["mesh"].get("mesh_format", "mesh").lower()
         self.bl: bool = config["gmsh"]["mesh"].get("bl", False)
