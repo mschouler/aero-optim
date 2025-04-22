@@ -17,7 +17,7 @@ class Deform(ABC):
     """
     This class implements an abstract Deform class.
     """
-    def __init__(self, dat_file: str, ncontrol: int, header: int = 2, **kwargs):
+    def __init__(self, dat_file: str, ncontrol: int, header: int = 2, scale: float = 1, **kwargs):
         """
         Instantiates the abstract Deform object.
 
@@ -26,6 +26,7 @@ class Deform(ABC):
         - dat_file (str): path to input_geometry.dat.
         - ncontrol (int): the number of control points.
         - header (int): the number of header lines in dat_file.
+        - scale (float): the geometry scaling factor
 
         **Inner**
 
@@ -36,7 +37,7 @@ class Deform(ABC):
             are null or identical.
         """
         self.dat_file: str = dat_file
-        self.pts: np.ndarray = np.array(from_dat(self.dat_file, header))
+        self.pts: np.ndarray = np.array(from_dat(self.dat_file, header, scale))
         self.ncontrol = ncontrol
 
     def write_ffd(
