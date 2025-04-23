@@ -4,7 +4,6 @@ import subprocess
 import functools
 import numpy as np
 import os
-import shutil
 import sys
 import re
 import pandas as pd
