@@ -51,7 +51,7 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], Delta: np.ndarray,
                 for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
             [ax.annotate(f"$P_{{{i}{j}}} + D_{{{i}{j}}}$",
                          (([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
-                         ([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
+                          ([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
                 for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
             # black edges
             [ax.scatter(*np.array([i, j]), c="k") for i in range(2) for j in range(2)]
@@ -62,7 +62,7 @@ def plot_profile(ffd: FFD_2D, profiles: list[np.ndarray], Delta: np.ndarray,
                         c=colors[did]) for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
             [ax.annotate(f"$P_{{{i}{j}}} + D_{{{i}{j}}}$",
                          (ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[0],
-                         ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
+                          ffd.from_lat([i / ffd.L, j / ffd.M] + ffd.dPij(i, j, delta))[1]))
                 for i in range(ffd.L + 1) for j in range(ffd.M + 1)]
             # black edges
             ax.set(xlabel="$x$ [m]", ylabel="$y$ [m]", title="FFD illustrated in the original ref.")
