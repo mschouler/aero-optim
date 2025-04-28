@@ -1,5 +1,5 @@
-## Optimizer Module
-The optimizer module is designed to define all components required by an evolution algorithm based on the [`inspyred`](https://inspyred.readthedocs.io/en/latest/) logic:
+## Evolution and Optimizer Modules
+The evolution and optimizer modules are designed to define all components required by an evolution algorithm based on the [`inspyred`](https://inspyred.readthedocs.io/en/latest/) logic:
 
 - `generator`: a function used to sample an initial population,
 - `observer`: a function executed after each evaluation,
@@ -7,7 +7,24 @@ The optimizer module is designed to define all components required by an evoluti
 - some additional optimization arguments.
 
 The framework currently supports two optimization libraries : [`inspyred`](https://pythonhosted.org/inspyred/index.html) and [`pymoo`](https://pymoo.org/index.html).
-Thus, `Optimizer` attributes and methods are passed to the evolutionary computation algorithm (see [`ec`](https://pythonhosted.org/inspyred/reference.html#ec-evolutionary-computation-framework) framework for `inspyred` and [algorithms](https://pymoo.org/algorithms/list.html) in `pymoo`) and its optimization method (see [`ec.evolve`](https://pythonhosted.org/inspyred/reference.html?highlight=evolve#inspyred.ec.EvolutionaryComputation.evolve) for `inspyred` and [`optimize.minimize`](https://pymoo.org/interface/minimize.html?highlight=minimize) for `pymoo`). To do so, the `Evolution` class ensures that the algorithm object and the optimization method are set and executed according to the chosen library requirements. 
+
+The `Evolution` class is the upmost class in the optimization framework. It is used to define the optimizer, the evolution algorithm and how they should be executed together. Thus, the `Optimizer` required attributes and methods are passed to the evolutionary computation algorithm (see [`ec`](https://pythonhosted.org/inspyred/reference.html#ec-evolutionary-computation-framework) framework for `inspyred` and [algorithms](https://pymoo.org/algorithms/list.html) in `pymoo`) and its optimization method (see [`ec.evolve`](https://pythonhosted.org/inspyred/reference.html?highlight=evolve#inspyred.ec.EvolutionaryComputation.evolve) for `inspyred` and [`optimize.minimize`](https://pymoo.org/interface/minimize.html?highlight=minimize) for `pymoo`). To do so, the `Evolution` class ensures that the algorithm object and the optimization method are set and executed according to the chosen library requirements.
+
+### Evolution
+The `Evolution` abstract class is initialized with the configuration dictionary that is used to instantiate its `optimizer (Optimizer)` attribute.
+
+In addition, it implements two base methods:
+
+- `set_ea`: which sets the evolutionary algorithm,
+- `evolve`: which defines how the optimization should be executed.
+
+When an optimization is launched, the `InspyredEvolution` or `PymooEvolution` class is selected based on the option passed to the `optim` command (see example below). From there, the evolution strategy is selected based on the optimizer and its `strategy_name`. By default, `strategy_name = "PSO"` but this can be changed by specifying `"strategy"` in the `"optim"` entry of the configuration file.
+
+!!! Tip
+    Only two single objective strategies are currently supported for each library: `ES` and `PSO` for `inspyred`, `GA` and `PSO` for `pymoo`. More advanced strategies must be specified by customizing the `Evolution` class (see [Customized Optimization](example_custom.md)).
+
+!!! Note
+    `InspyredEvolution` or `PymooEvolution` are briefly described in their respective class definition (see [`Evolution classes`](dev_optimizer.md#evolution-classes)).
 
 ### Optimizer
 The `Optimizer` abstract class extracts general arguments from the `"optim"` and `"study"` dictionaries of the configuration file such as:
@@ -70,19 +87,21 @@ In addition, the `_observe` method does not generate  any figure but only update
 ### Quick Experiments
 The `main_optim.py` scripts is called with the `optim` command. It enable to launch a full optimization in accordance with the configuration file specifications:
 ```sh
-usage: optim [-h] [-c CONFIG] [-p] [-i] [-f CUSTOM_FILE] [-d] [-v VERBOSE]
+usage: optim [-h] -c CONFIG [-o OUTDIR] [-f CUSTOM_FILE] [-d] [-v VERBOSE] [-p] [-i]
 
 options:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
                         /path/to/config.json (default: None)
-  -p, --pymoo           use the pymoo library (default: False)
-  -i, --inspyred        use the inspyred library (default: False)
+  -o OUTDIR, --outdir OUTDIR
+                        optim output directory (default: )
   -f CUSTOM_FILE, --custom-file CUSTOM_FILE
                         /path/to/custom_file.py (default: )
   -d, --debug           use DEBUG mode (default: False)
   -v VERBOSE, --verbose VERBOSE
                         logger verbosity level (default: 3)
+  -p, --pymoo           use the pymoo library (default: False)
+  -i, --inspyred        use the inspyred library (default: False)
 ```
 
 For instance, setting `doe_size` and `max_generations` to 20 in `naca_base.json` and running the command below:

@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from scipy.stats import qmc
 from typing import Any
 
+from aero_optim.geom import get_cog
 from aero_optim.utils import from_dat, check_dir
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ class Deform(ABC):
     """
     This class implements an abstract Deform class.
     """
-    def __init__(self, dat_file: str, ncontrol: int, header: int = 2):
+    def __init__(self, dat_file: str, ncontrol: int, header: int = 2, scale: float = 1, **kwargs):
         """
         Instantiates the abstract Deform object.
 
@@ -25,6 +26,7 @@ class Deform(ABC):
         - dat_file (str): path to input_geometry.dat.
         - ncontrol (int): the number of control points.
         - header (int): the number of header lines in dat_file.
+        - scale (float): the geometry scaling factor
 
         **Inner**
 
@@ -35,7 +37,7 @@ class Deform(ABC):
             are null or identical.
         """
         self.dat_file: str = dat_file
-        self.pts: np.ndarray = np.array(from_dat(self.dat_file, header))
+        self.pts: np.ndarray = np.array(from_dat(self.dat_file, header, scale))
         self.ncontrol = ncontrol
 
     def write_ffd(
@@ -84,7 +86,7 @@ class FFD_2D(Deform):
     """
     def __init__(
             self, dat_file: str, ncontrol: int,
-            pad: tuple[int, int] = (1, 1), header: int = 2, **kwargs
+            pad: tuple[int, int] = (1, 1), **kwargs
     ):
         """
         Instantiates the FFD_2D object.
@@ -94,7 +96,6 @@ class FFD_2D(Deform):
         - dat_file (str): path to input_geometry.dat.
         - ncontrol (int): the number of control points on each side of the lattice.
         - pad (tuple[int, int]): padding around the displacement vector.
-        - header (int): the number of header lines in dat_file.
 
         **Inner**
 
@@ -108,7 +109,7 @@ class FFD_2D(Deform):
         - M (int): the number of control points in the y direction of each side of the lattice.
         - lat_pts (np.ndarray): the geometry coordinates in the lattice referential.
         """
-        super().__init__(dat_file, ncontrol, header)
+        super().__init__(dat_file, ncontrol, **kwargs)
         assert pad in [(0, 0), (1, 1), (0, 1), (1, 0)], f"wrong padding: {pad}"
         self.pad: tuple[int, int] = pad
         self.L: int = ncontrol - 1 + sum(pad)
@@ -262,3 +263,19 @@ class FFD_POD_2D(Deform):
         l_bound = [min(v) for v in self.V_tilde_inv]
         u_bound = [max(v) for v in self.V_tilde_inv]
         return l_bound, u_bound
+
+
+class RotationWrapper(Deform):
+    def __init__(self, deform_obj: Deform):
+        self._deform_obj = deform_obj
+
+    def apply_ffd(self, Delta: np.ndarray) -> np.ndarray:
+        theta_rad = Delta[-1] / 180. * np.pi
+        rot_matrix = np.array([[np.cos(theta_rad), -np.sin(theta_rad)],
+                               [np.sin(theta_rad), np.cos(theta_rad)]])
+        profile = self._deform_obj.apply_ffd(Delta[:-1])
+        cog = get_cog(profile)
+        return (profile - cog) @ rot_matrix.T + cog
+
+    def __getattr__(self, name):
+        return getattr(self._deform_obj, name)

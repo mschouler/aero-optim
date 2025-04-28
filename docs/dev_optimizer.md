@@ -1,4 +1,4 @@
-## Optimizer and Evolution Source Code
+## Evolution and Optimizer Source Code
 <hr style="border:1px solid grey">
 
 ### Evolution classes

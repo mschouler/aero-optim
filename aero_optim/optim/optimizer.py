@@ -14,7 +14,7 @@ from random import Random
 from typing import Any
 
 from aero_optim.geom import get_area
-from aero_optim.ffd.ffd import FFD_2D, FFD_POD_2D
+from aero_optim.ffd.ffd import FFD_2D, FFD_POD_2D, RotationWrapper
 from aero_optim.mesh.mesh import MeshMusicaa
 from aero_optim.mesh.naca_base_mesh import NACABaseMesh
 from aero_optim.mesh.naca_block_mesh import NACABlockMesh
@@ -190,25 +190,40 @@ class Optimizer(ABC):
         self.FFDClass = (
             get_custom_class(self.custom_file, "CustomFFD") if self.custom_file else None
         )
+        ffd_config = self.config.get("ffd", {})
+        rotation = ffd_config.get("rotation", False)
         if not self.FFDClass:
+            # standard FFD 2D
             if self.ffd_type == FFD_TYPE[0]:
                 self.FFDClass = FFD_2D
                 self.ffd = self.FFDClass(
-                    self.dat_file, self.n_design // 2, **self.config.get("ffd", {})
+                    self.dat_file, self.n_design // 2, **ffd_config
                 )
+            # POD coupled FFD 2D
             elif self.ffd_type == FFD_TYPE[1]:
                 self.FFDClass = FFD_POD_2D
-                self.config["ffd"]["ffd_ncontrol"] = self.n_design
-                self.config["ffd"]["ffd_bound"] = self.bound
+                ffd_config["ffd_ncontrol"] = self.n_design
+                ffd_config["ffd_bound"] = self.bound
                 logger.info(f"ffd bound: {self.bound}")
-                self.ffd = self.FFDClass(self.dat_file, **self.config["ffd"])
-                self.n_design = self.config["ffd"]["pod_ncontrol"]
-                self.bound = self.config["ffd"].get("pod_bound", self.ffd.get_bound())
+                self.ffd = self.FFDClass(self.dat_file, **ffd_config)
+                self.n_design = ffd_config["pod_ncontrol"]
+                self.bound = ffd_config.get("pod_bound", self.ffd.get_bound())
                 logger.info(f"pod bound: {self.bound}")
             else:
                 raise Exception(f"ERROR -- incorrect ffd_type <{self.ffd_type}>")
         else:
-            self.ffd = self.FFDClass(self.dat_file, self.n_design, **self.config["ffd"])
+            self.ffd = self.FFDClass(self.dat_file, self.n_design, **ffd_config)
+        # rotation wrapper
+        if rotation:
+            logger.info(f"rotation: {rotation}")
+            self.ffd = RotationWrapper(self.ffd)
+            rot_bound = ffd_config.get("rot_bound", [-1, 1])
+            # convert bound from tuple of floats to tuple of lists
+            if not isinstance(self.bound[0], list):
+                self.bound = ([self.bound[0]] * self.n_design, [self.bound[-1]] * self.n_design)
+            self.bound = (self.bound[0] + [rot_bound[0]], self.bound[-1] + [rot_bound[-1]])
+            self.n_design += 1
+            logger.info(f"effective n_design: {self.n_design}")
 
     def set_gmsh_mesh_class(self):
         """
@@ -425,12 +440,12 @@ class WolfOptimizer(Optimizer, ABC):
         - penalty (list): a [key, value] constraint not to be worsen by the optimization.
         - constraint (bool): constraints are applied (True) or not (False)
         """
-        self.baseline_CD: float = self.config["optim"].get("baseline_CD", 0.15)
-        self.baseline_CL: float = self.config["optim"].get("baseline_CL", 0.36)
-        self.baseline_area: float = abs(get_area(self.ffd.pts))
-        self.area_margin: float = self.config["optim"].get("area_margin", 40.) / 100.
-        self.penalty: list = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
-        self.constraint: bool = self.config["optim"].get("constraint", True)
+        self.baseline_CD = self.config["optim"].get("baseline_CD", 0.15)
+        self.baseline_CL = self.config["optim"].get("baseline_CL", 0.36)
+        self.baseline_area = abs(get_area(self.ffd.pts))
+        self.area_margin = self.config["optim"].get("area_margin", 40.) / 100.
+        self.penalty = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
+        self.constraint = self.config["optim"].get("constraint", True)
 
     def plot_generation(
             self,
@@ -586,12 +601,12 @@ class MusicaaOptimizer(Optimizer, ABC):
         - penalty (list): a [key, value] constraint not to be worsen by the optimization.
         - constraint (bool): constraints are applied (True) or not (False)
         """
-        self.baseline_CD: float = self.config["optim"].get("baseline_CD", 0.15)
-        self.baseline_CL: float = self.config["optim"].get("baseline_CL", 0.36)
-        self.baseline_area: float = abs(get_area(self.ffd.pts))
-        self.area_margin: float = self.config["optim"].get("area_margin", 40.) / 100.
-        self.penalty: list = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
-        self.constraint: bool = self.config["optim"].get("constraint", True)
+        self.baseline_CD = self.config["optim"].get("baseline_CD", 0.15)
+        self.baseline_CL = self.config["optim"].get("baseline_CL", 0.36)
+        self.baseline_area = abs(get_area(self.ffd.pts))
+        self.area_margin = self.config["optim"].get("area_margin", 40.) / 100.
+        self.penalty = self.config["optim"].get("penalty", ["CL", self.baseline_CL])
+        self.constraint = self.config["optim"].get("constraint", True)
 
     def plot_generation(
             self,
