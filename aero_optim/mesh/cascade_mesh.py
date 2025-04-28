@@ -90,7 +90,7 @@ class CascadeMesh(Mesh):
         """
         **Returns** the blade profile after reordering.
         """
-        d = np.sqrt([abs(x**2 + y**2) for x, y, _ in self.pts])
+        d = np.sqrt([x**2 + y**2 for x, y, _ in self.pts])
         start = np.argmin(d)
         if self.pts[start + 1][1] > self.pts[start][1]:
             return [[p[0], p[1], p[2]] for p in self.pts[start:] + self.pts[:start]]

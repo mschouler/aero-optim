@@ -90,7 +90,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         self.bsl_cog = get_cog(bsl_pts)
         self.bsl_Xcg_over_cax = self.bsl_cog[0] / self.bsl_c_ax
         logger.info(f"baseline X_cg over c_ax = {self.bsl_Xcg_over_cax}")
-        self.constraint: bool = self.config["optim"].get("constraint", True)
+        self.constraint = self.config["optim"].get("constraint", True)
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """
