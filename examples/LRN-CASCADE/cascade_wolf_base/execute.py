@@ -15,7 +15,7 @@ from cascade_base.execute import FAILURE, SUCCESS # noqa
 
 GMF2VTK = "gmf2vtk"
 PVPYTHON = "/home/mschouler/Documents/Sorbonne/ParaView-5.12.1-MPI-Linux-Python3.10-x86_64/bin/pvpython" # noqa
-INTERPOL = "plot_over_line.py"
+INTERPOL = "/home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_wolf_base/plot_over_line.py" # noqa
 
 MPLOSS = "MPLossCoef.dat"
 MIXEDOUTLOSS = "MixedoutLossCoef.dat"
