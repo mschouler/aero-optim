@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/ffd/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>FFD Module - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "FFD Module";
+        var mkdocs_page_input_path = "ffd.md";
+        var mkdocs_page_url = "/aero-optim/ffd/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">FFD Module</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#2d-ffd">2D FFD</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#illustration">Illustration</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#quick-experiments">Quick Experiments</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2d-ffd-pod">2D FFD &amp; POD</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#quick-experiments_1">Quick Experiments</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#quick-example">Quick Example</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2d-ffd-with-rotation">2D FFD with rotation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#quick-example_1">Quick Example</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User Guide</li>
+      <li class="breadcrumb-item active">FFD Module</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/ffd.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="free-form-deformation-module">Free-Form Deformation Module</h2>
+<p>The deformation module relies on an abstract class <code>Deform</code> theoretically compatible with any kind of geometric deformation but it was only subclassed for Free-Form Deformation (FFD) purposes so far. FFD is a technique designed to deform solid geometric models in a free-form manner. It was originally introduced by Sederberg in 1986 (<a href="https://dl.acm.org/doi/10.1145/15886.15903">doi</a>). The present implementation is based on the description in <a href="https://inria.hal.science/inria-00085058/">Duvigneau 2006</a>. </p>
+<p>The main steps of FFD are:</p>
+<p>1) create a lattice, i.e. the minimal parallelepiped box that embeds the geometry (a rectangle in 2D),</p>
+<p>2) project the geometry points into the lattice referential such that its coordinates now vary between [0;1] in both x and y directions,</p>
+<p>3) for a given deformation vector applied to each control points of the lattice, the displacements of all points forming the geometry are computed with the tensor product of the Bernstein basis polynomials,</p>
+<p>4) the deformed profile is finally projected back into the original referential.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This implementation is limited to 2D geometries only. More sophisticated libraries exist such as <a href="https://mathlab.github.io/PyGeM/index.html">PyGeM</a> or <a href="https://mdolab-pygeo.readthedocs-hosted.com/en/latest/introduction.html">pyGeo</a> but they come with heavier dependencies and more cumbersome installation procedures.</p>
+</div>
+<h3 id="2d-ffd">2D FFD</h3>
+<p>Free-Form Deformation is implemented in <code>FFD_2D</code>, a straightforward class instantiated with two positional arguments:</p>
+<ul>
+<li><code>file (str)</code> which indicates the filename of the baseline geometry to be deformed,</li>
+<li><code>ncontrol (int)</code> which indicates the number of design points on each side of the lattice.</li>
+</ul>
+<p>And two optional arguments:</p>
+<ul>
+<li><code>pad (tuple[int, int])</code> which can be used to make the lattice edges moveable,</li>
+<li><code>header (int)</code> which is used to specify the number of header lines in <code>file</code>.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The input file is expected to have a specific formatting i.e. a 2 line header followed by coordinates given as tabulated entries (one point per row) with single space separators (see <a href="https://github.com/mschouler/aero-optim/blob/master/examples/NACA12/data/naca12.dat"><code>data/naca12.dat</code></a> for an example).</p>
+</div>
+<p>Once instantiated, the <code>apply_ffd(Delta)</code> method can be used to perform the deformation corresponding to the array <code>Delta</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>During an FFD-based optimization, <code>FFD_2D</code> is initialized with <code>ncontrol = n_design // 2</code>. </p>
+</div>
+<h4 id="illustration">Illustration</h4>
+<p>An FFD with 2 control points (i.e. 4 in total) and the deformation vector <code>Delta = (0., 0., 1., 1.)</code> will yield the following profile:</p>
+<p float="left">
+  <img src="../Figures/naca12.png" width="100%" />
+</p>
+<p>Considering the figure notations, one notices that the deformation vector <code>Delta</code> corresponds to the list of deformations to be applied to the lower control points followed by those applied to the upper control points. In this case, <code>Delta</code> is: $$(D_{10}=0.,\, D_{20}=0.,\, D_{11}=1.,\, D_{21}=1.)$$ in lattice unit. The corner points are left unchanged so that the lattice corners remain fixed.</p>
+<h4 id="quick-experiments">Quick Experiments</h4>
+<p>The <code>auto_ffd.py</code> scripts is called with the <code>ffd</code> command. It enables basic testing and visualization. It comes with a few options:
+<div class="highlight"><pre><span></span><code><span class="n">ffd</span> <span class="o">--</span><span class="n">help</span>
+<span class="n">usage</span><span class="p">:</span> <span class="n">ffd</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="o">-</span><span class="n">f</span> <span class="n">FILE</span> <span class="p">[</span><span class="o">-</span><span class="n">c</span> <span class="n">CONFIG</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTDIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">nc</span> <span class="n">NCONTROL</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">np</span> <span class="n">NPROFILE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DELTA</span><span class="p">]</span>
+
+<span class="n">options</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">-</span><span class="n">f</span> <span class="n">FILE</span><span class="p">,</span> <span class="o">--</span><span class="n">file</span> <span class="n">FILE</span>  <span class="n">baseline</span> <span class="n">geometry</span><span class="p">:</span> <span class="o">--</span><span class="n">file</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">file</span><span class="o">.</span><span class="n">dat</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">c</span> <span class="n">CONFIG</span><span class="p">,</span> <span class="o">--</span><span class="n">config</span> <span class="n">CONFIG</span>
+                        <span class="n">config</span><span class="p">:</span> <span class="o">--</span><span class="n">config</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="p">)</span>
+  <span class="o">-</span><span class="n">o</span> <span class="n">OUTDIR</span><span class="p">,</span> <span class="o">--</span><span class="n">outdir</span> <span class="n">OUTDIR</span>
+                        <span class="n">output</span> <span class="n">directory</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="n">output</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">nc</span> <span class="n">NCONTROL</span><span class="p">,</span> <span class="o">--</span><span class="n">ncontrol</span> <span class="n">NCONTROL</span>
+                        <span class="n">number</span> <span class="n">of</span> <span class="n">control</span> <span class="n">points</span> <span class="n">on</span> <span class="n">each</span> <span class="n">side</span> <span class="n">of</span> <span class="n">the</span> <span class="n">lattice</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">np</span> <span class="n">NPROFILE</span><span class="p">,</span> <span class="o">--</span><span class="n">nprofile</span> <span class="n">NPROFILE</span>
+                        <span class="n">number</span> <span class="n">of</span> <span class="n">profiles</span> <span class="n">to</span> <span class="n">generate</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">d</span> <span class="n">DELTA</span><span class="p">,</span> <span class="o">--</span><span class="n">delta</span> <span class="n">DELTA</span>
+                        <span class="n">Delta</span><span class="p">:</span> <span class="s1">&#39;D10 D20 .. D2nc&#39;</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div></p>
+<p>For instance, the command below will perform 3 control points FFDs for 4 random deformations sampled with an LHS sampler:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_base</span>
+<span class="n">cd</span> <span class="n">examples</span><span class="o">/</span><span class="n">NACA12</span><span class="o">/</span><span class="n">naca_base</span>
+<span class="n">ffd</span> <span class="o">-</span><span class="n">f</span> <span class="o">../</span><span class="n">data</span><span class="o">/</span><span class="n">naca12</span><span class="o">.</span><span class="n">dat</span> <span class="o">-</span><span class="n">np</span> <span class="mi">4</span> <span class="o">-</span><span class="n">nc</span> <span class="mi">3</span>
+</code></pre></div></p>
+<p float="left">
+  <img src="../Figures/naca12_lhs.png" width="100%" />
+</p>
+
+<h3 id="2d-ffd-pod">2D FFD &amp; POD</h3>
+<p>The coupling between POD and FFD was implemented in the <code>FFD_POD_2D</code> class. Its objective is to build a dataset of <code>n</code> FFD perturbed profiles sampled from LHS and to use it to perform POD-based data reduction from the FFD dimension <code>d</code> to a smaller dimension <code>d*</code>. Details on how to do so are given in (<a href="https://doi.org/10.2514/6.2008-6584">POD 1</a>) and (<a href="https://doi.org/10.2514/6.2017-3057">POD 2</a>).</p>
+<p>The <code>FFD_pod_2D</code> class is instantiated with 5 positional arguments:</p>
+<ul>
+<li><code>file (str)</code> which indicates the filename of the baseline geometry to be deformed,</li>
+<li><code>pod_ncontrol (int)</code> which indicates the number of reduced design points,</li>
+<li><code>ffd_ncontrol (int)</code> which indicates the number of FFD control points design points,</li>
+<li><code>ffd_dataset_size (int)</code> which indicates the size of the FFD dataset used in the POD procedure,</li>
+<li><code>ffd_bound (tuple[Any])</code> which set the min/max displacement ranges of the FFD dataset used in the POD procedure.</li>
+</ul>
+<p>To use this functionality, the <code>ffd_type</code> of the <code>"study"</code> entry must be set to <code>"ffd_pod_2d"</code>. The number of FFD control points and boundaries are still given by the <code>"n_design"</code> and <code>"bound"</code> values of the <code>"optim"</code> entry. In the <code>"ffd"</code> entry, the POD reduced dimension is set via <code>"pod_ncontrol"</code> and the size of the FFD dataset with <code>"ffd_dataset_size"</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the <code>Optimizer</code> class, the <code>n_design</code> attribute is automatically switched to <code>"pod_ncontrol"</code> once the <code>FFD_POD_2D</code>class is set.</p>
+</div>
+<h4 id="quick-experiments_1">Quick Experiments</h4>
+<p>An application of this feature is illustrated in the <a href="https://github.com/mschouler/aero-optim/blob/master/scripts/FFD/POD.ipynb">POD notebook</a>.</p>
+<h4 id="quick-example">Quick Example</h4>
+<p>Let us condiser a user who would want to perform an optimization based on 2D FFD of 10 control points in total (5 on each side) coupled with a POD of reduced dimension 5. The configuration file should be set as follows:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;study&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="s2">&quot;ffd_type: &quot;</span><span class="kc">ff</span><span class="err">d_pod_</span><span class="mi">2</span><span class="err">d</span><span class="s2">&quot;,</span>
+<span class="s2">    ...</span>
+<span class="s2">  },</span>
+<span class="s2">  &quot;</span><span class="err">op</span><span class="kc">t</span><span class="err">im</span><span class="s2">&quot;: {</span>
+<span class="s2">    &quot;</span><span class="kc">n</span><span class="err">_desig</span><span class="kc">n</span><span class="s2">&quot;: 10,</span>
+<span class="s2">    &quot;</span><span class="err">bou</span><span class="kc">n</span><span class="err">d</span><span class="s2">&quot;: [-0.2, 0.2],</span>
+<span class="s2">    ...</span>
+<span class="s2">  }</span>
+<span class="s2">  &quot;</span><span class="kc">ff</span><span class="err">d</span><span class="s2">&quot;: {</span>
+<span class="s2">    &quot;</span><span class="err">pod_</span><span class="kc">n</span><span class="err">co</span><span class="kc">ntr</span><span class="err">ol</span><span class="s2">&quot;: 5,</span>
+<span class="s2">    &quot;</span><span class="kc">ff</span><span class="err">d_da</span><span class="kc">taset</span><span class="err">_size&quot;: 1000</span>
+<span class="err">  }</span>
+<span class="err">}</span>
+</code></pre></div></p>
+<p>In turns, the effective number of design variables would be <code>n_design = 5</code>.</p>
+<h3 id="2d-ffd-with-rotation">2D FFD with rotation</h3>
+<p>A variant of the FFD including an extra-rotation step around the center of gravity was implemented with the <code>RotationWrapper</code> class. It directly inherits from <code>Deform</code> and overrides <code>apply_fd</code> in a way such that for any deformation array <code>Delta</code>, the first components are used to perform a standard FFD deformation and the last value is used to rotate the deformed geometry. In the context of an optimization this means that <code>n_design += 1</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A direct consequence of this approach is that the deformation array <code>Delta</code> has size <code>n_design + 1</code>. In the optimizer, this is automatically handled by adding 1 to <code>n_design</code> when instantiating the <code>FFDClass</code> in <code>set_ffd_class</code>.</p>
+</div>
+<p>To use this functionality, the <code>ffd_type</code> of the <code>"study"</code> entry can be set to any deformation kind and the boundaries are still given by the <code>"bound"</code> values of the <code>"optim"</code> entry. In the <code>"ffd"</code> entry, <code>"rotate"</code> should be set to <code>true</code> and the rotation range must be specified via <code>"rot_bound"</code> as a list of two values. The values will be automatically appended to the <code>bound</code> attribute of the <code>Optimizer</code> object.</p>
+<h4 id="quick-example_1">Quick Example</h4>
+<p>Let us condiser a user who would want to perform an optimization based on 2D FFD of 10 control points in total (5 on each side) and an extra rotation step inside a +/-2 degrees range. The configuration file should be set as follows:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;study&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="s2">&quot;ffd_type: &quot;</span><span class="kc">ff</span><span class="err">d_</span><span class="mi">2</span><span class="err">d</span><span class="s2">&quot;,</span>
+<span class="s2">    ...</span>
+<span class="s2">  },</span>
+<span class="s2">  &quot;</span><span class="err">op</span><span class="kc">t</span><span class="err">im</span><span class="s2">&quot;: {</span>
+<span class="s2">    &quot;</span><span class="kc">n</span><span class="err">_desig</span><span class="kc">n</span><span class="s2">&quot;: 10,</span>
+<span class="s2">    &quot;</span><span class="err">bou</span><span class="kc">n</span><span class="err">d</span><span class="s2">&quot;: [-0.2, 0.2],</span>
+<span class="s2">    ...</span>
+<span class="s2">  }</span>
+<span class="s2">  &quot;</span><span class="kc">ff</span><span class="err">d</span><span class="s2">&quot;: {</span>
+<span class="s2">    &quot;</span><span class="err">ro</span><span class="kc">tat</span><span class="err">io</span><span class="kc">n</span><span class="s2">&quot;: true,</span>
+<span class="s2">    &quot;</span><span class="err">ro</span><span class="kc">t</span><span class="err">_bou</span><span class="kc">n</span><span class="err">d&quot;: [-2, 2]</span>
+<span class="err">  }</span>
+<span class="err">}</span>
+</code></pre></div></p>
+<p>In turns, the effective number of design variables would become <code>n_design = 11</code>.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href=".." class="btn btn-neutral float-left" title="Getting Started"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../mesh/" class="btn btn-neutral float-right" title="Mesh Module">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../mesh/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

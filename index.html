@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/" />
+      <link rel="shortcut icon" href="Figures/icon.png" />
+    <title>AERO-Optim</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Getting Started";
+        var mkdocs_page_input_path = "index.md";
+        var mkdocs_page_url = "/aero-optim/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".">
+          <img src="Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Getting Started</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#quick-installation">Quick Installation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#first-execution">First Execution</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#first-ffd-auto_ffdpy">First FFD: auto_ffd.py</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#first-mesh-auto_gmshpy">First Mesh: auto_gmsh.py</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#first-simulation-auto_simulatorpy">First Simulation: auto_simulator.py</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#first-optimization-main_optimpy">First Optimization: main_optim.py</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Getting Started</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/index.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="welcome-to-aero-optim">Welcome to AERO-Optim</h2>
+<p><strong>AERO-Optim</strong> is a simple aerodynamic shape optimization framework coupling FreeForm Deformation (FFD), automatic meshing with <a href="https://gmsh.info/doc/texinfo/gmsh.html"><code>gmsh</code></a> and any CFD solver execution in the frame of an optimization algorithm based on <a href="https://inspyred.readthedocs.io/en/latest/"><code>inspyred</code></a> or <a href="https://pymoo.org/index.html"><code>pymoo</code></a>. It is composed of the following core components:</p>
+<ul>
+<li><a href="ffd/">Deform</a>: which defines classes to perform FFD-based deformation of any 2D geometry,</li>
+<li><a href="mesh/">Mesh</a>: which defines multiple classes to generate automatic meshes,</li>
+<li><a href="simulator/">Simulator</a>: which defines a class to orchestrate CFD simulations including pre- and post-processing steps as well as progress monitoring,</li>
+<li><a href="optimizer/">Optimizer</a> and <a href="optimizer/">Evolution</a>: which define multiple classes to coordinate the optimization procedures with <code>inspyred</code> or <code>pymoo</code></li>
+</ul>
+<p>The overall structure of the framework is illustrated on the Figure below:</p>
+<p float="left">
+  <img src="./Figures/framework-overview.png" width="100%" />
+</p>
+
+<p>In an optimization, classes are created from left to right based on the execution command and the configuration file. All components can be inherited and customized to meet any need and the righmost classes can be loaded and tested separately.</p>
+<h3 id="quick-installation">Quick Installation</h3>
+<p><strong>AERO-Optim</strong> requires Python 3.10 or newer and comes with a few dependencies listed in <a href="https://github.com/mschouler/aero-optim/blob/master/requirements.txt"><code>requirements.txt</code></a> and recalled below:
+<div class="highlight"><pre><span></span><code>gmsh<span class="w">        </span><span class="c1"># to design and visualize meshes (MESH)</span>
+inspyred<span class="w">    </span><span class="c1"># optimization toolbox (OPTIM)</span>
+numpy<span class="w">       </span><span class="c1"># to manipulate geometries as arrays (FFD)</span>
+matplotlib<span class="w">  </span><span class="c1"># to visualize the generated deformed profiles (FFD)</span>
+pandas<span class="w">      </span><span class="c1"># to load simulation results (OPTIM)</span>
+pymoo<span class="w">       </span><span class="c1"># optimization toolbox (OPTIM)</span>
+scipy<span class="w">       </span><span class="c1"># to use quasi monte carlo samplers (FFD)</span>
+</code></pre></div></p>
+<p>From the user's working directory, they can all be installed at once in a <a href="https://docs.python.org/3/library/venv.html">virtual environment</a> with the following commands:
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/mschouler/aero-optim.git
+<span class="nb">cd</span><span class="w"> </span>aero-optim
+python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</code></pre></div></p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The virtual environment must be sourced every time a new terminal is launched!</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>So far, the framework was only installed and tested on MacOS and Linux platforms.</p>
+</div>
+<h3 id="first-execution">First Execution</h3>
+<p>The framework was designed to automate aerodynamic optimization which, in this case, consists in:</p>
+<p>1) deforming a baseline geometry,</p>
+<p>2) generating its associated mesh,</p>
+<p>3) performing a CFD computation,</p>
+<p>as many times as required to obtain a geometry maximizing/minimizing certain quantities of interest (QoIs).</p>
+<p>Although the chaining of these steps is performed under the supervision of <a href="https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/main_optim.py"><code>main_optim.py</code></a>, the three subscripts presented below were introduced to facilitate each step's individual evaluation:</p>
+<h4 id="first-ffd-auto_ffdpy">First FFD: <a href="https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/auto_ffd.py"><code>auto_ffd.py</code></a></h4>
+<p>This script performs one or multiple FFD of the geometry passed as its input argument. For instance:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_base</span>
+<span class="nb">cd</span><span class="w"> </span>examples/NACA12/naca_base
+ffd<span class="w"> </span>-f<span class="w"> </span>../data/naca12.dat<span class="w"> </span>-nc<span class="w"> </span><span class="m">2</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;0. 0. 1. 1.&quot;</span>
+</code></pre></div>
+will yield the figure below:</p>
+<p float="left">
+  <img src="./Figures/naca12.png" width="100%" />
+</p>
+<p>where the deformation vector is $$[D_{10}, D_{20}, D_{11}, D_{21}] = [0., 0., 1., 1.]$$ in lattice unit (see <a href="ffd/">FFD</a>).</p>
+<h4 id="first-mesh-auto_gmshpy">First Mesh: <a href="https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/auto_gmsh.py"><code>auto_gmsh.py</code></a></h4>
+<p>This script generates a simple mesh parameterized according to its associated configuration file. For instance:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_base</span>
+<span class="nb">cd</span><span class="w"> </span>examples/NACA12/naca_base
+mesh<span class="w"> </span>--config<span class="o">=</span>naca_base.json<span class="w">  </span><span class="c1"># left figure</span>
+<span class="nb">cd</span><span class="w"> </span>../naca_block
+mesh<span class="w"> </span>--config<span class="o">=</span>naca_block.json<span class="w"> </span><span class="c1"># right figure</span>
+</code></pre></div>
+will generate the figures below:</p>
+<p float="left">
+  <img src="./Figures/naca_base_mesh.png" width="49%" />
+  <img src="./Figures/naca_block_mesh.png" width="49%" /> 
+</p>
+
+<h4 id="first-simulation-auto_simulatorpy">First Simulation: <a href="https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/auto_simulator.py"><code>auto_simulator.py</code></a></h4>
+<p>This script performs a single simulation according to its associated configuration file and mesh. For instance:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_base</span>
+<span class="nb">cd</span><span class="w"> </span>examples/NACA12/naca_base
+mesh<span class="w"> </span>-c<span class="w"> </span>naca_base.json
+simulator<span class="w"> </span>-c<span class="w"> </span>naca_base.json<span class="w"> </span>-f<span class="w"> </span>output/naca_base.mesh
+</code></pre></div>
+will run a <a href="https://pages.saclay.inria.fr/frederic.alauzet/software.html"><code>Wolf</code></a> simulation provided that the user has access to the solver and that they have properly specified the path to the executable:
+<div class="highlight"><pre><span></span><code>INFO:aero_optim.simulator.simulator:g0,<span class="w"> </span>c0<span class="w"> </span>converged<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">533</span><span class="w"> </span>it.
+INFO:aero_optim.simulator.simulator:last<span class="w"> </span>values:
+<span class="w">      </span>ResTot<span class="w">       </span>CD<span class="w">       </span>CL<span class="w">        </span>ResCD<span class="w">        </span>ResCL<span class="w">   </span>x<span class="w">   </span>y<span class="w">  </span>Cp
+<span class="m">1</span>.799346e-08<span class="w"> </span><span class="m">0</span>.152689<span class="w"> </span><span class="m">0</span>.358267<span class="w"> </span><span class="m">7</span>.271155e-16<span class="w"> </span><span class="m">2</span>.169212e-15<span class="w"> </span>NaN<span class="w"> </span>NaN<span class="w"> </span>NaN
+&gt;&gt;<span class="w"> </span>simulation<span class="w"> </span>finished<span class="w"> </span>after<span class="w"> </span><span class="m">5</span>.0141987800598145<span class="w"> </span>seconds
+</code></pre></div>
+The printed quantities correspond to the last row of the dataframe built by post-processing the simulation outputs as indicated in the <code>"post_process"</code> entry of the configuration file. The NaNs correspond to missing values due to the varying size of the extracted data.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In order for the command to pass, don't forget to fix the <code>exec_cmd</code> executable path in <code>naca_base.json</code>.</p>
+</div>
+<p>A zoomed view of the solution mach field plotted with <a href="https://pyamg.saclay.inria.fr/vizir4.html"><code>vizir4</code></a> and the following command is given below:
+<div class="highlight"><pre><span></span><code><span class="c1"># from naca_base</span>
+/path/to/vizir<span class="w"> </span>-in<span class="w"> </span>output/WOLF/wolf_g0_c0/naca_base.mesh<span class="w"> </span>-sol<span class="w"> </span>output/WOLF/wolf_g0_c0/mach.solb
+</code></pre></div></p>
+<p float="left">
+  <img src="./Figures/naca_base_mach.png" width="100%" />
+</p>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As of 2024, <a href="https://pages.saclay.inria.fr/frederic.alauzet/software.html"><code>Wolf</code></a> is not open-source and may not be available to the user. Customization guidelines on how to adapt any part of the framework such as the <code>Simulator</code> are given in the <a href="example_custom/">Customization</a> tab.</p>
+</div>
+<h4 id="first-optimization-main_optimpy">First Optimization: <a href="https://github.com/mschouler/aero-optim/blob/master/aero_optim/main/main_optim.py"><code>main_optim.py</code></a></h4>
+<p>This script orchestrates an optimization execution given the configuration parameters. For instance, <code>naca_base.json</code> and the command below executes a single iteration of the <a href="https://pymoo.org/algorithms/soo/pso.html?highlight=particle%20swarm">Particle Swarm Optimization</a> algorithm of <code>inspyred</code> with 5 candidates and 8 variables of design sampled in [-0.5, 0.5] (in lattice units):
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_base</span>
+<span class="n">cd</span> <span class="n">examples</span><span class="o">/</span><span class="n">NACA12</span><span class="o">/</span><span class="n">naca_base</span>
+<span class="n">optim</span> <span class="o">-</span><span class="n">c</span> <span class="n">naca_base</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">inspyred</span>
+</code></pre></div></p>
+<p float="left">
+  <img src="./Figures/dummy_optim.png" width="100%" />
+</p>
+
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Although <code>inspyred</code> considers the first generation as the 0th and allows to use <code>max_generations=0</code>, <code>pymoo</code> does not and <code>max_generations</code> cannot be less than 1.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>In the configuration file, the <code>budget</code> entry corresponds to the number of simulation executed concurrently. It should hence be adapted to the amount of resources available to the user.</p>
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="ffd/" class="btn btn-neutral float-right" title="FFD Module">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+      <span><a href="ffd/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.6.1
+Build Date UTC : 2025-04-28 13:33:47.485476+00:00
+-->

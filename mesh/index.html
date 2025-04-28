@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/mesh/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>Mesh Module - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Mesh Module";
+        var mkdocs_page_input_path = "mesh.md";
+        var mkdocs_page_url = "/aero-optim/mesh/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Mesh Module</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#naca">NACA</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#naca-base">NACA Base</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#naca-block">NACA Block</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#cascade">Cascade</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#dlr-cascade-mesh">DLR cascade mesh</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#simple-cascade-mesh">Simple cascade mesh</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#quick-experiments">Quick Experiments</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User Guide</li>
+      <li class="breadcrumb-item active">Mesh Module</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/mesh.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="mesh-module">Mesh Module</h2>
+<p>The meshing module builds on the <a href="https://gmsh.info/doc/texinfo/gmsh.html"><code>gmsh</code> Python API</a>. Classes inheriting from a basic <code>Mesh</code> class are implemented for NACA airfoil use-cases:</p>
+<ul>
+<li><code>NACABaseMesh</code>: implements a simple meshing routine for a naca12 profile with minimal parameters,</li>
+<li><code>NACABlockMesh</code>:  implements a structured by blocks meshing routine for a naca12 profile,</li>
+<li><code>CascadeMesh</code>: implements an unstructured meshing routine for a compressor cascade with periodic elements.</li>
+</ul>
+<p>All three meshes are parameterized with a <code>json</code> formatted configuration file made of several dictionaries:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;study&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// study entries parameterizing the study and input/output options</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;gmsh&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// mesh related entries parameterizing gmsh api</span>
+<span class="w">        </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// domain entries parameterizing the computational domain size</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;mesh&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// meshing entries parameterizing the boundary layer,</span>
+<span class="w">            </span><span class="c1">// the domain boundaries and the extrusion if defined</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;view&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// visualization entries parameterizing the GUI display</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>The meshing routine then goes through the following steps:</p>
+<p>1) a <code>Mesh</code> object is instantiated from the configuration dictionary,</p>
+<p>2) the <code>build_mesh()</code> method is called on the instantiated object which then triggers subsequent calls:</p>
+<ul>
+<li><code>build_2dmesh()</code> that builds the computational domain and defines 2D meshing parameters (e.g. number of nodes, growth ratio)</li>
+<li><code>split_naca()</code> or <code>reorder_blade()</code> that pre-processes the geometry coordinates list</li>
+</ul>
+<p>3)  the mesh is finally generated, GUI options are set and outputs (e.g. meshing log, output mesh) are written.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All meshing parameters are described in their respective class definition (see <a href="../dev_mesh/">Developer Guide</a>).</p>
+</div>
+<h3 id="naca">NACA</h3>
+<p>For the NACA use-case, two meshing routines were implemented. The first one is a very basic mesh with a few parameters while the second one was adapted from a structured mesh generation procedure. Although they have similar domains, the meshing routines differ in many aspects which is why they were handled through separate modules, with separate configuration files and in their respective use-case folders (i.e. <code>NACA12/naca_base</code> and <code>NACA12/naca_block</code>).</p>
+<h4 id="naca-base">NACA Base</h4>
+<p>Meshing details relative to this routine reside in the <code>build_2dmesh()</code> method and its inner calls. For instance, the <code>split_naca()</code> method describes how the naca profile should be split into its upper and lower parts. This is critical to the domain construction steps in <code>build_2dmesh()</code> since the trailing and leading edges may be used as construction points. </p>
+<p>The <code>build_2dmesh()</code> routine of the <code>NACABaseMesh</code> class also gives the possibility to mesh the boundary layer by calling <code>build_bl()</code>. The meshing of the boundary layer is triggered by setting <code>"bl"</code>to <code>true</code> in the <code>"mesh"</code> category of the configuration file.</p>
+<p>For this class, the computational domain is a rectangle whose inlet face (on the left) is made of a semi-circle. The domain dimensions are parameterized in the <code>"domain"</code> section of the configuration file:</p>
+<ul>
+<li><code>inlet (int)</code>: the inlet face radius centered on the airfoil trailing edge,</li>
+<li><code>outlet (int)</code>: the outlet distance to the airfoil trailing,</li>
+<li><code>le_offset (int)</code>: the size (in point number) of the leading edge portion that is meshed with its own refinement level.</li>
+</ul>
+<p>The <code>"mesh"</code> entry contains various meshing parameters such as the number of nodes on the domain inner and outer boundaries or the parameters of the boundary layer if needed:</p>
+<ul>
+<li><code>nodes_inlet (int)</code>: the number of nodes to mesh the inlet boundary,</li>
+<li><code>nodes_outlet (int)</code>: the number of nodes to mesh the outlet boundary,</li>
+<li><code>side_nodes (int)</code>: the number of nodes to mesh the upper and lower side boundaries,</li>
+<li><code>le (int)</code>: the number of nodes to mesh the leading edge portion defined earlier,</li>
+<li><code>low (int)</code>: the number of nodes to mesh the trailing lower portion of the airfoil,</li>
+<li><code>up (int)</code>: the number of nodes to mesh the trailing upper portion of the airfoil.</li>
+</ul>
+<p>For this meshing routine, other <code>"mesh"</code> parameters can be used to parameterize the meshing of the boundary layer (BL):</p>
+<ul>
+<li><code>bl (bool)</code>: whether to mesh the boundary layer (True) or not (False).</li>
+<li><code>bl_thickness (float)</code>: the BL meshing cumulated thickness.</li>
+<li><code>bl_ratio (float)</code>: the BL meshing growth ratio.</li>
+<li><code>bl_size (float)</code>: the BL first element size.</li>
+</ul>
+<p>Finally, the <code>"view"</code> entry contains GUI options to turn it on or off, to display quality metrics and to split the view.</p>
+<h4 id="naca-block">NACA Block</h4>
+<p>This meshing routine also inherits from <code>Mesh</code>. Particularities of this routine mostly lies in the <code>build_2dmesh()</code> method. Hence, the boundary layer cannot be meshed with <code>build_bl()</code> which is not called anymore. In addition, the domain is this time made of several inner blocks.</p>
+<p>Hence for this class, the computational domain still has the same general structure (a rectangle with a semi-circular inlet) but inner blocks are defined and parameterized in <code>"domain"</code>:</p>
+<ul>
+<li><code>inlet (int)</code>: the inlet face radius centered on the airfoil trailing edge,</li>
+<li><code>outlet (int)</code>: the outlet distance to the airfoil trailing,</li>
+<li><code>le_offset (int)</code>: the size (in point number) of the leading edge portion that is meshed with its own refinement level,</li>
+<li><code>block_width (float)</code>: the size of the trailing blocks that encompass the remaining of the airfoil.</li>
+</ul>
+<p>The <code>"mesh"</code> entry contains various meshing parameters such as the number of nodes on the domain inner/outer boundaries and blocks:</p>
+<ul>
+<li><code>n_inlet (int)</code>: the number of nodes to mesh the inlet and the leading edge,</li>
+<li><code>n_vertical (int)</code>: number of nodes to mesh the outlet and the blocks in the vertical direction,</li>
+<li><code>r_vertical (int)</code>: the outlet and vertical direction growth ratio,</li>
+<li><code>n_airfoil (int)</code>: the number of nodes to mesh both sides of the trailing portion of the airfoil,</li>
+<li><code>r_airfoil (int)</code>: the airfoil sides growth ratio,</li>
+<li><code>n_wake (int)</code>: the number of nodes in the wake direction,</li>
+<li><code>r_wake (int)</code>: the wake growth ratio.</li>
+</ul>
+<p>Examples of unstructured meshes obtained with the naca routines are given below:</p>
+<p float="left">
+  <img src="../Figures/naca_base_mesh.png" width="49%" />
+  <img src="../Figures/naca_block_mesh.png" width="49%" /> 
+</p>
+
+<h3 id="cascade">Cascade</h3>
+<p>This meshing routine corresponds to an internal flow simulation which was initially proposed by the DLR as a structured mesh to be used for LES simulations. Since the mesh is not meant for RANS simulations nor for adaptation (it has a coarse surface and boundary layer mesh), the <code>DLR_mesh</code> option (which is <code>False</code> by default) enables to switch the meshing routine to a simpler routine generating a mesh usable as a starting point of an adaptation procedure.</p>
+<h4 id="dlr-cascade-mesh">DLR cascade mesh</h4>
+<p>Setting the configuration file <code>"mesh"</code> parameters as follows:
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;mesh&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DLR_mesh&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bl&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bl_thickness&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">4e-3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bl_ratio&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.15</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bl_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">5e-5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bl_sizefar&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">5e-4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;nodes_inlet&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;nodes_outlet&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;side_nodes_inlet&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;side_nodes_outlet&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;curved_side_nodes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;structured&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</code></pre></div>
+will yield the DLR computational domain and mesh as illustrated in the figures below. The line/spline numbers are indicated between brackets and the corresponding meshing parameter between parenthesis.</p>
+<p float="left">
+  <img src="../Figures/dlr_cascade_domain.png" width="49%" />
+  <img src="../Figures/dlr_cascade_mesh.png" width="49%" />
+</p>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This meshing routine was adapted from an existing gmsh file. For this reason, some parameters are hard coded inside the class definition (e.g. the points defining the blade splines and their progression values).</p>
+</div>
+<h4 id="simple-cascade-mesh">Simple cascade mesh</h4>
+<p>Setting the configuration file <code>"mesh"</code> parameters as follows:
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;mesh&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;bl&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;nodes_inlet&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;nodes_outlet&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;side_nodes_inlet&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;side_nodes_outlet&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;curved_side_nodes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;le&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;te&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;nodes_ss&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;nodes_ps&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;structured&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</code></pre></div>
+will yield the computational domain and mesh as illustrated in the figures below. Again, the line/spline numbers are indicated between brackets and the corresponding meshing parameter between parenthesis.</p>
+<p float="left">
+  <img src="../Figures/simple_cascade_domain.png" width="49%" />
+  <img src="../Figures/simple_cascade_mesh.png" width="49%" />
+</p>
+
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<ul>
+<li>For the second routine, the number of splines making up the blade wall is different from the number of splines in the DLR version.</li>
+<li>For both routines, if the mesh is saved as a medit file (i.e. <code>.mesh</code> format), the tags of the upper and lower boundaries will automatically be merged so that there eventually only remains one tag per periodic size (28 for the superior boundary and 11 for the inferior one).</li>
+</ul>
+<p><strong>Do not forget to adapt the solver input file in consequence when defining the boundary conditions!</strong></p>
+</div>
+<h3 id="quick-experiments">Quick Experiments</h3>
+<p>The <code>auto_gmsh.py</code> scripts is called with the <code>mesh</code> command. It enables basic testing and visualization for a given configuration file:
+<div class="highlight"><pre><span></span><code>mesh<span class="w"> </span>--help
+usage:<span class="w"> </span>mesh<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span><span class="o">[</span>-c<span class="w"> </span>CONFIG<span class="o">]</span><span class="w"> </span><span class="o">[</span>-f<span class="w"> </span>FILE<span class="o">]</span><span class="w"> </span><span class="o">[</span>-o<span class="w"> </span>OUTDIR<span class="o">]</span>
+
+options:
+<span class="w">  </span>-h,<span class="w"> </span>--help<span class="w">            </span>show<span class="w"> </span>this<span class="w"> </span><span class="nb">help</span><span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span><span class="nb">exit</span>
+<span class="w">  </span>-c<span class="w"> </span>CONFIG,<span class="w"> </span>--config<span class="w"> </span>CONFIG
+<span class="w">                        </span>config:<span class="w"> </span>--config<span class="o">=</span>/path/to/config.json<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span>None<span class="o">)</span>
+<span class="w">  </span>-f<span class="w"> </span>FILE,<span class="w"> </span>--file<span class="w"> </span>FILE<span class="w">  </span>input<span class="w"> </span>dat<span class="w"> </span>file:<span class="w"> </span>--file<span class="o">=</span>/path/to/file.dat<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span><span class="o">)</span>
+<span class="w">  </span>-o<span class="w"> </span>OUTDIR,<span class="w"> </span>--outdir<span class="w"> </span>OUTDIR
+<span class="w">                        </span>simulation<span class="w"> </span>output<span class="w"> </span>directory<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span><span class="o">)</span>
+</code></pre></div></p>
+<p>For instance setting <code>"structured"</code> to <code>true</code> in <code>naca_block_mesh.json</code> will produce a fully structured mesh:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_block</span>
+<span class="nb">cd</span><span class="w"> </span>examples/NACA12/naca_block
+mesh<span class="w"> </span>--config<span class="o">=</span>naca_block.json
+</code></pre></div></p>
+<p float="left">
+  <img src="../Figures/naca_block_mesh_structured.png" width="100%" />
+</p>
+
+<p>It is also possible to supersede the config <code>"file"</code> entry with the <code>--file</code> input argument. Hence, any previously generated deformed geometry can be meshed according to the naca routine with the commands below:
+<div class="highlight"><pre><span></span><code><span class="c1"># from naca_block to naca_base</span>
+<span class="nb">cd</span><span class="w"> </span>../naca_base
+ffd<span class="w"> </span>-f<span class="w"> </span>../data/naca12.dat<span class="w"> </span>-nc<span class="w"> </span><span class="m">2</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;0. 0. 1. 1.&quot;</span>
+mesh<span class="w"> </span>--config<span class="o">=</span>naca_base.json<span class="w"> </span>--file<span class="o">=</span>output/naca12_g0_c0.dat
+</code></pre></div></p>
+<p float="left">
+  <img src="../Figures/naca_base_mesh_ffd.png" width="100%" />
+</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../ffd/" class="btn btn-neutral float-left" title="FFD Module"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../simulator/" class="btn btn-neutral float-right" title="Simulator Module">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../ffd/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../simulator/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

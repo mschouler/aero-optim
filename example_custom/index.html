@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/example_custom/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>Customized Optimization - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Customized Optimization";
+        var mkdocs_page_input_path = "example_custom.md";
+        var mkdocs_page_url = "/aero-optim/example_custom/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Customized Optimization</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#illustration">Illustration</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#quick-experiments">Quick Experiments</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Optimization Examples</li>
+      <li class="breadcrumb-item active">Customized Optimization</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/example_custom.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="customized-optimization">Customized Optimization</h2>
+<p>Although this framework was designed to perform simple forms of aerodynamic optimization, it still covers a broad range of applications and use-cases. It seems therefore unrealistic to see this framework as a universal tool. Yet, a specific care was taken when designing and assembling the building parts of it in order to make it as customizable as possible. </p>
+<p>Hence any optimization part of the framework can be customized with the following steps:</p>
+<p>1) create a <code>&lt;custom-script&gt;.py</code> file in the working directory (e.g. <code>inspyred_debug.py</code> or <code>pymoo_debug.py</code>),</p>
+<p>2) inherit all classes to be customized respecting the class naming format i.e respectively <code>CustomMesh</code>, <code>CustomSimulator</code>, <code>CustomOptimizer</code> and <code>CustomEvolution</code> if overriding a <code>Mesh</code>, <code>Simulator</code>, <code>Optimizer</code> or <code>Evolution</code> based class,</p>
+<p>3) add a <code>custom_file</code> entry specifying the path to the custom script in the <code>"study"</code> sub-dictionary of the configuration file.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As of now, the <code>FFD_2D</code> class is the only static element of the framework. However, extending <code>Optimizer</code> to enable its customization would be pretty straightforward.</p>
+</div>
+<h3 id="illustration">Illustration</h3>
+<p>The scripts in the <a href="https://github.com/mschouler/aero-optim/tree/master/examples/debug"><code>debug</code> example</a> illustrate how to customize the <code>Simulator</code>, <code>Optimizer</code> and <code>Evolution</code> classes both with <code>pymoo</code> (or <code>inspyred</code>).</p>
+<p>First, the <code>Simulator</code> class is customized:
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CustomSimulator</span><span class="p">(</span><span class="n">DebugSimulator</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;INIT CUSTOM SIMULATOR&quot;</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Then, the <code>Optimizer</code> class is customized:
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CustomOptimizer</span><span class="p">(</span><span class="n">PymooDebugOptimizer</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;INIT CUSTOM OPTIMIZER&quot;</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Finally, the <code>Evolution</code> class is customized:
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CustomEvolution</span><span class="p">(</span><span class="n">PymooEvolution</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_ea</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;SET CUSTOM EA&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ea</span> <span class="o">=</span> <span class="n">PSO</span><span class="p">(</span>
+            <span class="n">pop_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">doe_size</span><span class="p">,</span>
+            <span class="n">sampling</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">_pymoo_generator</span><span class="p">(),</span>
+            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">ea_kwargs</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evolve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;EXECUTE CUSTOM EVOLVE&quot;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">problem</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span>
+                       <span class="n">algorithm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ea</span><span class="p">,</span>
+                       <span class="n">termination</span><span class="o">=</span><span class="n">get_termination</span><span class="p">(</span><span class="s2">&quot;n_gen&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">max_generations</span><span class="p">),</span>
+                       <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+                       <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">final_observe</span><span class="p">()</span>
+
+        <span class="c1"># output results</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">F</span>
+        <span class="n">index</span><span class="p">,</span> <span class="n">opt_J</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">J</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">best</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">gid</span><span class="p">,</span> <span class="n">cid</span> <span class="o">=</span> <span class="p">(</span><span class="n">index</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">doe_size</span><span class="p">,</span> <span class="n">index</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">doe_size</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal J: </span><span class="si">{</span><span class="n">opt_J</span><span class="si">}</span><span class="s2"> (J_pymoo: </span><span class="si">{</span><span class="n">best</span><span class="si">}</span><span class="s2">),</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;D: </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">gid</span><span class="p">][</span><span class="n">cid</span><span class="p">]])</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;D_pymoo: </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">res</span><span class="o">.</span><span class="n">X</span><span class="p">])</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;[g</span><span class="si">{</span><span class="n">gid</span><span class="si">}</span><span class="s2">, c</span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Of course, this is a purely illustrative example and the customization simply consists in overriding these upper level classes with already existing ones. It is still representative of how it can be done.</p>
+<h3 id="quick-experiments">Quick Experiments</h3>
+<p>Running the following commands will execute a simple optimization with <code>pymoo</code>:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to debug</span>
+<span class="nb">cd</span><span class="w"> </span>examples/debug
+optim<span class="w"> </span>-c<span class="w"> </span>debug.json
+</code></pre></div>
+Since the <code>pymoo_debug.py</code> script is given in <code>debug.json</code> and <code>CustomEvolution</code> inherits from <code>PymooEvolution</code>, in this case, there is no need to specify the optimization library which is automatically selected.</p>
+<p>The custom script can also be superseded by passing it to <code>optim</code> with the <code>--file</code> option. Hence, simply running the command below will execute an optimization with <code>inspyred</code>:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to debug</span>
+<span class="nb">cd</span><span class="w"> </span>examples/debug
+optim<span class="w"> </span>-c<span class="w"> </span>debug.json<span class="w"> </span>-f<span class="w"> </span>inspyred_debug.py
+</code></pre></div></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../coverage/" class="btn btn-neutral float-left" title="Coverage Report"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../example_smo/" class="btn btn-neutral float-right" title="Surrogate based Optimization">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../coverage/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../example_smo/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

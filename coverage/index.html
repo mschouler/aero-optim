@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/coverage/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>Coverage Report - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Coverage Report";
+        var mkdocs_page_input_path = "coverage.md";
+        var mkdocs_page_url = "/aero-optim/coverage/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Coverage Report</a>
+    <ul class="current">
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Developer Guide</li>
+      <li class="breadcrumb-item active">Coverage Report</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/coverage.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="coverage-report">Coverage Report</h2>
+<div class="highlight"><pre><span></span><code><span class="o">=============================</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span>session<span class="w"> </span><span class="nv">starts</span><span class="w"> </span><span class="o">==============================</span>
+platform<span class="w"> </span>linux<span class="w"> </span>--<span class="w"> </span>Python<span class="w"> </span><span class="m">3</span>.13.3,<span class="w"> </span>pytest-8.3.5,<span class="w"> </span>pluggy-1.5.0
+rootdir:<span class="w"> </span>/home/runner/work/aero-optim/aero-optim
+configfile:<span class="w"> </span>pyproject.toml
+plugins:<span class="w"> </span>cov-6.1.1
+collected<span class="w"> </span><span class="m">12</span><span class="w"> </span>items
+
+tests/test_ffd.py<span class="w"> </span>....<span class="w">                                                   </span><span class="o">[</span><span class="w"> </span><span class="m">33</span>%<span class="o">]</span>
+tests/test_generator.py<span class="w"> </span>..<span class="w">                                               </span><span class="o">[</span><span class="w"> </span><span class="m">50</span>%<span class="o">]</span>
+tests/test_inspyred_optimizer.py<span class="w"> </span>.<span class="w">                                       </span><span class="o">[</span><span class="w"> </span><span class="m">58</span>%<span class="o">]</span>
+tests/test_mesh.py<span class="w"> </span>..<span class="w">                                                    </span><span class="o">[</span><span class="w"> </span><span class="m">75</span>%<span class="o">]</span>
+tests/test_pymoo_optimizer.py<span class="w"> </span>.<span class="w">                                          </span><span class="o">[</span><span class="w"> </span><span class="m">83</span>%<span class="o">]</span>
+tests/test_simulator.py<span class="w"> </span>..<span class="w">                                               </span><span class="o">[</span><span class="m">100</span>%<span class="o">]</span>
+
+<span class="o">===============================</span><span class="w"> </span>warnings<span class="w"> </span><span class="nv">summary</span><span class="w"> </span><span class="o">===============================</span>
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+<span class="w">  </span>/opt/hostedtoolcache/Python/3.13.3/x64/lib/python3.13/site-packages/pymoo/core/individual.py:616:<span class="w"> </span>DeprecationWarning:<span class="w"> </span>The<span class="w"> </span><span class="sb">``</span>feasible<span class="sb">``</span><span class="w"> </span>property<span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="sb">``</span>pymoo.core.individual.Individual<span class="sb">``</span><span class="w"> </span>is<span class="w"> </span>deprecated
+<span class="w">    </span><span class="k">if</span><span class="w"> </span>hasattr<span class="o">(</span>self,<span class="w"> </span>key<span class="o">)</span>:
+
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+tests/test_pymoo_optimizer.py::test_pymoo_optimizer
+<span class="w">  </span>/opt/hostedtoolcache/Python/3.13.3/x64/lib/python3.13/site-packages/pymoo/core/individual.py:617:<span class="w"> </span>DeprecationWarning:<span class="w"> </span>The<span class="w"> </span><span class="sb">``</span>feasible<span class="sb">``</span><span class="w"> </span>property<span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="sb">``</span>pymoo.core.individual.Individual<span class="sb">``</span><span class="w"> </span>is<span class="w"> </span>deprecated
+<span class="w">    </span><span class="nv">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>getattr<span class="o">(</span>self,<span class="w"> </span>key<span class="o">)</span>
+
+--<span class="w"> </span>Docs:<span class="w"> </span>https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+<span class="o">================================</span><span class="w"> </span>tests<span class="w"> </span><span class="nv">coverage</span><span class="w"> </span><span class="o">================================</span>
+_______________<span class="w"> </span>coverage:<span class="w"> </span>platform<span class="w"> </span>linux,<span class="w"> </span>python<span class="w"> </span><span class="m">3</span>.13.3-final-0<span class="w"> </span>________________
+
+Name<span class="w">                                     </span>Stmts<span class="w">   </span>Miss<span class="w">  </span>Cover
+------------------------------------------------------------
+aero_optim/__init__.py<span class="w">                       </span><span class="m">0</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">100</span>%
+aero_optim/ffd/ffd.py<span class="w">                      </span><span class="m">106</span><span class="w">     </span><span class="m">42</span><span class="w">    </span><span class="m">60</span>%
+aero_optim/geom.py<span class="w">                         </span><span class="m">146</span><span class="w">    </span><span class="m">127</span><span class="w">    </span><span class="m">13</span>%
+aero_optim/mesh/cascade_mesh.py<span class="w">            </span><span class="m">209</span><span class="w">    </span><span class="m">195</span><span class="w">     </span><span class="m">7</span>%
+aero_optim/mesh/mesh.py<span class="w">                    </span><span class="m">331</span><span class="w">    </span><span class="m">206</span><span class="w">    </span><span class="m">38</span>%
+aero_optim/mesh/naca_base_mesh.py<span class="w">           </span><span class="m">90</span><span class="w">     </span><span class="m">15</span><span class="w">    </span><span class="m">83</span>%
+aero_optim/mesh/naca_block_mesh.py<span class="w">          </span><span class="m">86</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">100</span>%
+aero_optim/optim/generator.py<span class="w">               </span><span class="m">24</span><span class="w">      </span><span class="m">1</span><span class="w">    </span><span class="m">96</span>%
+aero_optim/optim/inspyred_optimizer.py<span class="w">      </span><span class="m">66</span><span class="w">     </span><span class="m">34</span><span class="w">    </span><span class="m">48</span>%
+aero_optim/optim/optimizer.py<span class="w">              </span><span class="m">360</span><span class="w">    </span><span class="m">198</span><span class="w">    </span><span class="m">45</span>%
+aero_optim/optim/pymoo_optimizer.py<span class="w">        </span><span class="m">107</span><span class="w">     </span><span class="m">62</span><span class="w">    </span><span class="m">42</span>%
+aero_optim/simulator/simulator.py<span class="w">          </span><span class="m">161</span><span class="w">     </span><span class="m">37</span><span class="w">    </span><span class="m">77</span>%
+aero_optim/utils.py<span class="w">                        </span><span class="m">196</span><span class="w">    </span><span class="m">132</span><span class="w">    </span><span class="m">33</span>%
+------------------------------------------------------------
+TOTAL<span class="w">                                     </span><span class="m">1882</span><span class="w">   </span><span class="m">1049</span><span class="w">    </span><span class="m">44</span>%
+<span class="o">=======================</span><span class="w"> </span><span class="m">12</span><span class="w"> </span>passed,<span class="w"> </span><span class="m">16</span><span class="w"> </span>warnings<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">13</span>.35s<span class="w"> </span><span class="o">=======================</span>
+</code></pre></div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../dev_mfsm/" class="btn btn-neutral float-left" title="Multi-Fidelity Surrogate Module"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../example_custom/" class="btn btn-neutral float-right" title="Customized Optimization">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../dev_mfsm/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../example_custom/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

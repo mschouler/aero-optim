@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/example_smo/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>Surrogate based Optimization - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Surrogate based Optimization";
+        var mkdocs_page_input_path = "example_smo.md";
+        var mkdocs_page_url = "/aero-optim/example_smo/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Surrogate based Optimization</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#illustration">Illustration</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#quick-experiments">Quick Experiments</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Optimization Examples</li>
+      <li class="breadcrumb-item active">Surrogate based Optimization</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/example_smo.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="surrogate-based-optimization">Surrogate based Optimization</h2>
+<p>Surrogate based optimization (SBO) is a common practice in aerodynamic shape optimization. The main idea is to build an initial design of experiments (DOE) that is then used to train a surrogate model of the problem's quantities of interest (QoIs). In the end, the surrogate model is used in the optimization loop in place of the CFD solver.</p>
+<p>This tutorial illustrates the steps to do so with <strong>Aero-Optim</strong>:</p>
+<p>1) a non-penalized DOE is built with a single generation optimization execution,</p>
+<p>2) the results are used to train the surrogate model of the user's choosing,</p>
+<p>3) a full optimization based on a <code>CustomSimulator</code> and a <code>CustomOptimizer</code> is performed by evaluating candidates with the trained surrogate model.</p>
+<h3 id="illustration">Illustration</h3>
+<p>The <code>NACA12/naca_smt</code> example shows how this can be done for the <code>naca_base</code> use-case and the <a href="https://smt.readthedocs.io/en/latest/index.html#"><code>smt</code> toolbox</a>.</p>
+<p>First, the <code>naca_doe.json</code> configuration file is built with <code>max_generations</code> set to 1 (the DOE is generated with <code>pymoo</code>):
+<div class="highlight"><pre><span></span><code><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;optim&quot;</span><span class="p">,</span> <span class="s2">&quot;-c&quot;</span><span class="p">,</span> <span class="s2">&quot;naca_doe.json&quot;</span><span class="p">,</span> <span class="s2">&quot;--pymoo&quot;</span><span class="p">],</span>
+               <span class="n">env</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">,</span>
+               <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">DEVNULL</span><span class="p">,</span>
+               <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Then, the results are loaded and used to train surrogate models for both <code>Cd</code> and <code>Cl</code>:
+<div class="highlight"><pre><span></span><code><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;candidates.txt&quot;</span><span class="p">))</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;df_dict.pkl&quot;</span><span class="p">),</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+    <span class="n">df_dict</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df_dict</span><span class="p">)):</span>
+    <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df_dict</span><span class="p">[</span><span class="n">gid</span><span class="p">])):</span>
+        <span class="n">Y</span><span class="o">.</span> <span class="n">append</span><span class="p">([</span><span class="n">df_dict</span><span class="p">[</span><span class="n">gid</span><span class="p">][</span><span class="n">cid</span><span class="p">][</span><span class="s2">&quot;CD&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">df_dict</span><span class="p">[</span><span class="n">gid</span><span class="p">][</span><span class="n">cid</span><span class="p">][</span><span class="s2">&quot;CL&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
+<span class="k">del</span> <span class="n">df_dict</span>
+<span class="c1"># Cd</span>
+<span class="n">sm_cd</span> <span class="o">=</span> <span class="n">KRG</span><span class="p">(</span><span class="n">theta0</span><span class="o">=</span><span class="p">[</span><span class="mf">1e-2</span><span class="p">])</span>
+<span class="n">sm_cd</span><span class="o">.</span><span class="n">set_training_values</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="n">sm_cd</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<span class="c1"># Cl</span>
+<span class="n">sm_cl</span> <span class="o">=</span> <span class="n">KRG</span><span class="p">(</span><span class="n">theta0</span><span class="o">=</span><span class="p">[</span><span class="mf">1e-2</span><span class="p">])</span>
+<span class="n">sm_cl</span><span class="o">.</span><span class="n">set_training_values</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">sm_cl</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</code></pre></div></p>
+<p>A straightforward <code>CustomSM</code> class is implemented to combine both models and emulate what would have been extracted from a simulation run:
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CustomSM</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_of_surrogates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">KRG</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">los</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">KRG</span><span class="p">]</span> <span class="o">=</span> <span class="n">list_of_surrogates</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">sm</span><span class="o">.</span><span class="n">predict_values</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">sm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">los</span><span class="p">]</span>  <span class="c1"># [Cd, Cl]</span>
+
+<span class="n">custom_sm</span> <span class="o">=</span> <span class="n">CustomSM</span><span class="p">([</span><span class="n">sm_cd</span><span class="p">,</span> <span class="n">sm_cl</span><span class="p">])</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;model.pkl&quot;</span><span class="p">),</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">custom_sm</span><span class="p">,</span> <span class="n">handle</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Finally, a full optimization using this surrogate model is performed with the <code>naca_smt.json</code> configuration file and two additional parameters:</p>
+<ul>
+<li><code>"custom_file": "custom_sm.py"</code> in the <code>"study"</code> entry,</li>
+<li><code>"model_file": "output_doe/model.pkl"</code> in the <code>"simulator"</code> entry.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;optim&quot;</span><span class="p">,</span> <span class="s2">&quot;-c&quot;</span><span class="p">,</span> <span class="s2">&quot;naca_smt.json&quot;</span><span class="p">,</span> <span class="s2">&quot;--pymoo&quot;</span><span class="p">],</span>
+               <span class="n">env</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">,</span>
+               <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">DEVNULL</span><span class="p">,</span>
+               <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<p>For this instruction to work, the custom script <code>custom_sm.py</code> must also be implemented to define <code>CustomSimulator</code> and <code>CustomOptimizer</code>:
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CustomSimulator</span><span class="p">(</span><span class="n">Simulator</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;simulator&quot;</span><span class="p">][</span><span class="s2">&quot;model_file&quot;</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;processing config..&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;model_file&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;simulator&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR -- no &lt;model_file&gt; entry in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;simulator&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_solver_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver_name</span> <span class="o">=</span> <span class="s2">&quot;smt_model&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">check_file</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute_sim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">gid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;execute simulations g</span><span class="si">{</span><span class="n">gid</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">cd</span><span class="p">,</span> <span class="n">cl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">candidates</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df_dict</span><span class="p">[</span><span class="n">gid</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">cid</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;ResTot&quot;</span><span class="p">:</span> <span class="mf">1.</span><span class="p">,</span> <span class="s2">&quot;CD&quot;</span><span class="p">:</span> <span class="n">cd</span><span class="p">[</span><span class="n">cid</span><span class="p">],</span> <span class="s2">&quot;CL&quot;</span><span class="p">:</span> <span class="n">cl</span><span class="p">[</span><span class="n">cid</span><span class="p">]})</span>
+            <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">))</span>
+        <span class="p">}</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomOptimizer</span><span class="p">(</span><span class="n">PymooWolfOptimizer</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_gmsh_mesh_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MeshClass</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">gid</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;evaluating candidates of generation </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">gen_ctr</span><span class="si">}</span><span class="s2">..&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffd_profiles</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+
+        <span class="k">for</span> <span class="n">cid</span><span class="p">,</span> <span class="n">cand</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">candidates</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">gid</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cand</span><span class="p">))</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">ffd_profile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deform</span><span class="p">(</span><span class="n">cand</span><span class="p">,</span> <span class="n">gid</span><span class="p">,</span> <span class="n">cid</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ffd_profiles</span><span class="p">[</span><span class="n">gid</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ffd_profile</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">execute_sim</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">gid</span><span class="p">)</span>
+</code></pre></div></p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Most surrogate models offer vectorized evaluation. It is therefore good practice to implement <code>CustomSimulator</code> in such a way that this aspect is leveraged.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Because the standard <code>pickle</code> library is not capable of unpickling an object whose class definition is unaccessible, <a href="https://github.com/uqfoundation/dill"><code>dill</code></a> is used instead.</p>
+</div>
+<h3 id="quick-experiments">Quick Experiments</h3>
+<p>In order to run this examples, the <code>smt</code> library must first be added to the virtual environment:
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>smt
+</code></pre></div>
+Then, the <code>main_sm.py</code> script in the <code>NACA12/naca_smt</code> example folder can be used to perform all three steps at once:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_smt</span>
+<span class="n">cd</span> <span class="n">examples</span><span class="o">/</span><span class="n">NACA12</span><span class="o">/</span><span class="n">naca_smt</span>
+<span class="n">python3</span> <span class="n">main_sm</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">c</span> <span class="n">naca_doe</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">csm</span> <span class="n">naca_smt</span><span class="o">.</span><span class="n">json</span>
+</code></pre></div></p>
+<p>It will produce an <code>output_doe</code> folder with the results of the initial DOE generation and <code>output_smt</code> with the results of the surrogate based optimization.</p>
+<p>At that point, the optimal profile properties obtained with the surrogate can be compared to its corresponding CFD simulation:
+<div class="highlight"><pre><span></span><code><span class="c1"># deformed profile generation</span>
+ffd<span class="w"> </span>-f<span class="w"> </span>../data/naca12.dat<span class="w"> </span>-nc<span class="w"> </span><span class="m">4</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;&lt;displacement of the optimal profile&gt;&quot;</span><span class="w"> </span>-o<span class="w"> </span>output_optim
+<span class="c1"># deformed profile meshing</span>
+mesh<span class="w"> </span>-c<span class="w"> </span>naca_doe.json<span class="w"> </span>-f<span class="w"> </span>output_optim/naca12_g0_c0.dat<span class="w"> </span>-o<span class="w"> </span>output_optim
+<span class="c1"># simulation execution</span>
+simulator<span class="w"> </span>-c<span class="w"> </span>naca_doe.json<span class="w"> </span>-f<span class="w"> </span>output_optim/naca_base.mesh<span class="w"> </span>-o<span class="w"> </span>optim_profile
+</code></pre></div></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../example_custom/" class="btn btn-neutral float-left" title="Customized Optimization"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../example_mf_smo/" class="btn btn-neutral float-right" title="Multi-Fidelity Surrogate based Optimization">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../example_custom/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../example_mf_smo/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

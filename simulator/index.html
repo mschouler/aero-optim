@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/simulator/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>Simulator Module - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Simulator Module";
+        var mkdocs_page_input_path = "simulator.md";
+        var mkdocs_page_url = "/aero-optim/simulator/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Simulator Module</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#wolf-simulator">Wolf Simulator</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#debug-simulator">Debug Simulator</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#quick-experiment">Quick Experiment</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#advanced-simulator">Advanced Simulator</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User Guide</li>
+      <li class="breadcrumb-item active">Simulator Module</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/simulator.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="simulator-module">Simulator Module</h2>
+<p>The simulator module is designed to orchestrate one or several simulation executions with a given solver.
+Hence, an <code>Simulator</code> abstract class extracts general arguments from the <code>"simulator"</code> dictionary of the configuration file such as:</p>
+<ul>
+<li><code>exec_cmd (str)</code>: the solver execution command that is to be launched in the terminal,</li>
+<li><code>ref_input (str)</code>: the path to the solver input template,</li>
+<li><code>sim_args (dict)</code>: simulation arguments with which to customize the template,</li>
+<li><code>post_process (dict)</code>: post-processing arguments to indicate which variables to extract from which result files.</li>
+</ul>
+<p>Then, any subclass inheriting from <code>Simulator</code> can be built by overriding two abstract methods:</p>
+<ol>
+<li><code>process_config</code>: which goes through the configuration file making sure expected entries are well defined,</li>
+<li><code>execute_sim</code>: which defines how a simulation should be executed.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All simulator parameters are described in their respective class definition (see <a href="../dev_simulator/#aero_optim.simulator.Simulator"><code>Simulator</code></a>, <a href="../dev_simulator/#aero_optim.simulator.WolfSimulator"><code>WolfSimulator</code></a>).</p>
+</div>
+<h3 id="wolf-simulator">Wolf Simulator</h3>
+<p>The <code>WolfSimulator</code> class illustrates how <code>Simulator</code> can be inherited to perform <code>Wolf</code> simulations. In addition to the mandatory methods, several others are introduced in order to facilitate the simulation progress monitoring (see <code>sim_pro</code> and <code>monitor_sim_progress</code>) and the results post-processing (see <code>post_process</code>).</p>
+<p>Finally, a mechanism of fault management is introduced with a <code>kill_all</code> method. The idea here is simply to provide a function to kill all active simulations in case something goes wrong in the main program. In the context of an optimization for instance, this feature is particularly important if the user wants to interrupt the main program without having to kill all simulations by hand.</p>
+<h3 id="debug-simulator">Debug Simulator</h3>
+<p>The <code>DebugSimulator</code> class was introduced to facilitate prototyping and debugging. Instead of a real simulation execution, it directly evaluates the <a href="https://pymoo.org/problems/single/ackley.html?highlight=ackley">Ackley function</a> for a given candidate.</p>
+<h3 id="quick-experiment">Quick Experiment</h3>
+<p>The <code>auto_simulator.py</code> scripts is called with the <code>simulator</code> command. It enables basic testing and execution for a given configuration file:
+<div class="highlight"><pre><span></span><code>simulator<span class="w"> </span>--help
+usage:<span class="w"> </span>simulator<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span><span class="o">[</span>-c<span class="w"> </span>CONFIG<span class="o">]</span><span class="w"> </span><span class="o">[</span>-f<span class="w"> </span>FILE<span class="o">]</span><span class="w"> </span><span class="o">[</span>-o<span class="w"> </span>OUTDIR<span class="o">]</span>
+
+options:
+<span class="w">  </span>-h,<span class="w"> </span>--help<span class="w">            </span>show<span class="w"> </span>this<span class="w"> </span><span class="nb">help</span><span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span><span class="nb">exit</span>
+<span class="w">  </span>-c<span class="w"> </span>CONFIG,<span class="w"> </span>--config<span class="w"> </span>CONFIG
+<span class="w">                        </span>config:<span class="w"> </span>--config<span class="o">=</span>/path/to/config.json<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span>None<span class="o">)</span>
+<span class="w">  </span>-f<span class="w"> </span>FILE,<span class="w"> </span>--file<span class="w"> </span>FILE<span class="w">  </span>input<span class="w"> </span>mesh<span class="w"> </span>file:<span class="w"> </span>--file<span class="o">=</span>/path/to/file.mesh<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span><span class="o">)</span>
+<span class="w">  </span>-o<span class="w"> </span>OUTDIR,<span class="w"> </span>--outdir<span class="w"> </span>OUTDIR
+<span class="w">                        </span>simulation<span class="w"> </span>output<span class="w"> </span>directory<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span><span class="o">)</span>
+</code></pre></div></p>
+<p>For instance the commands below will generate a deformed profile, its associated mesh and perform a simulation with it:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_base</span>
+<span class="nb">cd</span><span class="w"> </span>examples/NACA12/naca_base
+ffd<span class="w"> </span>-f<span class="w"> </span>../data/naca12.dat<span class="w"> </span>-nc<span class="w"> </span><span class="m">2</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;0. 0. 1. 1.&quot;</span>
+mesh<span class="w"> </span>--config<span class="o">=</span>naca_base.json<span class="w"> </span>--file<span class="o">=</span>output/naca12_g0_c0.dat
+simulator<span class="w"> </span>--config<span class="o">=</span>naca_base.json<span class="w"> </span>--file<span class="o">=</span>output/naca_base.mesh
+</code></pre></div></p>
+<p>A zoomed view of the solution mach field plotted with <a href="https://pyamg.saclay.inria.fr/vizir4.html"><code>vizir4</code></a> is illustrated below:</p>
+<p float="left">
+  <img src="../Figures/naca_base_mach_ffd.png" width="100%" />
+</p>
+
+<h3 id="advanced-simulator">Advanced Simulator</h3>
+<p>Considering the variety of solvers, execution environment, etc., the <code>Simulator</code> class is theoretically adaptable to any use case. In general, it is good practice to keep track of any <a href="https://docs.python.org/3/library/subprocess.html">Python subprocess</a> spawned by the application. However, depending on the user's situation, more sophisticated monitoring routines may need to be implemented.</p>
+<p>For a cluster using a <a href="https://slurm.schedmd.com/documentation.html">slurm batch scheduler</a> for instance, there are multiple ways to submit simulations whether they are submitted interactively (e.g. with <code>srun</code>) or not (e.g. with <code>sbatch</code>). In the latter case, progress monitoring cannot be made through simple subprocess tracking but by interacting with the batch scheduler database (e.g. with <code>sacct</code>). Illustrative code on how to do so is available in the <a href="https://gitlab.inria.fr/melissa/melissa">melissa repository</a> (see <a href="https://gitlab.inria.fr/melissa/melissa/-/tree/develop/melissa/scheduler">scheduler</a>).</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../mesh/" class="btn btn-neutral float-left" title="Mesh Module"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../optimizer/" class="btn btn-neutral float-right" title="Evolution and Optimizer Modules">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../mesh/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../optimizer/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

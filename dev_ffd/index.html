@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/dev_ffd/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>FFD Module - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "FFD Module";
+        var mkdocs_page_input_path = "dev_ffd.md";
+        var mkdocs_page_url = "/aero-optim/dev_ffd/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">FFD Module</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#ffd.ffd.Deform">Deform</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.Deform.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.Deform.apply_ffd">apply_ffd</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.Deform.write_ffd">write_ffd</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ffd.ffd.FFD_2D">FFD_2D</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.FFD_2D.__init__">__init__</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.FFD_2D.apply_ffd">apply_ffd</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.FFD_2D.build_lattice">build_lattice</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.FFD_2D.dPij">dPij</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.FFD_2D.from_lat">from_lat</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.FFD_2D.pad_Delta">pad_Delta</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.FFD_2D.to_lat">to_lat</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ffd.ffd.FFD_POD_2D">FFD_POD_2D</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#ffd.ffd.FFD_POD_2D.__init__">__init__</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Developer Guide</li>
+      <li class="breadcrumb-item active">FFD Module</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/dev_ffd.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="ffd-source-code">FFD Source Code</h2>
+<hr style="border:1px solid grey">
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ffd.ffd.Deform" class="doc doc-heading">
+            <code>ffd.ffd.Deform</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="abc.ABC">ABC</span></code></p>
+
+
+        <p>This class implements an abstract Deform class.</p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Deform</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements an abstract Deform class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Instantiates the abstract Deform object.</span>
+
+<span class="sd">        **Input**</span>
+
+<span class="sd">        - dat_file (str): path to input_geometry.dat.</span>
+<span class="sd">        - ncontrol (int): the number of control points.</span>
+<span class="sd">        - header (int): the number of header lines in dat_file.</span>
+<span class="sd">        - scale (float): the geometry scaling factor</span>
+
+<span class="sd">        **Inner**</span>
+
+<span class="sd">        - pts (np.ndarray): the geometry coordinates in the original referential.</span>
+
+<span class="sd">            pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]</span>
+<span class="sd">            where N is the number of points describing the geometry and (z0, ..., zN)</span>
+<span class="sd">            are null or identical.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">dat_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">from_dat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dat_file</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">scale</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span> <span class="o">=</span> <span class="n">ncontrol</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_ffd</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">profile</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+            <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+            <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">gid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        **Writes** the deformed geometry to file and **returns** /path/to/outdir/outfile.</span>
+
+<span class="sd">        - profile (np.ndarray): the deformed geometry coordinates to be written to outfile.</span>
+<span class="sd">        - Delta (np.ndarray): the deformation vector.</span>
+<span class="sd">        - outdir (str): the output directory (it is to be combined with outfile).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">outfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dat_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="si">}</span><span class="s2">_g</span><span class="si">{</span><span class="n">gid</span><span class="si">}</span><span class="s2">_c</span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2">.dat&quot;</span>
+        <span class="n">check_dir</span><span class="p">(</span><span class="n">outdir</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;write profile g</span><span class="si">{</span><span class="n">gid</span><span class="si">}</span><span class="s2"> c</span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2"> as </span><span class="si">{</span><span class="n">outfile</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">outdir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">outfile</span><span class="p">),</span> <span class="n">profile</span><span class="p">,</span>
+                   <span class="n">header</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Deformed profile </span><span class="si">{</span><span class="n">outfile</span><span class="si">}</span><span class="se">\n</span><span class="s2">Delta=</span><span class="si">{</span><span class="p">[</span><span class="n">d</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">Delta</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">outfile</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_ffd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a deformed profile.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.Deform.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Instantiates the abstract Deform object.</p>
+<p><strong>Input</strong></p>
+<ul>
+<li>dat_file (str): path to input_geometry.dat.</li>
+<li>ncontrol (int): the number of control points.</li>
+<li>header (int): the number of header lines in dat_file.</li>
+<li>scale (float): the geometry scaling factor</li>
+</ul>
+<p><strong>Inner</strong></p>
+<ul>
+<li>
+<p>pts (np.ndarray): the geometry coordinates in the original referential.</p>
+<p>pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
+where N is the number of points describing the geometry and (z0, ..., zN)
+are null or identical.</p>
+</li>
+</ul>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Instantiates the abstract Deform object.</span>
+
+<span class="sd">    **Input**</span>
+
+<span class="sd">    - dat_file (str): path to input_geometry.dat.</span>
+<span class="sd">    - ncontrol (int): the number of control points.</span>
+<span class="sd">    - header (int): the number of header lines in dat_file.</span>
+<span class="sd">    - scale (float): the geometry scaling factor</span>
+
+<span class="sd">    **Inner**</span>
+
+<span class="sd">    - pts (np.ndarray): the geometry coordinates in the original referential.</span>
+
+<span class="sd">        pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]</span>
+<span class="sd">        where N is the number of points describing the geometry and (z0, ..., zN)</span>
+<span class="sd">        are null or identical.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">dat_file</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">from_dat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dat_file</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">scale</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span> <span class="o">=</span> <span class="n">ncontrol</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.Deform.apply_ffd" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">apply_ffd</span><span class="p">(</span><span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Returns a deformed profile.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@abstractmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_ffd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a deformed profile.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.Deform.write_ffd" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">write_ffd</span><span class="p">(</span><span class="n">profile</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p><strong>Writes</strong> the deformed geometry to file and <strong>returns</strong> /path/to/outdir/outfile.</p>
+<ul>
+<li>profile (np.ndarray): the deformed geometry coordinates to be written to outfile.</li>
+<li>Delta (np.ndarray): the deformation vector.</li>
+<li>outdir (str): the output directory (it is to be combined with outfile).</li>
+</ul>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">write_ffd</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">profile</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">gid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Writes** the deformed geometry to file and **returns** /path/to/outdir/outfile.</span>
+
+<span class="sd">    - profile (np.ndarray): the deformed geometry coordinates to be written to outfile.</span>
+<span class="sd">    - Delta (np.ndarray): the deformation vector.</span>
+<span class="sd">    - outdir (str): the output directory (it is to be combined with outfile).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">outfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dat_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="si">}</span><span class="s2">_g</span><span class="si">{</span><span class="n">gid</span><span class="si">}</span><span class="s2">_c</span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2">.dat&quot;</span>
+    <span class="n">check_dir</span><span class="p">(</span><span class="n">outdir</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;write profile g</span><span class="si">{</span><span class="n">gid</span><span class="si">}</span><span class="s2"> c</span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2"> as </span><span class="si">{</span><span class="n">outfile</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">outdir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">outfile</span><span class="p">),</span> <span class="n">profile</span><span class="p">,</span>
+               <span class="n">header</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Deformed profile </span><span class="si">{</span><span class="n">outfile</span><span class="si">}</span><span class="se">\n</span><span class="s2">Delta=</span><span class="si">{</span><span class="p">[</span><span class="n">d</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">Delta</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">outfile</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><hr style="border:1px solid grey">
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ffd.ffd.FFD_2D" class="doc doc-heading">
+            <code>ffd.ffd.FFD_2D</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ffd.ffd.Deform" href="#ffd.ffd.Deform">Deform</a></code></p>
+
+
+        <p>This class implements a simple 2D FFD algorithm with deformation /y only.</p>
+<p>For ncontrol = 2 i.e. 2 control points per side, the unperturbed lattice is:</p>
+<pre><code>    P01 ----- P11 ---- P21 ---- P31
+      |                         |
+      |     ***************     |
+      |    **** profile ****    |
+      |     ***************     |
+      |                         |
+    P00 ----- P10 ---- P20 ---- P30
+</code></pre>
+<p>with (P00, P30, P01, P31) fixed if pad = (1, 1).</p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FFD_2D</span><span class="p">(</span><span class="n">Deform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements a simple 2D FFD algorithm with deformation /y only.</span>
+
+<span class="sd">    For ncontrol = 2 i.e. 2 control points per side, the unperturbed lattice is:</span>
+
+<span class="sd">            P01 ----- P11 ---- P21 ---- P31</span>
+<span class="sd">              |                         |</span>
+<span class="sd">              |     ***************     |</span>
+<span class="sd">              |    **** profile ****    |</span>
+<span class="sd">              |     ***************     |</span>
+<span class="sd">              |                         |</span>
+<span class="sd">            P00 ----- P10 ---- P20 ---- P30</span>
+
+<span class="sd">    with (P00, P30, P01, P31) fixed if pad = (1, 1).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">pad</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Instantiates the FFD_2D object.</span>
+
+<span class="sd">        **Input**</span>
+
+<span class="sd">        - dat_file (str): path to input_geometry.dat.</span>
+<span class="sd">        - ncontrol (int): the number of control points on each side of the lattice.</span>
+<span class="sd">        - pad (tuple[int, int]): padding around the displacement vector.</span>
+
+<span class="sd">        **Inner**</span>
+
+<span class="sd">        - pts (np.ndarray): the geometry coordinates in the original referential.</span>
+
+<span class="sd">            pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]</span>
+<span class="sd">            where N is the number of points describing the geometry and (z0, ..., zN)</span>
+<span class="sd">            are null or identical.</span>
+
+<span class="sd">        - L (int): the number of control points in the x direction of each side of the lattice.</span>
+<span class="sd">        - M (int): the number of control points in the y direction of each side of the lattice.</span>
+<span class="sd">        - lat_pts (np.ndarray): the geometry coordinates in the lattice referential.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dat_file</span><span class="p">,</span> <span class="n">ncontrol</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">pad</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="sa">f</span><span class="s2">&quot;wrong padding: </span><span class="si">{</span><span class="n">pad</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">ncontrol</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">pad</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_lattice</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat_pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_lat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        **Builds** a rectangle lattice with x1 as its origin.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">epsilon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">epsilon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">epsilon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">epsilon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_lat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        **Returns** the coordinates projected in the lattices referential.</span>
+
+<span class="sd">        - pts (np.ndarray): the geometry coordinates in the original referential.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">),</span>
+                             <span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(((</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">),</span>
+                                <span class="p">(</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_lat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        **Returns** lattice coordinates back in the original referential.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">,</span>
+                             <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">,</span>
+                                <span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">dPij</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        **Returns** y-oriented displacement coordinates dPij from a 1D array Delta.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="n">Delta</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">pad_Delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        **Returns** padded Delta = [0, dP10, dP20, ..., dP{nc}0, 0, 0, dP11, dP21, ..., dP{nc}1, 0]</span>
+<span class="sd">        with nc = ncontrol.</span>
+
+<span class="sd">        - Delta (np.ndarray): the non-padded deformation vector.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">Delta</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">),</span>
+                               <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">Delta</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span><span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">)))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_ffd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        **Returns** a new profile resulting from a perturbation Delta in the original referential.</span>
+
+<span class="sd">        - Delta (np.ndarray): the deformation vector.&lt;/br&gt;</span>
+<span class="sd">          Delta = [dP10, dP20, ..., dP{nc}0, dP11, dP21, ..., dP{nc}1] with nc = ncontrol.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;len(Delta) </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">Delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_Delta</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
+        <span class="n">new_profile</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_pts</span><span class="p">:</span>
+            <span class="n">x_new</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">x_new</span> <span class="o">+=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">comb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="n">ll</span><span class="p">)</span>
+                              <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">comb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span>
+                              <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="n">ll</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="n">m</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dPij</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">Delta</span><span class="p">))</span>
+            <span class="n">new_profile</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">x_new</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_lat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_profile</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.FFD_2D.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pad</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Instantiates the FFD_2D object.</p>
+<p><strong>Input</strong></p>
+<ul>
+<li>dat_file (str): path to input_geometry.dat.</li>
+<li>ncontrol (int): the number of control points on each side of the lattice.</li>
+<li>pad (tuple[int, int]): padding around the displacement vector.</li>
+</ul>
+<p><strong>Inner</strong></p>
+<ul>
+<li>
+<p>pts (np.ndarray): the geometry coordinates in the original referential.</p>
+<p>pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
+where N is the number of points describing the geometry and (z0, ..., zN)
+are null or identical.</p>
+</li>
+<li>
+<p>L (int): the number of control points in the x direction of each side of the lattice.</p>
+</li>
+<li>M (int): the number of control points in the y direction of each side of the lattice.</li>
+<li>lat_pts (np.ndarray): the geometry coordinates in the lattice referential.</li>
+</ul>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">pad</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Instantiates the FFD_2D object.</span>
+
+<span class="sd">    **Input**</span>
+
+<span class="sd">    - dat_file (str): path to input_geometry.dat.</span>
+<span class="sd">    - ncontrol (int): the number of control points on each side of the lattice.</span>
+<span class="sd">    - pad (tuple[int, int]): padding around the displacement vector.</span>
+
+<span class="sd">    **Inner**</span>
+
+<span class="sd">    - pts (np.ndarray): the geometry coordinates in the original referential.</span>
+
+<span class="sd">        pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]</span>
+<span class="sd">        where N is the number of points describing the geometry and (z0, ..., zN)</span>
+<span class="sd">        are null or identical.</span>
+
+<span class="sd">    - L (int): the number of control points in the x direction of each side of the lattice.</span>
+<span class="sd">    - M (int): the number of control points in the y direction of each side of the lattice.</span>
+<span class="sd">    - lat_pts (np.ndarray): the geometry coordinates in the lattice referential.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dat_file</span><span class="p">,</span> <span class="n">ncontrol</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">pad</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="sa">f</span><span class="s2">&quot;wrong padding: </span><span class="si">{</span><span class="n">pad</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">ncontrol</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">pad</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">build_lattice</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">lat_pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_lat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.FFD_2D.apply_ffd" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">apply_ffd</span><span class="p">(</span><span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p><strong>Returns</strong> a new profile resulting from a perturbation Delta in the original referential.</p>
+<ul>
+<li>Delta (np.ndarray): the deformation vector.</br>
+  Delta = [dP10, dP20, ..., dP{nc}0, dP11, dP21, ..., dP{nc}1] with nc = ncontrol.</li>
+</ul>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">apply_ffd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Returns** a new profile resulting from a perturbation Delta in the original referential.</span>
+
+<span class="sd">    - Delta (np.ndarray): the deformation vector.&lt;/br&gt;</span>
+<span class="sd">      Delta = [dP10, dP20, ..., dP{nc}0, dP11, dP21, ..., dP{nc}1] with nc = ncontrol.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;len(Delta) </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">Delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_Delta</span><span class="p">(</span><span class="n">Delta</span><span class="p">)</span>
+    <span class="n">new_profile</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat_pts</span><span class="p">:</span>
+        <span class="n">x_new</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">x_new</span> <span class="o">+=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">comb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="n">ll</span><span class="p">)</span>
+                          <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">comb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span>
+                          <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="n">ll</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="n">m</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dPij</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">Delta</span><span class="p">))</span>
+        <span class="n">new_profile</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">x_new</span><span class="p">])</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_lat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_profile</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.FFD_2D.build_lattice" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">build_lattice</span><span class="p">()</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p><strong>Builds</strong> a rectangle lattice with x1 as its origin.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">build_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Builds** a rectangle lattice with x1 as its origin.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">epsilon</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">epsilon</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">epsilon</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">epsilon</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">x1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">])</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.FFD_2D.dPij" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">dPij</span><span class="p">(</span><span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p><strong>Returns</strong> y-oriented displacement coordinates dPij from a 1D array Delta.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">dPij</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Returns** y-oriented displacement coordinates dPij from a 1D array Delta.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="n">Delta</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]])</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.FFD_2D.from_lat" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">from_lat</span><span class="p">(</span><span class="n">pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p><strong>Returns</strong> lattice coordinates back in the original referential.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">from_lat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Returns** lattice coordinates back in the original referential.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">,</span>
+                         <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">,</span>
+                            <span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.FFD_2D.pad_Delta" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">pad_Delta</span><span class="p">(</span><span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p><strong>Returns</strong> padded Delta = [0, dP10, dP20, ..., dP{nc}0, 0, 0, dP11, dP21, ..., dP{nc}1, 0]
+with nc = ncontrol.</p>
+<ul>
+<li>Delta (np.ndarray): the non-padded deformation vector.</li>
+</ul>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pad_Delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Returns** padded Delta = [0, dP10, dP20, ..., dP{nc}0, 0, 0, dP11, dP21, ..., dP{nc}1, 0]</span>
+<span class="sd">    with nc = ncontrol.</span>
+
+<span class="sd">    - Delta (np.ndarray): the non-padded deformation vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">Delta</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">),</span>
+                           <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">Delta</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ncontrol</span><span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">)))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.FFD_2D.to_lat" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_lat</span><span class="p">(</span><span class="n">pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p><strong>Returns</strong> the coordinates projected in the lattices referential.</p>
+<ul>
+<li>pts (np.ndarray): the geometry coordinates in the original referential.</li>
+</ul>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_lat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Returns** the coordinates projected in the lattices referential.</span>
+
+<span class="sd">    - pts (np.ndarray): the geometry coordinates in the original referential.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">),</span>
+                         <span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(((</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_x</span><span class="p">),</span>
+                            <span class="p">(</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_y</span><span class="p">)))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><hr style="border:1px solid grey">
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ffd.ffd.FFD_POD_2D" class="doc doc-heading">
+            <code>ffd.ffd.FFD_POD_2D</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ffd.ffd.Deform" href="#ffd.ffd.Deform">Deform</a></code></p>
+
+
+        <p>This class implements a 2D FFD-POD coupled class.</p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FFD_POD_2D</span><span class="p">(</span><span class="n">Deform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements a 2D FFD-POD coupled class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">pod_ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">ffd_ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">ffd_dataset_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">ffd_bound</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+            <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">123</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Instantiates the FFD_POD_2D object.</span>
+
+<span class="sd">        **Input**</span>
+
+<span class="sd">        - dat_file (str): path to input_geometry.dat.</span>
+<span class="sd">        - pod_ncontrol (int): the number of POD control points.</span>
+<span class="sd">        - ffd_ncontrol (int): the number of FFD control points.</span>
+<span class="sd">        - ffd_dataset_size (int): the number of ffd profiles in the POD dataset.</span>
+<span class="sd">        - ffd_bound (tuple[Any]): the ffd dataset deformation boundaries.</span>
+<span class="sd">        - seed (int): seed for the POD dataset sampling.</span>
+<span class="sd">        - kwargs (dict): additional options to be passed to the FFD_2D inner object.</span>
+
+<span class="sd">        **Inner**</span>
+
+<span class="sd">        - pts (np.ndarray): the geometry coordinates in the original referential.</span>
+
+<span class="sd">            pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]</span>
+<span class="sd">            where N is the number of points describing the geometry and (z0, ..., zN)</span>
+<span class="sd">            are null or identical.</span>
+
+<span class="sd">        - ffd (FFD_2D): the ffd object used to build the POD dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dat_file</span><span class="p">,</span> <span class="n">ffd_ncontrol</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pod_ncontrol</span> <span class="o">=</span> <span class="n">pod_ncontrol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffd_ncontrol</span> <span class="o">=</span> <span class="n">ffd_ncontrol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffd_dataset_size</span> <span class="o">=</span> <span class="n">ffd_dataset_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffd</span> <span class="o">=</span> <span class="n">FFD_2D</span><span class="p">(</span><span class="n">dat_file</span><span class="p">,</span> <span class="n">ffd_ncontrol</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffd_bound</span> <span class="o">=</span> <span class="n">ffd_bound</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_pod_dataset</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_pod_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sampler</span> <span class="o">=</span> <span class="n">qmc</span><span class="o">.</span><span class="n">LatinHypercube</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ffd_ncontrol</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ffd_dataset_size</span><span class="p">)</span>
+        <span class="n">scaled_sample</span> <span class="o">=</span> <span class="n">qmc</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ffd_bound</span><span class="p">)</span>
+
+        <span class="n">profiles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">Delta</span> <span class="ow">in</span> <span class="n">scaled_sample</span><span class="p">:</span>
+            <span class="n">profiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ffd</span><span class="o">.</span><span class="n">apply_ffd</span><span class="p">(</span><span class="n">Delta</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">p</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">profiles</span><span class="p">]</span> <span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S_mean</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">profiles</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">F</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_mean</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">F</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">F</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eigenvectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">F</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eigenvectors</span><span class="p">)</span>
+
+        <span class="n">nmode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pod_ncontrol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_tilde</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi</span><span class="p">[:,</span> <span class="o">-</span><span class="n">nmode</span><span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">V_tilde_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eigenvectors</span><span class="p">)[</span><span class="o">-</span><span class="n">nmode</span><span class="p">:,</span> <span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">D_tilde</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_mean</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_tilde</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_tilde_inv</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_ffd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ffd</span><span class="o">.</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_mean</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_tilde</span> <span class="o">*</span> <span class="n">Delta</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+        <span class="n">l_bound</span> <span class="o">=</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_tilde_inv</span><span class="p">]</span>
+        <span class="n">u_bound</span> <span class="o">=</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_tilde_inv</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">l_bound</span><span class="p">,</span> <span class="n">u_bound</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ffd.ffd.FFD_POD_2D.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pod_ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ffd_ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ffd_dataset_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ffd_bound</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">123</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Instantiates the FFD_POD_2D object.</p>
+<p><strong>Input</strong></p>
+<ul>
+<li>dat_file (str): path to input_geometry.dat.</li>
+<li>pod_ncontrol (int): the number of POD control points.</li>
+<li>ffd_ncontrol (int): the number of FFD control points.</li>
+<li>ffd_dataset_size (int): the number of ffd profiles in the POD dataset.</li>
+<li>ffd_bound (tuple[Any]): the ffd dataset deformation boundaries.</li>
+<li>seed (int): seed for the POD dataset sampling.</li>
+<li>kwargs (dict): additional options to be passed to the FFD_2D inner object.</li>
+</ul>
+<p><strong>Inner</strong></p>
+<ul>
+<li>
+<p>pts (np.ndarray): the geometry coordinates in the original referential.</p>
+<p>pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]
+where N is the number of points describing the geometry and (z0, ..., zN)
+are null or identical.</p>
+</li>
+<li>
+<p>ffd (FFD_2D): the ffd object used to build the POD dataset.</p>
+</li>
+</ul>
+
+
+            <details class="quote">
+              <summary>Source code in <code>aero_optim/ffd/ffd.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dat_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pod_ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ffd_ncontrol</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ffd_dataset_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ffd_bound</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">123</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Instantiates the FFD_POD_2D object.</span>
+
+<span class="sd">    **Input**</span>
+
+<span class="sd">    - dat_file (str): path to input_geometry.dat.</span>
+<span class="sd">    - pod_ncontrol (int): the number of POD control points.</span>
+<span class="sd">    - ffd_ncontrol (int): the number of FFD control points.</span>
+<span class="sd">    - ffd_dataset_size (int): the number of ffd profiles in the POD dataset.</span>
+<span class="sd">    - ffd_bound (tuple[Any]): the ffd dataset deformation boundaries.</span>
+<span class="sd">    - seed (int): seed for the POD dataset sampling.</span>
+<span class="sd">    - kwargs (dict): additional options to be passed to the FFD_2D inner object.</span>
+
+<span class="sd">    **Inner**</span>
+
+<span class="sd">    - pts (np.ndarray): the geometry coordinates in the original referential.</span>
+
+<span class="sd">        pts = [[x0, y0, z0], [x1, y1, z1], ..., [xN, yN, zN]]</span>
+<span class="sd">        where N is the number of points describing the geometry and (z0, ..., zN)</span>
+<span class="sd">        are null or identical.</span>
+
+<span class="sd">    - ffd (FFD_2D): the ffd object used to build the POD dataset.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dat_file</span><span class="p">,</span> <span class="n">ffd_ncontrol</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pod_ncontrol</span> <span class="o">=</span> <span class="n">pod_ncontrol</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ffd_ncontrol</span> <span class="o">=</span> <span class="n">ffd_ncontrol</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ffd_dataset_size</span> <span class="o">=</span> <span class="n">ffd_dataset_size</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ffd</span> <span class="o">=</span> <span class="n">FFD_2D</span><span class="p">(</span><span class="n">dat_file</span><span class="p">,</span> <span class="n">ffd_ncontrol</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ffd_bound</span> <span class="o">=</span> <span class="n">ffd_bound</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">build_pod_dataset</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../mfsm/" class="btn btn-neutral float-left" title="Multi-Fidelity Surrogate Module"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../dev_mesh/" class="btn btn-neutral float-right" title="Mesh Module">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../mfsm/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../dev_mesh/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

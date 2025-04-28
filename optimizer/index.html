@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/optimizer/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>Evolution and Optimizer Modules - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Evolution and Optimizer Modules";
+        var mkdocs_page_input_path = "optimizer.md";
+        var mkdocs_page_url = "/aero-optim/optimizer/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Evolution and Optimizer Modules</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#evolution">Evolution</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#optimizer">Optimizer</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#wolf-optimizer">Wolf Optimizer</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#debug-optimizer">Debug Optimizer</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#quick-experiments">Quick Experiments</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User Guide</li>
+      <li class="breadcrumb-item active">Evolution and Optimizer Modules</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/optimizer.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="evolution-and-optimizer-modules">Evolution and Optimizer Modules</h2>
+<p>The evolution and optimizer modules are designed to define all components required by an evolution algorithm based on the <a href="https://inspyred.readthedocs.io/en/latest/"><code>inspyred</code></a> logic:</p>
+<ul>
+<li><code>generator</code>: a function used to sample an initial population,</li>
+<li><code>observer</code>: a function executed after each evaluation,</li>
+<li><code>evaluator</code>: a function used to evaluate the candidates of each generation,</li>
+<li>some additional optimization arguments.</li>
+</ul>
+<p>The framework currently supports two optimization libraries : <a href="https://pythonhosted.org/inspyred/index.html"><code>inspyred</code></a> and <a href="https://pymoo.org/index.html"><code>pymoo</code></a>.</p>
+<p>The <code>Evolution</code> class is the upmost class in the optimization framework. It is used to define the optimizer, the evolution algorithm and how they should be executed together. Thus, the <code>Optimizer</code> required attributes and methods are passed to the evolutionary computation algorithm (see <a href="https://pythonhosted.org/inspyred/reference.html#ec-evolutionary-computation-framework"><code>ec</code></a> framework for <code>inspyred</code> and <a href="https://pymoo.org/algorithms/list.html">algorithms</a> in <code>pymoo</code>) and its optimization method (see <a href="https://pythonhosted.org/inspyred/reference.html?highlight=evolve#inspyred.ec.EvolutionaryComputation.evolve"><code>ec.evolve</code></a> for <code>inspyred</code> and <a href="https://pymoo.org/interface/minimize.html?highlight=minimize"><code>optimize.minimize</code></a> for <code>pymoo</code>). To do so, the <code>Evolution</code> class ensures that the algorithm object and the optimization method are set and executed according to the chosen library requirements.</p>
+<h3 id="evolution">Evolution</h3>
+<p>The <code>Evolution</code> abstract class is initialized with the configuration dictionary that is used to instantiate its <code>optimizer (Optimizer)</code> attribute.</p>
+<p>In addition, it implements two base methods:</p>
+<ul>
+<li><code>set_ea</code>: which sets the evolutionary algorithm,</li>
+<li><code>evolve</code>: which defines how the optimization should be executed.</li>
+</ul>
+<p>When an optimization is launched, the <code>InspyredEvolution</code> or <code>PymooEvolution</code> class is selected based on the option passed to the <code>optim</code> command (see example below). From there, the evolution strategy is selected based on the optimizer and its <code>strategy_name</code>. By default, <code>strategy_name = "PSO"</code> but this can be changed by specifying <code>"strategy"</code> in the <code>"optim"</code> entry of the configuration file.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Only two single objective strategies are currently supported for each library: <code>ES</code> and <code>PSO</code> for <code>inspyred</code>, <code>GA</code> and <code>PSO</code> for <code>pymoo</code>. More advanced strategies must be specified by customizing the <code>Evolution</code> class (see <a href="../example_custom/">Customized Optimization</a>).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>InspyredEvolution</code> or <code>PymooEvolution</code> are briefly described in their respective class definition (see <a href="../dev_optimizer/#evolution-classes"><code>Evolution classes</code></a>).</p>
+</div>
+<h3 id="optimizer">Optimizer</h3>
+<p>The <code>Optimizer</code> abstract class extracts general arguments from the <code>"optim"</code> and <code>"study"</code> dictionaries of the configuration file such as:</p>
+<ul>
+<li><code>[optim] n_design (int)</code>: the number of design points i.e. the dimension of the problem,</li>
+<li><code>[optim] doe_size (int)</code>: the doe/population size i.e. the number of individuals per generation,</li>
+<li><code>[optim] max_generations (int)</code>: the maximal number of generations to evaluate,</li>
+<li><code>[study] file (str)</code>: the baseline geometry file,</li>
+<li><code>[study] outdir (str)</code>: the optimization output directory,</li>
+<li><code>[study] study_type (str)</code>: the type of study i.e. the meshing routine to use.</li>
+</ul>
+<p>It instantiates optimization related objects:</p>
+<ul>
+<li><code>generator (Generator)</code>: object to sample the initial DOE,</li>
+<li><code>ffd (FFD_2D)</code>: object to deform the baseline geometry,</li>
+<li><code>gmsh_mesh (Mesh)</code>: object to mesh the deformed geometry. </li>
+</ul>
+<p>It also implements the following three base methods:</p>
+<ul>
+<li><code>process_config</code>: which goes through the configuration file making sure expected entries are well defined,</li>
+<li><code>deform</code>: which generates the deformed candidate,</li>
+<li><code>mesh</code>: which meshes the deformed candidates.</li>
+</ul>
+<p>Regardless of the optimization library, the <code>Optimizer</code> class acts as an <code>evaluator</code> and must hence implement an <code>_evaluate</code> method that is used during the optimization. However since they both have their own specificities in terms of candidate management, typing and structure, the choice has been made to inherit the <code>Optimizer</code> class separately for each library.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The <code>Generator</code> class is based on <a href="https://docs.scipy.org/doc/scipy/reference/stats.qmc.html"><code>scipy.qmc</code></a> samplers. It supports three different sampling techniques: <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHypercube.html#scipy.stats.qmc.LatinHypercube">"lhs"</a>, <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.Halton.html#scipy.stats.qmc.Halton">"halton"</a> and <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.Sobol.html#scipy.stats.qmc.Sobol">"sobol"</a>. The sampling technique is selected with the <code>sampler_name</code> entry of the <code>"optim"</code> dictionary in the configuration file.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All optimizer parameters are described in their respective class definition (see <a href="../dev_optimizer/#aero_optim.optimizer.Optimizer"><code>Optimizer</code></a>, <a href="../dev_optimizer/#aero_optim.inspyred_optimizer.WolfOptimizer"><code>WolfOptimizer (inspyred)</code></a>, <a href="../dev_optimizer/#aero_optim.pymoo_optimizer.WolfOptimizer"><code>WolfOptimizer (pymoo)</code></a>).</p>
+</div>
+<h3 id="wolf-optimizer">Wolf Optimizer</h3>
+<p>The <code>WolfOptimizer</code> class illustrates how <code>Optimizer</code> can be inherited to perform a <code>Wolf</code>-based optimization. <strong>It is the default optimizer used when running <code>optim</code></strong>.</p>
+<p>Regardless of the optimization library, it first instantiates a <code>WolfSimulator</code> attribute that is then used in the <code>_evaluate</code> method where for all candidates, the following steps are performed:</p>
+<p>1) geometry deformation,</p>
+<p>2) deformed geometry meshing,</p>
+<p>3) simulation execution,</p>
+<p>4) post-processing i.e. QoI extraction and constraint application.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Design constraints penalizing inadequate geometries both in terms of area and lift coefficient are managed with <code>apply_constraints</code> for <code>inspyred</code> (see <a href="https://inspyred.readthedocs.io/en/latest/recipes.html#constraint-selection">here</a>) and for <code>pymoo</code> (see <a href="https://pymoo.org/constraints/index.html">here</a>).</p>
+</div>
+<p>In the end, all simulations QoIs are returned either as a list of floats (with <code>inspyred</code>) or as a <code>numpy</code> array (with <code>pymoo</code>). In addition, after each evaluation the <code>_observe</code> method is called (automatically with <code>inspyred</code>, explicitly with <code>pymoo</code>) to write or display the results of each generation candidates.</p>
+<p>The overall optimization progress is illustrated as the evolution of the generations statistics plotted and saved with the <code>final_observe</code> method.</p>
+<h3 id="debug-optimizer">Debug Optimizer</h3>
+<p>The <code>DebugOptimizer</code> class was introduced to facilitate prototyping and debugging. It is based on the <code>DebugSimulator</code> and follows a simplified structure of a classic optimizer without constraints, no geometry deformation nor meshing but where candidates are simply evaluation of the <a href="https://pymoo.org/problems/single/ackley.html?highlight=ackley">Ackley function</a>. <strong>This optimizer is used when running <code>optim</code> with the <code>--debug</code> option</strong>.</p>
+<p>In addition, the <code>_observe</code> method does not generate  any figure but only updates the optimization statistics which are finally plotted and saved with <code>final_observe</code>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For this class, candidates are not evaluated concurrently in distinct subprocesses but sequentially inside the <code>_evaluate</code> method.</p>
+</div>
+<h3 id="quick-experiments">Quick Experiments</h3>
+<p>The <code>main_optim.py</code> scripts is called with the <code>optim</code> command. It enable to launch a full optimization in accordance with the configuration file specifications:
+<div class="highlight"><pre><span></span><code>usage:<span class="w"> </span>optim<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span>-c<span class="w"> </span>CONFIG<span class="w"> </span><span class="o">[</span>-o<span class="w"> </span>OUTDIR<span class="o">]</span><span class="w"> </span><span class="o">[</span>-f<span class="w"> </span>CUSTOM_FILE<span class="o">]</span><span class="w"> </span><span class="o">[</span>-d<span class="o">]</span><span class="w"> </span><span class="o">[</span>-v<span class="w"> </span>VERBOSE<span class="o">]</span><span class="w"> </span><span class="o">[</span>-p<span class="o">]</span><span class="w"> </span><span class="o">[</span>-i<span class="o">]</span>
+
+options:
+<span class="w">  </span>-h,<span class="w"> </span>--help<span class="w">            </span>show<span class="w"> </span>this<span class="w"> </span><span class="nb">help</span><span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span><span class="nb">exit</span>
+<span class="w">  </span>-c<span class="w"> </span>CONFIG,<span class="w"> </span>--config<span class="w"> </span>CONFIG
+<span class="w">                        </span>/path/to/config.json<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span>None<span class="o">)</span>
+<span class="w">  </span>-o<span class="w"> </span>OUTDIR,<span class="w"> </span>--outdir<span class="w"> </span>OUTDIR
+<span class="w">                        </span>optim<span class="w"> </span>output<span class="w"> </span>directory<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span><span class="o">)</span>
+<span class="w">  </span>-f<span class="w"> </span>CUSTOM_FILE,<span class="w"> </span>--custom-file<span class="w"> </span>CUSTOM_FILE
+<span class="w">                        </span>/path/to/custom_file.py<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span><span class="o">)</span>
+<span class="w">  </span>-d,<span class="w"> </span>--debug<span class="w">           </span>use<span class="w"> </span>DEBUG<span class="w"> </span>mode<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span>False<span class="o">)</span>
+<span class="w">  </span>-v<span class="w"> </span>VERBOSE,<span class="w"> </span>--verbose<span class="w"> </span>VERBOSE
+<span class="w">                        </span>logger<span class="w"> </span>verbosity<span class="w"> </span>level<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span><span class="m">3</span><span class="o">)</span>
+<span class="w">  </span>-p,<span class="w"> </span>--pymoo<span class="w">           </span>use<span class="w"> </span>the<span class="w"> </span>pymoo<span class="w"> </span>library<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span>False<span class="o">)</span>
+<span class="w">  </span>-i,<span class="w"> </span>--inspyred<span class="w">        </span>use<span class="w"> </span>the<span class="w"> </span>inspyred<span class="w"> </span>library<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span>False<span class="o">)</span>
+</code></pre></div></p>
+<p>For instance, setting <code>doe_size</code> and <code>max_generations</code> to 20 in <code>naca_base.json</code> and running the command below:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to naca_base</span>
+<span class="nb">cd</span><span class="w"> </span>examples/NACA12/naca_base
+optim<span class="w"> </span>-c<span class="w"> </span>naca_base.json<span class="w"> </span>--inspyred
+</code></pre></div>
+will perfom a 20 generations x 20 candidates optimization with <code>inspyred</code> and yield the following figure:</p>
+<p float="left">
+  <img src="../Figures/inspyred_naca_optim.png" width="100%" />
+</p>
+
+<p>Using the <code>--pymoo</code> option instead will yield the following graph:</p>
+<p float="left">
+  <img src="../Figures/pymoo_naca_optim.png" width="100%" />
+</p>
+
+<p>The main difference between these two results stems from the fact that, as opposed to <code>pymoo</code> which does not explicitly modify the fitness value of a penalized candidate, the <code>inspyred</code> optimizer does. Hence, any penalized candidate gets its fitness increased by one. Although this does not affect the optimization behavior, it does change the generations statistics.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, the area penalization sanctions any candidate whose area is greater/smaller than the baseline area +/- 40%. This constraint can be altered for instance by setting <code>area_margin</code> to any other percentage value in the <code>"optim"</code> sub-dictionary of the configuration file.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>In the configuration file, the <code>budget</code> entry should be adapted to the amount of resources available to the user.</p>
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../simulator/" class="btn btn-neutral float-left" title="Simulator Module"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../mfsm/" class="btn btn-neutral float-right" title="Multi-Fidelity Surrogate Module">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../simulator/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../mfsm/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

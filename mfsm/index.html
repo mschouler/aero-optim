@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://mschouler.github.io/aero-optim/mfsm/" />
+      <link rel="shortcut icon" href="../Figures/icon.png" />
+    <title>Multi-Fidelity Surrogate Module - AERO-Optim</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Multi-Fidelity Surrogate Module";
+        var mkdocs_page_input_path = "mfsm.md";
+        var mkdocs_page_url = "/aero-optim/mfsm/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../Figures/logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Getting Started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Multi-Fidelity Surrogate Module</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#multi-fidelity-models">Multi-Fidelity Models</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#infill-strategies">Infill strategies</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#quick-experiments">Quick Experiments</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_ffd/">FFD Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mesh/">Mesh Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_simulator/">Simulator Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_optimizer/">Evolution and Optimizer Modules</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dev_mfsm/">Multi-Fidelity Surrogate Module</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../coverage/">Coverage Report</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Optimization Examples</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_custom/">Customized Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_smo/">Surrogate based Optimization</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../example_mf_smo/">Multi-Fidelity Surrogate based Optimization</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AERO-Optim</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User Guide</li>
+      <li class="breadcrumb-item active">Multi-Fidelity Surrogate Module</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/mschouler/aero-optim/edit/master/docs/mfsm.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="multi-fidelity-surrogate-module">Multi-Fidelity Surrogate Module</h2>
+<p>This module implements two major bricks required to perform multi-fidelity surrogate-assisted optimization:</p>
+<ol>
+<li><code>mf_models</code> which defines model classes to be used for single- / multi-fidelity and single- / multi-objective prediction,</li>
+<li><code>mf_infill</code> which defines sub-optimization problems to be minimized or maximized in the context of Bayesian or non-Bayesian infill strategies.</li>
+</ol>
+<p>All features related to surrogate models come with additional dependencies listed in <code>requirements_sm.txt</code> and recalled below:
+<div class="highlight"><pre><span></span><code>torch<span class="w">       </span><span class="c1"># Pytorch for deep learning based models (MFDNN)</span>
+smt<span class="w">         </span><span class="c1"># for single- and multi-fidelity kriging (MfSMT)</span>
+GPy<span class="w">         </span><span class="c1"># for co-kriging and other Gaussian processes models</span>
+emukit<span class="w">      </span><span class="c1"># for co-kriging and other Gaussian processes models</span>
+</code></pre></div></p>
+<p>These dependencies can be added to the user's environment with the following command:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim</span>
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements_sm.txt
+</code></pre></div></p>
+<h3 id="multi-fidelity-models">Multi-Fidelity Models</h3>
+<p>The <code>MfModel</code> abstract class defines how any multi-fidelity surrogate model can be wrapped. It is initialized with the following positional arguments:</p>
+<ul>
+<li><code>dim (int)</code> which indicates the dimension of the problem,</li>
+<li><code>model_dict (dict)</code> which contains model specific information,</li>
+<li><code>outdir (str)</code> the directory where model parameters should be saved,</li>
+<li><code>seed (int)</code> the random seed the model will be initialized with,</li>
+<li><code>x_lf_DOE (np.ndarray)</code> and <code>y_lf_DOE (np.ndarray)</code> the low-fidelity initial DOE,</li>
+<li><code>x_hf_DOE (np.ndarray)</code> and <code>y_hf_DOE (np.ndarray)</code> the high-fidelity initial DOE.</li>
+</ul>
+<p>When inherited, the following methods should also be overridden:</p>
+<ul>
+<li><code>train()</code> which defines how the model should be trained,</li>
+<li><code>evaluate()</code> which defines how the model should be evaluated,</li>
+<li><code>evaluate_std()</code> which defines how the model standard deviation should be computed when the model is of Bayesian nature.</li>
+</ul>
+<p>In addition, any <code>MfModel</code> based model will have access to two base methods:</p>
+<ul>
+<li><code>set_DOE()</code> which updates the model DOEs,</li>
+<li><code>get_DOE()</code> which returns the model DOEs.</li>
+</ul>
+<p>Except for Neural Network based models, most multi-fidelity models available in <code>mf_models</code> are single-output models, the <code>MultiObjectiveModel</code> class is implemented to turn any <code>MfModel</code> into a multi-objective model. To do so, <code>MfModel</code> objects are built for each objective and passed as a <code>list</code> when <code>MultiObjectiveModel</code> is initialized. This way, the use of <code>MultiObjectiveModel</code> is transparent to the user. The only difference occurs when the model DOEs are updated. For such models, the arrays of objectives must be passed as a list of 1D arrays via the <code>set_DOE()</code> method.</p>
+<h3 id="infill-strategies">Infill strategies</h3>
+<p>The <code>mf_infill</code> module implements various sub-optimization problems related to both single- and bi-objective adaptive infill. The single-objective adaptive infill strategies are:</p>
+<ul>
+<li>the Lower Confidence Bound minimized via <code>minimize_LCB</code>,</li>
+<li>the Expected Improvement maximized via <code>maximize_EI</code>.</li>
+</ul>
+<p>The bi-objective infill strategies are:</p>
+<ul>
+<li>the Probability of Improvement maximized via <code>maximize_PI_BO</code>,</li>
+<li>the minimal Probability of Improvement maximized via <code>maximize_MPI_BO</code>.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The multi-fidelity aspect of the surrogate model used to solve one of these sub-optimization problems only explicitly intervenes with bi-objective adaptive strategies which can use the Pareto front based on the current low- or high-fidelity DOE.</p>
+</div>
+<p>Regardless of the number of objectives, the max-min Euclidean Distance sub-optimization problems provides samples that harmonize the coverage of the design space. It is solved via <code>maximize_ED</code>.</p>
+<h3 id="quick-experiments">Quick Experiments</h3>
+<p>Surrogate models can be evaluated with 1D or multi-dimensional functions with the scripts contained in <code>scripts/MF-SM</code>. For instance, the <code>SMT</code> multi-fidelity co-kriging, can be evaluated on all four Brevault's 1D functions via the command below:
+<div class="highlight"><pre><span></span><code><span class="c1"># from aero-optim to scripts/MF-SM</span>
+<span class="nb">cd</span><span class="w"> </span>scripts/MF-SM
+python3<span class="w"> </span>main_mf.py<span class="w"> </span>-c<span class="w"> </span>config/example.json<span class="w"> </span>-o<span class="w"> </span>mfsmt<span class="w"> </span>-m<span class="w"> </span>mfsmt<span class="w"> </span>-f<span class="w"> </span>1d<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span>
+</code></pre></div>
+where <code>example.json</code> is a configuration file specifying the parameters of the training and evaluation.</p>
+<p>If the configuration file contains a <code>"function nd"</code> entry, the model can be trained and evaluated with Brevault's multi-dimensional functions by simply changing the command line argument <code>-f</code> from <code>1d</code> to <code>nd</code>:
+<div class="highlight"><pre><span></span><code>python3<span class="w"> </span>main_mf.py<span class="w"> </span>-c<span class="w"> </span>config/example.json<span class="w"> </span>-o<span class="w"> </span>mfsmt<span class="w"> </span>-m<span class="w"> </span>mfsmt<span class="w"> </span>-f<span class="w"> </span>nd<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span>
+</code></pre></div></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For 1D functions, the <code>"parameter"</code> entry of the configuration file indicates Brevault's functions parameters while for multi-dimensional functions, it indicates their dimension.</p>
+</div>
+<p>In addition to this script, two other notebooks designed for prototyping and validation purposes for <a href="https://github.com/mschouler/aero-optim/blob/master/scripts/MF-SM/infill_SO.ipynb">single-</a> and <a href="https://github.com/mschouler/aero-optim/blob/master/scripts/MF-SM/infill_MO.ipynb">multi-objective</a> infill strategies are available in <code>scripts/MF-SM</code>.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../optimizer/" class="btn btn-neutral float-left" title="Evolution and Optimizer Modules"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../dev_ffd/" class="btn btn-neutral float-right" title="FFD Module">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/mschouler/aero-optim" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../optimizer/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../dev_ffd/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
