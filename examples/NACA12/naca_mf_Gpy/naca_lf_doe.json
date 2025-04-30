@@ -1,0 +1,46 @@
+{
+    "study": {
+        "study_type": "base",
+        "file": "../data/naca12.dat",
+        "outfile": "naca_base",
+        "outdir": "output_lf_doe"
+    },
+    "optim": {
+        "n_design": 8,
+        "doe_size": 20,
+        "max_generations": 1,
+        "bound": [-0.5, 0.5],
+        "budget": 80,
+        "QoI": "CD",
+        "penalty": ["CL", 0.36]
+    },
+    "gmsh": {
+        "domain": {
+            "inlet": 20,
+            "outlet": 20,
+            "le_offset": 10
+        },
+        "mesh": {
+            "nodes_inlet": 40,
+            "nodes_outlet": 40,
+            "side_nodes": 20,
+            "le": 20,
+            "low": 35,
+            "up": 35
+        },
+        "view": {
+            "GUI": false,
+            "quality": false,
+            "nview": 1
+        }
+    },
+    "simulator": {
+        "ref_input": "../naca_base/naca_base.wolf",
+        "post_process": {
+            "residual.dat": ["ResTot"],
+            "aerocoef.dat": ["CD", "CL", "ResCD", "ResCL"],
+            "wall.dat": ["x", "y", "Cp"]
+        },
+        "exec_cmd": "/home/yfranceschetti/wolf -in @.mesh"
+    }
+}
