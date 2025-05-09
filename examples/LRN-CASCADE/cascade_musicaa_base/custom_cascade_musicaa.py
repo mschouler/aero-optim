@@ -18,8 +18,8 @@ from aero_optim.utils import (custom_input, find_closest_index, check_dir,
 from typing import Callable
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from cascade_adap.custom_cascade import CustomEvolution as WolfCustomEvolution # noqa
-from cascade_adap.custom_cascade import CustomOptimizer as WolfCustomOptimizer # noqa
+from cascade_wolf_base.custom_cascade_wolf import CustomEvolution as WolfCustomEvolution # noqa
+from cascade_wolf_base.custom_cascade_wolf import CustomOptimizer as WolfCustomOptimizer # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -285,7 +285,7 @@ def extract_measurement_line(sim_outdir: str,
     **Extracts** data along measurement line.
     """
     # get time-averaged block data
-    var_list_interp = ["uu", "vv", "ww", "rhou", "rho*uu", "rho*uv", "rho*uw", "p", "T"]
+    var_list_interp = ["uu", "vv", "ww", "rhou", "rhov", "rho*uu", "rho*uv", "rho*uw", "p", "T"]
     data = read_stats_bl(sim_outdir, bl_list, var_list_interp)
 
     # get coordinates
@@ -358,9 +358,9 @@ def compute_QoIs(config: dict, sim_outdir: str) -> pd.DataFrame:
     return df
 
 
-def args_LossCoef(sim_outdir: str, config: dict) -> dict:
+def args_MixedoutLossCoef(sim_outdir: str, config: dict) -> dict:
     """
-    **Returns** a dictionary containing the required arguments for LossCoef.
+    **Returns** a dictionary containing the required arguments for MixedoutLossCoef.
     """
     args: dict = {}
 
@@ -391,7 +391,7 @@ def args_LossCoef(sim_outdir: str, config: dict) -> dict:
     return args
 
 
-def LossCoef(sim_outdir: str, args: dict) -> float:
+def MixedoutLossCoef(sim_outdir: str, args: dict) -> float:
     """
     **Post-processes** the results of a terminated simulation.
     **Returns** the extracted results in a DataFrame.
@@ -412,6 +412,26 @@ def LossCoef(sim_outdir: str, args: dict) -> float:
 
     return (inlet_mixed_out_state["p0_bar"] - outlet_mixed_out_state["p0_bar"]) /\
            (inlet_mixed_out_state["p0_bar"] - inlet_mixed_out_state["p_bar"])
+
+
+def args_OutflowAngle(sim_outdir: str, config: dict) -> dict:
+    return args_MixedoutLossCoef(sim_outdir, config)
+
+
+def OutflowAngle(sim_outdir: str, args: dict) -> float:
+    """
+    **Post-processes** the results of a terminated simulation.
+    **Returns** the extracted results in a DataFrame.
+    """
+    # extract arguments
+    outlet_bl = args["outlet_bl"]
+    outlet_lims = args["outlet_lims"]
+
+    # compute oulet mixed-out pressure
+    outlet_data = extract_measurement_line(sim_outdir, outlet_bl, outlet_lims)
+    outflow_angle = np.nanmean(np.arctan(outlet_data["rhov_interp"] / outlet_data["rhou_interp"]))
+
+    return outflow_angle / np.pi * 180
 
 
 # class CustomSimulator(Simulator):
@@ -501,6 +521,7 @@ class CustomSimulator(WolfSimulator):
         # create local config file
         sim_config = {
             "gmsh": self.config["gmsh"],
+            "optim": self.config["optim"],
             "simulator": self.config["simulator"],
         }
         with open(os.path.join(sim_outdir, "sim_config.json"), "w") as jfile:
