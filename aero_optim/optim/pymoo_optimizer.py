@@ -71,7 +71,7 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
         """
         out = []
         if not self.constraint:
-            return np.row_stack([[-1, -1] for _ in range(len(self.ffd_profiles[gid]))])
+            return np.vstack([[-1, -1] for _ in range(len(self.ffd_profiles[gid]))])
         for cid, pro in enumerate(self.ffd_profiles[gid]):
             ieq_1 = (
                 abs(abs(get_area(pro)) - self.baseline_area) / self.baseline_area - self.area_margin
@@ -82,7 +82,7 @@ class PymooWolfOptimizer(WolfOptimizer, Problem):
                             f"with area {abs(get_area(pro))} "
                             f"and CL {self.simulator.df_dict[gid][cid][self.penalty[0]].iloc[-1]}")
             out.append([ieq_1, ieq_2])
-        return np.row_stack(out)
+        return np.vstack(out)
 
     def _observe(self, pop_fitness: np.ndarray):
         """

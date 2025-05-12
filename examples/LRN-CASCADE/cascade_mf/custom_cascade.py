@@ -143,7 +143,7 @@ class CustomOptimizer(PymooWolfOptimizer):
                 self.J.append([loss_ADP, loss_OP])
             else:
                 self.J.append([float("nan"), float("nan")])
-        out["F"] = np.row_stack(self.J[-self.doe_size:])
+        out["F"] = np.vstack(self.J[-self.doe_size:])
 
         self._observe(out["F"])
         self.gen_ctr += 1
@@ -169,7 +169,7 @@ class CustomOptimizer(PymooWolfOptimizer):
                 logger.info(f"unfeasible candidate g{gid}, c{cid}")
 
         self.execute_candidates(candidates, gid)
-        return np.row_stack(constraint)
+        return np.vstack(constraint)
 
     def apply_candidate_constraints(
             self, profile: np.ndarray, gid: int | str, cid: int
@@ -285,7 +285,7 @@ class CustomOptimizer(PymooWolfOptimizer):
 
         # plot construction
         _, ax = plt.subplots(figsize=(8, 8))
-        gen_fitness = np.row_stack(self.J)
+        gen_fitness = np.vstack(self.J)
 
         # plotting data: last gen. pareto, y_hf infill, hf baseline
         nsga = compute_pareto(gen_fitness[-self.doe_size:, 0], gen_fitness[-self.doe_size:, 1])

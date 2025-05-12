@@ -310,11 +310,11 @@ def main():
          for cid in range(len(hf_dict[0]))]
     )
     # addition of lf baseline results
-    x_lf = np.row_stack([x_lf, np.zeros(x_lf.shape[-1])])
+    x_lf = np.vstack([x_lf, np.zeros(x_lf.shape[-1])])
     lf_w_ADP = np.append(lf_w_ADP, sm_config["optim"]["bsl_lf_w_ADP"])
     lf_w_OP = np.append(lf_w_OP, sm_config["optim"]["bsl_lf_w_OP"])
     # addition of hf baseline results
-    x_hf = np.row_stack([x_hf, np.zeros(x_hf.shape[-1])])
+    x_hf = np.vstack([x_hf, np.zeros(x_hf.shape[-1])])
     hf_w_ADP = np.append(hf_w_ADP, sm_config["optim"]["bsl_hf_w_ADP"])
     hf_w_OP = np.append(hf_w_OP, sm_config["optim"]["bsl_hf_w_OP"])
 
