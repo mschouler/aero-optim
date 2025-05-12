@@ -262,6 +262,7 @@ class CustomOptimizer(WolfCustomOptimizer):
         - angle_OP2 (float): the outflow angle accepted deviation at OP2
         """
         super().set_inner()
+        self.CoI = self.config["optim"].get("CoI", "OutflowAngle")
         self.angle_ADP = self.config["optim"].get("angle_ADP", 1.6)
         self.angle_OP1 = self.config["optim"].get("angle_OP1", 4)
         self.angle_OP2 = self.config["optim"].get("angle_OP2", 4)
@@ -294,29 +295,32 @@ class CustomOptimizer(WolfCustomOptimizer):
                 self.J.append([float("nan"), float("nan")])
 
         # compute candidates angle constraints
-        angle_constraints = []
-        for cid in range(len(X)):
-            outflow_angle_ADP = self.simulator.df_dict[gid][cid]["ADP"]["OutflowAngle"].iloc[0]
-            outflow_angle_OP1 = self.simulator.df_dict[gid][cid]["OP1"]["OutflowAngle"].iloc[0]
-            outflow_angle_OP2 = self.simulator.df_dict[gid][cid]["OP2"]["OutflowAngle"].iloc[0]
-            angle_constraints.append(
-                [abs(outflow_angle_ADP) - self.angle_ADP,
-                 abs(outflow_angle_OP1) - self.angle_OP1,
-                 abs(outflow_angle_OP2) - self.angle_OP2]
-            )
-            logger.debug(f"g{gid}, c{cid} ADP outflow angle: ({abs(outflow_angle_ADP)})")
-            if abs(outflow_angle_ADP) - self.angle_ADP > 0:
-                logger.info(f"g{gid}, c{cid} ADP outflow angle: constraint violation")
-            logger.debug(f"g{gid}, c{cid} OP1 outflow angle: ({abs(outflow_angle_OP1)})")
-            if abs(outflow_angle_OP1) - self.angle_OP1 > 0:
-                logger.info(f"g{gid}, c{cid} OP1 outflow angle: constraint violation")
-            logger.debug(f"g{gid}, c{cid} OP2 outflow angle: ({abs(outflow_angle_OP2)})")
-            if abs(outflow_angle_OP2) - self.angle_OP2 > 0:
-                logger.info(f"g{gid}, c{cid} OP2 outflow angle: constraint violation")
+        if not self.constraint:
+            angle_constraints = [[-1.] * 3 for _ in range(len(X))]
+        else:
+            angle_constraints = []
+            for cid in range(len(X)):
+                outflow_angle_ADP = self.simulator.df_dict[gid][cid]["ADP"][self.CoI].iloc[0]
+                outflow_angle_OP1 = self.simulator.df_dict[gid][cid]["OP1"][self.CoI].iloc[0]
+                outflow_angle_OP2 = self.simulator.df_dict[gid][cid]["OP2"][self.CoI].iloc[0]
+                angle_constraints.append(
+                    [abs(outflow_angle_ADP) - self.angle_ADP,
+                     abs(outflow_angle_OP1) - self.angle_OP1,
+                     abs(outflow_angle_OP2) - self.angle_OP2]
+                )
+                logger.debug(f"g{gid}, c{cid} ADP outflow angle: ({abs(outflow_angle_ADP)})")
+                if abs(outflow_angle_ADP) - self.angle_ADP > 0:
+                    logger.info(f"g{gid}, c{cid} ADP outflow angle: constraint violation")
+                logger.debug(f"g{gid}, c{cid} OP1 outflow angle: ({abs(outflow_angle_OP1)})")
+                if abs(outflow_angle_OP1) - self.angle_OP1 > 0:
+                    logger.info(f"g{gid}, c{cid} OP1 outflow angle: constraint violation")
+                logger.debug(f"g{gid}, c{cid} OP2 outflow angle: ({abs(outflow_angle_OP2)})")
+                if abs(outflow_angle_OP2) - self.angle_OP2 > 0:
+                    logger.info(f"g{gid}, c{cid} OP2 outflow angle: constraint violation")
 
-        out["F"] = np.row_stack(self.J[-self.doe_size:])
+        out["F"] = np.vstack(self.J[-self.doe_size:])
         self._observe(out["F"])
-        out["G"] = np.column_stack([geom_constraints, np.row_stack(angle_constraints)])
+        out["G"] = np.column_stack([geom_constraints, np.vstack(angle_constraints)])
         self.gen_ctr += 1
 
     def apply_candidate_constraints(self, profile: np.ndarray, gid: int, cid: int) -> list[float]:
@@ -328,7 +332,7 @@ class CustomOptimizer(WolfCustomOptimizer):
             when some constraint is violated, a graph is also generated.
         """
         if not self.constraint:
-            return [-1.] * 4
+            return [-1.] * 6
         # relative constraints
         # thmax / c:        +/- 30%
         # Xthmax / c_ax:    +/- 20%
