@@ -534,9 +534,9 @@ class CustomSimulator(WolfSimulator):
         **Post-processes** the results of a terminated simulation.
         **Returns** the extracted results in a DataFrame.
         """
-        df = compute_QoIs(self.config, sim_outdir)
+        df = pd.read_csv(os.path.join(sim_outdir, self.config["simulator"]["post_process"]["file"]))
         logger.info(
-            f"g{dict_id['gid']}, c{dict_id['cid']} converged in {len(df)} it."
+            f"g{dict_id['gid']}, c{dict_id['cid']} converged in {len(df)} ftt."
         )
         logger.info(f"last values:\n{df.tail(n=1).to_string(index=False)}")
         return df
