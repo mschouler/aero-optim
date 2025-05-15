@@ -312,13 +312,13 @@ class CustomOptimizer(WolfCustomOptimizer):
                      self.angle_OP2[0] - outflow_angle_OP2 if outflow_angle_OP2 < self.angle_OP2[0]
                      else outflow_angle_OP2 - self.angle_OP2[1]]
                 )
-                logger.debug(f"g{gid}, c{cid} ADP outflow angle: ({abs(outflow_angle_ADP)})")
+                logger.debug(f"g{gid}, c{cid} ADP outflow angle: ({outflow_angle_ADP})")
                 if angle_constraints[-1][0] > 0:
                     logger.info(f"g{gid}, c{cid} ADP outflow angle: constraint violation")
-                logger.debug(f"g{gid}, c{cid} OP1 outflow angle: ({abs(outflow_angle_OP1)})")
+                logger.debug(f"g{gid}, c{cid} OP1 outflow angle: ({outflow_angle_OP1})")
                 if angle_constraints[-1][1] > 0:
                     logger.info(f"g{gid}, c{cid} OP1 outflow angle: constraint violation")
-                logger.debug(f"g{gid}, c{cid} OP2 outflow angle: ({abs(outflow_angle_OP2)})")
+                logger.debug(f"g{gid}, c{cid} OP2 outflow angle: ({outflow_angle_OP2})")
                 if angle_constraints[-1][2] > 0:
                     logger.info(f"g{gid}, c{cid} OP2 outflow angle: constraint violation")
 
