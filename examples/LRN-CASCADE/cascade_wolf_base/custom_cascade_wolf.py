@@ -285,9 +285,9 @@ class CustomOptimizer(WolfCustomOptimizer):
         # Note: this time only the first value in the dataframe should be read
         for cid in range(len(X)):
             if cid in self.feasible_cid[gid]:
-                loss_ADP = self.simulator.df_dict[gid][cid]["ADP"][self.QoI].iloc[0]
-                loss_OP1 = self.simulator.df_dict[gid][cid]["OP1"][self.QoI].iloc[0]
-                loss_OP2 = self.simulator.df_dict[gid][cid]["OP2"][self.QoI].iloc[0]
+                loss_ADP = self.simulator.df_dict[gid][cid]["ADP"][self.QoI].dropna().iloc[-1]
+                loss_OP1 = self.simulator.df_dict[gid][cid]["OP1"][self.QoI].dropna().iloc[-1]
+                loss_OP2 = self.simulator.df_dict[gid][cid]["OP2"][self.QoI].dropna().iloc[-1]
                 logger.info(f"g{gid}, c{cid}: "
                             f"w_ADP = {loss_ADP}, w_OP = {0.5 * (loss_OP1 + loss_OP2)}")
                 self.J.append([loss_ADP, 0.5 * (loss_OP1 + loss_OP2)])
@@ -299,10 +299,11 @@ class CustomOptimizer(WolfCustomOptimizer):
             angle_constraints = [[-1.] * 3 for _ in range(len(X))]
         else:
             angle_constraints = []
+            CoI = self.CoI
             for cid in range(len(X)):
-                outflow_angle_ADP = self.simulator.df_dict[gid][cid]["ADP"][self.CoI].iloc[0]
-                outflow_angle_OP1 = self.simulator.df_dict[gid][cid]["OP1"][self.CoI].iloc[0]
-                outflow_angle_OP2 = self.simulator.df_dict[gid][cid]["OP2"][self.CoI].iloc[0]
+                outflow_angle_ADP = self.simulator.df_dict[gid][cid]["ADP"][CoI].dropna().iloc[-1]
+                outflow_angle_OP1 = self.simulator.df_dict[gid][cid]["OP1"][CoI].dropna().iloc[-1]
+                outflow_angle_OP2 = self.simulator.df_dict[gid][cid]["OP2"][CoI].dropna().iloc[-1]
                 angle_constraints.append(
                     [abs(outflow_angle_ADP) - self.angle_ADP,
                      abs(outflow_angle_OP1) - self.angle_OP1,
