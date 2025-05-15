@@ -257,15 +257,15 @@ class CustomOptimizer(WolfCustomOptimizer):
         """
         **Sets** some baseline quantities required to compute the relative constraints:
 
-        - angle_ADP (float): the outflow angle accepted deviation at ADP
-        - angle_OP1 (float): the outflow angle accepted deviation at OP1
-        - angle_OP2 (float): the outflow angle accepted deviation at OP2
+        - angle_ADP (list[float]): min/max outflow angle accepted deviations at ADP
+        - angle_OP1 (list[float]): min/max outflow angle accepted deviations at OP1
+        - angle_OP2 (list[float]): min/max outflow angle accepted deviations at OP2
         """
         super().set_inner()
         self.CoI = self.config["optim"].get("CoI", "OutflowAngle")
-        self.angle_ADP = self.config["optim"].get("angle_ADP", 1.6)
-        self.angle_OP1 = self.config["optim"].get("angle_OP1", 4)
-        self.angle_OP2 = self.config["optim"].get("angle_OP2", 4)
+        self.angle_ADP = self.config["optim"].get("angle_ADP")
+        self.angle_OP1 = self.config["optim"].get("angle_OP1")
+        self.angle_OP2 = self.config["optim"].get("angle_OP2")
 
     def _evaluate(self, X: np.ndarray, out: np.ndarray, *args, **kwargs):
         """
@@ -305,9 +305,12 @@ class CustomOptimizer(WolfCustomOptimizer):
                 outflow_angle_OP1 = self.simulator.df_dict[gid][cid]["OP1"][CoI].dropna().iloc[-1]
                 outflow_angle_OP2 = self.simulator.df_dict[gid][cid]["OP2"][CoI].dropna().iloc[-1]
                 angle_constraints.append(
-                    [abs(outflow_angle_ADP) - self.angle_ADP,
-                     abs(outflow_angle_OP1) - self.angle_OP1,
-                     abs(outflow_angle_OP2) - self.angle_OP2]
+                    [self.angle_ADP[0] - outflow_angle_ADP if outflow_angle_ADP < self.angle_ADP[0]
+                     else outflow_angle_ADP - self.angle_ADP[1],
+                     self.angle_OP1[0] - outflow_angle_OP1 if outflow_angle_OP1 < self.angle_OP1[0]
+                     else outflow_angle_OP1 - self.angle_OP1[1],
+                     self.angle_OP2[0] - outflow_angle_OP2 if outflow_angle_OP2 < self.angle_OP2[0]
+                     else outflow_angle_OP2 - self.angle_OP2[1]]
                 )
                 logger.debug(f"g{gid}, c{cid} ADP outflow angle: ({abs(outflow_angle_ADP)})")
                 if abs(outflow_angle_ADP) - self.angle_ADP > 0:
