@@ -84,7 +84,7 @@ def compute_mixedout_qty(input_data: pd.DataFrame) -> tuple[float, float]:
 
     # conservation of energy
     gamma = 1.4
-    R = 8.314
+    R = 287.058
     E = m_bar * gamma / (gamma - 1) * p_bar / rho_bar + m_bar / 2. * (uu_bar + vv_bar)
 
     # quadratic equation
