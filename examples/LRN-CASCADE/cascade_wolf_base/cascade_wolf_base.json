@@ -1,7 +1,7 @@
 {
     "study": {
         "study_type": "cascade",
-        "ffd_type": "ffd_2d",
+        "ffd_type": "ffd_pod_2d",
         "file": "ogv1c.dat",
         "outdir": "output",
         "custom_file": "custom_cascade_wolf.py"
@@ -10,16 +10,21 @@
         "n_design": 8,
         "doe_size": 20,
         "max_generations": 50,
-        "bound": [-0.2, 0.2],
+        "bound": [-0.1, 0.1],
         "QoI": "MixedoutLossCoef",
         "budget": 10,
-        "baseline_w_ADP": 0.0328,
-        "baseline_w_OP": 0.0571
+        "baseline_w_ADP": 0.0749,
+        "baseline_w_OP": 0.125,
+        "angle_ADP": [0.5, 2.5],
+        "angle_OP1": [-4, 4],
+        "angle_OP2": [-4, 4],
+        "constraint": true
     },
     "ffd": {
+        "pod_ncontrol": 4,
+        "ffd_dataset_size": 1000,
         "rotation": true,
-        "rot_bound": [-2, 2],
-        "scale_": 1e-3
+        "rot_bound": [-2, 2]
     },
     "gmsh": {
         "mesh": {
