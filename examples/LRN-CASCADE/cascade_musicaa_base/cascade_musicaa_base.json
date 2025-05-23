@@ -2,7 +2,7 @@
     "study": {
         "custom_file": "custom_cascade_musicaa.py",
         "study_type": "musicaa",
-        "ffd_type": "ffd_2d",
+        "ffd_type": "ffd_pod_2d",
         "file": "musicaa_mesh/ogv1c.dat",
         "outdir": "output"
     },
@@ -18,24 +18,26 @@
     },
     "optim": {
         "n_design": 8,
-        "doe_size": 5,
+        "doe_size": 4,
         "max_generations": 1,
-        "bound": [-0.2, 0.2],
-        "QoI": "LossCoef",
-        "budget": 1,
-        "hf_budget_infill": 2,
-        "hf_budget_doe": 1,
-        "constraint": false
+        "bound": [-0.1, 0.1],
+        "QoI": "MixedoutLossCoef",
+        "budget": 2,
+        "constraint": false,
+        "baseline_w_ADP": 0.0349,
+        "baseline_w_OP": 0.0483
     },
     "ffd": {
         "pod_ncontrol": 4,
-        "ffd_dataset_size": 1000
+        "ffd_dataset_size": 1000,
+        "rotation": true,
+        "rot_bound": [-2, 2]
     },
     "simulator": {
         "ref_input": "cascade_musicaa_base.json",
         "cp_list": ["param.ini", "param_blocks.ini", "param_blocks.ini_3D", "param_rans.ini", "feos_air.ini"],
         "preprocess_cmd" : "/home/mschouler/bin/musicaa",
-        "exec_cmd" : "python3 /home/mschouler/aero-optim/examples/LRN-CASCADE/cascade_musicaa_base/execute.py -ms 2",
+        "exec_cmd" : "python3 /home/mschouler/Documents/Sorbonne/aero-optim/examples/LRN-CASCADE/cascade_musicaa_base/execute.py -ms 1",
         "restart_musicaa": 3,
         "divide_CFL_by": 1.2,
 
@@ -44,7 +46,7 @@
             "niter_stats_steady": 1000,
             "Boudet_criterion_type": "original",
             "monitored_variables": 3,
-            "nb_ftt_before_criterion": 1,
+            "nb_ftt_before_criterion": 10,
             "only_compute_mean_crit": true,
             "unsteady_convergence_percent_mean": 5,
             "unsteady_convergence_percent_rms": 10,
@@ -62,7 +64,8 @@
                 "outlet_x1":  87.25188,
                 "outlet_x2":  87.25188
             },
-            "outputs": ["LossCoef"]
+            "outputs": ["MixedoutLossCoef", "OutflowAngle"],
+            "file": "QoI_convergence.csv"
         }
     }
 }

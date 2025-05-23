@@ -4,14 +4,18 @@ import dill as pickle
 import functools
 import numpy as np
 import os
+import pandas as pd
 import subprocess
 import time
 
+from typing import Any
+
 from aero_optim.ffd.ffd import FFD_POD_2D
-from aero_optim.mf_sm.mf_models import get_model, get_sampler, MfDNN, MultiObjectiveModel
-from aero_optim.utils import check_config, mv_filelist
-from custom_cascade import (compute_bayesian_infill, compute_non_bayesian_infill,
-                            compute_pareto, execute_single_gen, execute_infill)
+from aero_optim.mf_sm.mf_infill import (maximize_ED, minimize_LCB, maximize_MPI_BO,
+                                        maximize_RegCrit, MPI_acquisition_function, compute_pareto)
+from aero_optim.mf_sm.mf_models import get_model, get_sampler, MfDNN, MfSMT, MultiObjectiveModel
+from aero_optim.utils import (check_config, check_dir, check_file,
+                              cp_filelist, mv_filelist, replace_in_file)
 
 print = functools.partial(print, flush=True)
 
@@ -67,6 +71,142 @@ def save_results(model: MfDNN | MultiObjectiveModel, outdir: str):
         np.savetxt(os.path.join(outdir, "hf_fitnesses.txt"), y_hf)
     else:
         raise Exception(f"{type(model)} is currently not supported")
+
+
+def compute_bayesian_infill(
+        model: MfDNN | MultiObjectiveModel,
+        infill_lf_size: int,
+        infill_nb_gen: int,
+        infill_regularization: bool,
+        n_design: int,
+        bound: list[Any],
+        seed: int,
+) -> np.ndarray:
+    """
+    **Computes** the low fidelity Bayesian infill candidates.
+    """
+    assert isinstance(model, MultiObjectiveModel)
+    # Probability of Improvement
+    if infill_regularization:
+        infill_lf = maximize_RegCrit(
+            MPI_acquisition_function, model, n_design, bound, seed, infill_nb_gen
+        )
+    else:
+        infill_lf = maximize_MPI_BO(model, n_design, bound, seed, infill_nb_gen)
+    # Lower Confidence Bound /objective 1
+    assert isinstance(model.models[0], MfSMT)
+    infill_lf_LCB_1 = minimize_LCB(model.models[0], n_design, bound, seed, infill_nb_gen)
+    infill_lf = np.vstack((infill_lf, infill_lf_LCB_1))
+    # Lower Confidence Bound /objective 2
+    assert isinstance(model.models[1], MfSMT)
+    infill_lf_LCB_2 = minimize_LCB(model.models[1], n_design, bound, seed, infill_nb_gen)
+    infill_lf = np.vstack((infill_lf, infill_lf_LCB_2))
+    # max-min Euclidean Distance
+    current_DOE = model.get_DOE()
+    current_DOE = np.vstack((current_DOE, infill_lf))
+    for _ in range(infill_lf_size - 3):
+        infill_lf_ED = maximize_ED(current_DOE, n_design, bound, seed, infill_nb_gen)
+        infill_lf = np.vstack((infill_lf, infill_lf_ED))
+        current_DOE = np.vstack((current_DOE, infill_lf_ED))
+    return infill_lf
+
+
+def compute_non_bayesian_infill(
+    model: MfDNN | MultiObjectiveModel,
+    pareto_cand: np.ndarray,
+    pareto_fit: np.ndarray,
+    infill_lf_size: int,
+    infill_nb_gen: int,
+    n_design: int,
+    bound: list[Any],
+    seed: int
+) -> np.ndarray:
+    """
+    **Computes** the low fidelity non-Bayesian infill candidates.
+    """
+    if len(pareto_fit) == 1:
+        infill_lf = pareto_cand[0]
+        n_p = 1
+    elif len(pareto_fit) == 2:
+        infill_lf = pareto_cand[:2]
+        n_p = 2
+    else:
+        # matrix made of the distance between each point in the ordered pareto front
+        d_matrix = np.linalg.norm(pareto_fit[:, np.newaxis] - pareto_fit[np.newaxis, :], axis=-1)
+        # 1d array with the distance between two consecutive points along the ordered pareto front
+        s = np.array([d_matrix[i + 1, i] for i in range(len(d_matrix) - 1)])
+        s_length = np.sum(s)
+        # index of the closest point to the pareto set center
+        idx = np.argmin([abs(np.sum(s[:i]) - s_length / 2.) for i in range(len(s))])
+        infill_lf = pareto_cand[idx]
+        # best candidate wrt 1st objective
+        infill_lf = np.vstack((infill_lf, pareto_cand[0]))
+        # best candidate wrt 2nd objective
+        infill_lf = np.vstack((infill_lf, pareto_cand[-1]))
+        n_p = 3
+    # max-min Euclidean Distance
+    current_DOE = model.get_DOE()
+    for _ in range(infill_lf_size - n_p):
+        infill_lf_ED = maximize_ED(current_DOE, n_design, bound, seed, infill_nb_gen)
+        infill_lf = np.vstack((infill_lf, infill_lf_ED))
+        current_DOE = np.vstack((current_DOE, infill_lf_ED))
+    return infill_lf
+
+
+def execute_infill(
+        X: np.ndarray, config: str, n_design: int, outdir: str, ite: int, fidelity: str
+) -> list[np.ndarray]:
+    """
+    **Executes** infill candidates and returns their associated fitnesses.
+    """
+    name = f"{fidelity}_infill_{ite}"
+    df_dict = execute_single_gen(
+        X=X,
+        config=config,
+        outdir=os.path.join(outdir, name),
+        name=name,
+        n_design=n_design
+    )
+    loss_ADP = np.array(
+        [df_dict[0][cid]["ADP"]["LossCoef"].iloc[-1] for cid in range(len(df_dict[0]))]
+    )
+    loss_OP = np.array(
+        [0.5 * (df_dict[0][cid]["OP1"]["LossCoef"].iloc[-1]
+                + df_dict[0][cid]["OP2"]["LossCoef"].iloc[-1])
+            for cid in range(len(df_dict[0]))]
+    )
+    assert len(loss_ADP) == len(np.atleast_2d(X))
+    return [loss_ADP, loss_OP]
+
+
+def execute_single_gen(
+        X: np.ndarray, config: str, outdir: str, name: str, n_design: int = 0
+) -> dict[int, dict[int, pd.DataFrame]]:
+    """
+    **Executes** a single generation of candidates.
+    """
+    check_file(config)
+    check_dir(outdir)
+    cp_filelist([config], [outdir])
+    config_path = os.path.join(outdir, config)
+    custom_doe = os.path.join(outdir, f"{name}.txt")
+    np.savetxt(custom_doe, np.atleast_2d(X))
+    # updates @outdir, @n_design, @doe_size, @custom_doe
+    # Note: @n_design is the number of FFD control points even when using POD
+    config_args = {
+        "@outdir": outdir,
+        "@n_design": f"{n_design if n_design else np.atleast_2d(X).shape[1]}",
+        "@doe_size": f"{np.atleast_2d(X).shape[0]}",
+        "@custom_doe": f"{custom_doe}"
+    }
+    replace_in_file(config_path, config_args)
+    # execute single generation
+    exec_cmd = ["optim", "-c", f"{config_path}", "-v", "3", "--pymoo"]
+    subprocess.run(exec_cmd, env=os.environ, stdin=subprocess.DEVNULL, check=True)
+    # load results
+    with open(os.path.join(outdir, "df_dict.pkl"), "rb") as handle:
+        df_dict = pickle.load(handle)
+    return df_dict
 
 
 def main():
@@ -170,11 +310,11 @@ def main():
          for cid in range(len(hf_dict[0]))]
     )
     # addition of lf baseline results
-    x_lf = np.row_stack([x_lf, np.zeros(x_lf.shape[-1])])
+    x_lf = np.vstack([x_lf, np.zeros(x_lf.shape[-1])])
     lf_w_ADP = np.append(lf_w_ADP, sm_config["optim"]["bsl_lf_w_ADP"])
     lf_w_OP = np.append(lf_w_OP, sm_config["optim"]["bsl_lf_w_OP"])
     # addition of hf baseline results
-    x_hf = np.row_stack([x_hf, np.zeros(x_hf.shape[-1])])
+    x_hf = np.vstack([x_hf, np.zeros(x_hf.shape[-1])])
     hf_w_ADP = np.append(hf_w_ADP, sm_config["optim"]["bsl_hf_w_ADP"])
     hf_w_OP = np.append(hf_w_OP, sm_config["optim"]["bsl_hf_w_OP"])
 

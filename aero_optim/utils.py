@@ -363,7 +363,7 @@ def monitor_process(l_proc: list[tuple[str, subprocess.Popen[str]]]) -> int:
             for _, p in l_proc:
                 p.terminate()
             raise Exception(f"ERROR -- simulation {name} failed")
-        _ = [l_proc.pop(idx) for idx in sorted(finished_sim, reverse=True)]
+    _ = [l_proc.pop(idx) for idx in sorted(finished_sim, reverse=True)]
     return len(l_proc)
 
 

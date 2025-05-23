@@ -302,7 +302,7 @@ class WolfSimulator(Simulator):
         **Kills** all active processes.
         """
         logger.info(f"{len(self.sim_pro)} remaining simulation(s) will be killed")
-        _ = [subpro.terminate() for _, subpro in self.sim_pro]
+        _ = [os.killpg(os.getpgid(subpro.pid), 15) for _, subpro in self.sim_pro]
 
 
 class DebugSimulator(Simulator):

@@ -118,7 +118,7 @@ class CustomOptimizer(PymooWolfOptimizer):
             else:
                 self.J.append([float("nan"), float("nan")])
 
-        out["F"] = np.row_stack(self.J[-self.doe_size:])
+        out["F"] = np.vstack(self.J[-self.doe_size:])
         self._observe(out["F"])
         self.gen_ctr += 1
 
@@ -153,7 +153,7 @@ class CustomOptimizer(PymooWolfOptimizer):
         # wait for last candidates to finish
         while self.simulator.monitor_sim_progress() > 0:
             time.sleep(0.1)
-        return np.row_stack(constraint)
+        return np.vstack(constraint)
 
     def apply_candidate_constraints(self, profile: np.ndarray, gid: int, cid: int) -> list[float]:
         """
@@ -285,7 +285,7 @@ class CustomOptimizer(PymooWolfOptimizer):
 
         # plot construction
         _, ax = plt.subplots(figsize=(8, 8))
-        gen_fitness = np.row_stack(self.J)
+        gen_fitness = np.vstack(self.J)
 
         # plotting data
         cmap = mpl.colormaps[self.cmap].resampled(self.max_generations)
