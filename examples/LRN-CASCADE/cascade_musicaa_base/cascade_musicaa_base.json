@@ -46,7 +46,7 @@
             "niter_stats_steady": 1000,
             "Boudet_criterion_type": "original",
             "monitored_variables": 3,
-            "nb_ftt_before_criterion": 1,
+            "nb_ftt_before_criterion": 10,
             "only_compute_mean_crit": true,
             "unsteady_convergence_percent_mean": 5,
             "unsteady_convergence_percent_rms": 10,
